@@ -166,7 +166,7 @@ final class PolarsTable implements Table
 
     private function translator(bool $grouped = true): Translator
     {
-        return new Translator($this->df->schema(), $grouped ? $this->groups : []);
+        return new Translator($this->df->schema(), $grouped ? $this->groups : [], $this->factors);
     }
 
     /** Sort keys for group order: factor levels first, NA last, strings by byte. */
@@ -380,7 +380,7 @@ final class PolarsTable implements Table
         $factors = $this->factors;
         foreach ($columns as $name => $value) {
             $name = (string) $name;
-            $translator = new Translator($df->schema(), $this->groups);
+            $translator = new Translator($df->schema(), $this->groups, $this->factors);
             $expr = match (true) {
                 $value instanceof PhibbleExpr => $translator->row($value),
                 is_array($value) => $this->listColumn($value, $df->height()),

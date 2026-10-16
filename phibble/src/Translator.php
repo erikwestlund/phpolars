@@ -42,10 +42,25 @@ final class Translator
      * @param array<string, string> $schema Column name => Polars data type name.
      * @param list<string> $partition Group keys for mutate/filter; empty when ungrouped.
      */
+    /**
+     * @param array<string, array{levels: list<string>, ordered: bool}> $factors
+     *     Factor columns; they order and rank by level, as in dplyr.
+     */
     public function __construct(
         private readonly array $schema,
         private readonly array $partition = [],
+        private readonly array $factors = [],
     ) {}
+
+    /** An expression to order or rank by: a factor column by its level position. */
+    private function sortable(PhibbleExpr $e, bool $inGroup): Expr
+    {
+        if ($e instanceof Col && isset($this->factors[$e->name])) {
+            return col($e->name)->replaceStrict(array_flip($this->factors[$e->name]['levels']), default: lit(null), returnDtype: 'Int64');
+        }
+
+        return $this->node($e, $inGroup);
+    }
 
     /** A row-level expression, as mutate() and filter() evaluate it. */
     public function row(PhibbleExpr $e): Expr
@@ -783,7 +798,7 @@ final class Translator
         } else {
             $first = $c->args[0];
             $desc = $first instanceof Desc;
-            $x = $this->node($desc ? $first->expr : $first, true);
+            $x = $this->sortable($desc ? $first->expr : $first, true);
             $rowNumber = $x->rank('ordinal', descending: $desc)->cast('Int64');
         }
         if ($fn === 'row_number') {
@@ -893,7 +908,7 @@ final class Translator
     {
         $desc = $order instanceof Desc;
 
-        return [$this->node($desc ? $order->expr : $order, $inGroup), $desc];
+        return [$this->sortable($desc ? $order->expr : $order, $inGroup), $desc];
     }
 
     /** The values of a list literal, for in(). */

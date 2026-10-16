@@ -233,3 +233,12 @@ it('lists group rows in group order', function () {
         ->and($t->head(0)->groupRows())->toBe([['key' => [], 'rows' => []]])
         ->and($t->groupBy(['g'])->groupRows())->toBe($t->collect()->groupBy(['g'])->groupRows());
 });
+
+it('ranks and orders factors by level, as phibble v0.1.0 does', function () {
+    $frame = Frame::fromColumns(['f' => ['a', 'b', 'c', 'b'], 'x' => [1, 2, 3, 4]])->fctLevels('f', ['c', 'b', 'a']);
+
+    expect(native(fn () => pt($frame)->mutate(['r' => Phibble\Expr\min_rank(col('f'))]))->column('r'))
+        ->toBe($frame->mutate(['r' => Phibble\Expr\min_rank(col('f'))])->column('r'))
+        ->and(pt($frame)->mutate(['p' => Phibble\Expr\lag(col('x'), order_by: col('f'))])->column('p'))
+        ->toBe($frame->mutate(['p' => Phibble\Expr\lag(col('x'), order_by: col('f'))])->column('p'));
+});
