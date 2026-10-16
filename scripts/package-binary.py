@@ -52,7 +52,7 @@ for key in sorted(seen, key=lambda k: (packages[k]['name'], packages[k]['version
         if license_file not in files:
             files.append(license_file)
     if not files:
-        files = [ROOT/'third-party'/f"{package['name']}-{package['version']}"/'LICENSE-MIT']
+        files = sorted((ROOT/'third-party'/f"{package['name']}-{package['version']}").glob('LICENSE*'))
     if any(not f.is_file() for f in files):
         raise SystemExit(f"Missing dependency notice: {package['name']} {package['version']}")
     record = dict(name=package['name'], version=package['version'], license=package['license'], repository=package['repository'], notices=[])
