@@ -135,12 +135,28 @@ pub fn series_values(s: &Series) -> PhpResult<Vec<Zval>> {
             values(s.f64().php()?.iter(), |z, v| z.set_double(v))
         }
         DataType::UInt64 | DataType::UInt128 | DataType::Int128 => {
-            // Values beyond int64 would wrap; return those columns as floats, as PHP does.
+            // Values beyond int64 would wrap; those become floats, as PHP's own
+            // integer overflow does, and the rest stay ints.
             match s.strict_cast(&DataType::Int64) {
                 Ok(n) => values(n.i64().php()?.iter(), |z, v| z.set_long(v)),
                 Err(_) => {
+                    let narrow = s.cast(&DataType::Int64).php()?;
                     let wide = s.cast(&DataType::Float64).php()?;
-                    values(wide.f64().php()?.iter(), |z, v| z.set_double(v))
+                    narrow
+                        .i64()
+                        .php()?
+                        .iter()
+                        .zip(wide.f64().php()?.iter())
+                        .map(|(n, f)| {
+                            let mut z = Zval::new();
+                            match (n, f) {
+                                (Some(i), _) => z.set_long(i),
+                                (None, Some(f)) => z.set_double(f),
+                                (None, None) => z.set_null(),
+                            }
+                            z
+                        })
+                        .collect()
                 }
             }
         }

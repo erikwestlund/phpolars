@@ -4,7 +4,7 @@ title: "Types and values"
 
 ## Data types
 
-Data types are written as py-polars names: `'Int8'` … `'Int64'`, `'UInt8'` … `'UInt64'`, `'Float32'`, `'Float64'`, `'Boolean'`, `'String'`, `'Binary'`, `'Date'`, `'Datetime'` (microseconds), `'Datetime(ms, UTC)'`, `'Duration(us)'`, `'Time'`, `'Categorical'`, `'Null'`, `'Decimal(10, 2)'`, and `'List(Int64)'`. `Phpolars\DataType` has the same names as constants (`DataType::Int64`), and `DataType::datetime('ms', 'UTC')` builds the parameterized names.
+Data types are written as py-polars names: `'Int8'` … `'Int64'`, `'UInt8'` … `'UInt64'`, `'Float32'`, `'Float64'`, `'Boolean'`, `'String'`, `'Binary'`, `'Date'`, `'Datetime'` (microseconds), `'Datetime(ms, UTC)'`, `'Duration(us)'`, `'Time'`, `'Categorical'`, `'Null'`, `'Decimal(10, 2)'`, `'List(Int64)'`, `'Array(Int64, 3)'`, and `'Struct(a: Int64, b: String)'`, plus `'Int128'` and `'UInt128'`. `Phpolars\DataType` has the same names as constants (`DataType::Int64`), and `DataType::datetime('ms', 'UTC')` builds the parameterized names.
 
 ## Values
 

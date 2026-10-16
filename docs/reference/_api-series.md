@@ -18,6 +18,7 @@ arr(): Phpolars\ArrayNameSpace
 bin(): Phpolars\BinaryNameSpace
 cast(string $dtype, ?bool $strict = null): Phpolars\Series
 cat(): Phpolars\CatNameSpace
+chunkLengths(): array
 clear(?int $n = null): Phpolars\Series
 clip(mixed $lowerBound = null, mixed $upperBound = null): Phpolars\Series
 count(): int
@@ -25,6 +26,7 @@ cumMax(?bool $reverse = null): Phpolars\Series
 cumMin(?bool $reverse = null): Phpolars\Series
 cumProd(?bool $reverse = null): Phpolars\Series
 cumSum(?bool $reverse = null): Phpolars\Series
+describe(?array $percentiles = null): Phpolars\DataFrame
 diff(?int $n = null): Phpolars\Series
 div(mixed $other): Phpolars\Series
 dropNulls(): Phpolars\Series
@@ -32,6 +34,7 @@ dt(): Phpolars\DtNameSpace
 dtype(): string
 eq(mixed $other): Phpolars\Series
 equals(Phpolars\Series $other): bool
+estimatedSize(): int
 exp(): Phpolars\Series
 extend(Phpolars\Series $other): Phpolars\Series
 fillNan(mixed $value): Phpolars\Series
@@ -67,9 +70,11 @@ median(): mixed
 min(): mixed
 mod(mixed $other): Phpolars\Series
 mul(mixed $other): Phpolars\Series
+nChunks(): int
 nUnique(): mixed
 name(): string
 ne(mixed $other): Phpolars\Series
+newFromIndex(int $index, int $length): Phpolars\Series
 not(): Phpolars\Series
 nullCount(): int
 or(mixed $other): Phpolars\Series
@@ -78,11 +83,16 @@ pow(mixed $exponent): Phpolars\Series
 product(): mixed
 quantile(float $quantile, ?string $interpolation = null): mixed
 rank(?string $method = null, ?bool $descending = null, ?int $seed = null): Phpolars\Series
+rechunk(): Phpolars\Series
 rename(string $name): Phpolars\Series
 reverse(): Phpolars\Series
 round(?int $decimals = null): Phpolars\Series
 sample(?int $n = null, ?float $fraction = null, ?bool $withReplacement = null, ?bool $shuffle = null, ?int $seed = null): Phpolars\Series
+scatter(mixed $indices, mixed $values): Phpolars\Series
+set(Phpolars\Series $filter, mixed $value): Phpolars\Series
+shape(): array
 shift(?int $n = null): Phpolars\Series
+shrinkToFit(): Phpolars\Series
 slice(int $offset, ?int $length = null): Phpolars\Series
 sort(?bool $descending = null, ?bool $nullsLast = null): Phpolars\Series
 sqrt(): Phpolars\Series

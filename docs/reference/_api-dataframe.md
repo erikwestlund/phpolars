@@ -24,6 +24,7 @@ fillNan(mixed $value): Phpolars\DataFrame
 fillNull(mixed $value = null, ?string $strategy = null, ?int $limit = null): Phpolars\DataFrame
 filter(mixed ...$predicates): Phpolars\DataFrame
 first(): Phpolars\DataFrame
+gather(mixed $indices): Phpolars\DataFrame
 gatherEvery(int $n, ?int $offset = null): Phpolars\DataFrame
 getColumn(string $name): Phpolars\Series
 getColumnIndex(string $name): int
@@ -40,19 +41,24 @@ isDuplicated(): Phpolars\Series
 isEmpty(): bool
 isUnique(): Phpolars\Series
 item(?int $row = null, mixed $column = null): mixed
+iterRows(?bool $named = null): array
+iterSlices(?int $nRows = null): array
 join(mixed $other, mixed $on = null, ?string $how = null, mixed $leftOn = null, mixed $rightOn = null, ?string $suffix = null, ?bool $coalesce = null, ?string $maintainOrder = null, ?bool $nullsEqual = null): Phpolars\DataFrame
 joinAsof(mixed $other, mixed $on = null, mixed $leftOn = null, mixed $rightOn = null, mixed $by = null, mixed $byLeft = null, mixed $byRight = null, ?string $strategy = null, ?string $suffix = null, mixed $tolerance = null, ?bool $allowExactMatches = null, ?bool $checkSortedness = null, ?bool $coalesce = null): Phpolars\DataFrame
 joinWhere(mixed $other, mixed ...$predicates): Phpolars\DataFrame
 last(): Phpolars\DataFrame
 lazy(): Phpolars\LazyFrame
 limit(?int $n = null): Phpolars\DataFrame
+mapRows(mixed $function): Phpolars\DataFrame
 max(): Phpolars\DataFrame
 maxHorizontal(): Phpolars\Series
 mean(): Phpolars\DataFrame
 meanHorizontal(?bool $ignoreNulls = null): Phpolars\Series
 median(): Phpolars\DataFrame
+mergeSorted(mixed $other, mixed $key, ?bool $maintainOrder = null): Phpolars\DataFrame
 min(): Phpolars\DataFrame
 minHorizontal(): Phpolars\Series
+nChunks(): int
 nUnique(): Phpolars\DataFrame
 nullCount(): Phpolars\DataFrame
 partitionBy(mixed $by, ?bool $maintainOrder = null, ?bool $includeKey = null, ?bool $asDict = null): array
@@ -60,18 +66,21 @@ pivot(mixed $on, mixed $index = null, mixed $values = null, mixed $aggregateFunc
 product(): Phpolars\DataFrame
 quantile(float $quantile, ?string $interpolation = null): Phpolars\DataFrame
 rechunk(): Phpolars\DataFrame
+remove(mixed ...$predicates): Phpolars\DataFrame
 rename(array $mapping, ?bool $strict = null): Phpolars\DataFrame
 replaceColumn(int $index, Phpolars\Series $column): Phpolars\DataFrame
 reverse(): Phpolars\DataFrame
 rolling(mixed $indexColumn, string $period, ?string $offset = null, ?string $closed = null, mixed $groupBy = null): Phpolars\GroupBy
 row(int $index, ?bool $named = null): mixed
 rows(?bool $named = null): array
+rowsByKey(string $key, ?bool $named = null, ?bool $includeKey = null, ?bool $unique = null): array
 sample(?int $n = null, ?float $fraction = null, ?bool $withReplacement = null, ?bool $shuffle = null, ?int $seed = null): Phpolars\DataFrame
 schema(): array
 select(mixed ...$exprs): Phpolars\DataFrame
 selectSeq(mixed ...$exprs): Phpolars\DataFrame
 shape(): array
 shift(?int $n = null, mixed $fillValue = null): Phpolars\DataFrame
+shrinkToFit(): Phpolars\DataFrame
 slice(int $offset, ?int $length = null): Phpolars\DataFrame
 sort(mixed $by, mixed $descending = null, mixed $nullsLast = null, ?bool $maintainOrder = null): Phpolars\DataFrame
 sql(string $query, ?string $tableName = null): Phpolars\DataFrame
@@ -95,6 +104,7 @@ transpose(?bool $includeHeader = null, ?string $headerName = null, mixed $column
 unique(mixed $subset = null, ?string $keep = null, ?bool $maintainOrder = null): Phpolars\DataFrame
 unnest(mixed ...$columns): Phpolars\DataFrame
 unpivot(mixed $on = null, mixed $index = null, ?string $variableName = null, ?string $valueName = null): Phpolars\DataFrame
+update(mixed $other, mixed $on = null, ?string $how = null, mixed $leftOn = null, mixed $rightOn = null, ?bool $includeNulls = null, ?string $maintainOrder = null): Phpolars\DataFrame
 upsample(string $timeColumn, string $every, mixed $groupBy = null, ?bool $maintainOrder = null): Phpolars\DataFrame
 var(?int $ddof = null): Phpolars\DataFrame
 vstack(Phpolars\DataFrame $other): Phpolars\DataFrame
@@ -118,6 +128,7 @@ bottomK(int $k, mixed $by, mixed $reverse = null): Phpolars\LazyFrame
 cache(): Phpolars\LazyFrame
 cast(mixed $dtypes, ?bool $strict = null): Phpolars\LazyFrame
 clear(?int $n = null): Phpolars\LazyFrame
+clone(): Phpolars\LazyFrame
 collect(): Phpolars\DataFrame
 collectSchema(): array
 columns(): array
@@ -134,6 +145,7 @@ fillNan(mixed $value): Phpolars\LazyFrame
 fillNull(mixed $value = null, ?string $strategy = null, ?int $limit = null): Phpolars\LazyFrame
 filter(mixed ...$predicates): Phpolars\LazyFrame
 first(): Phpolars\LazyFrame
+gather(mixed $indices): Phpolars\LazyFrame
 gatherEvery(int $n, ?int $offset = null): Phpolars\LazyFrame
 groupBy(mixed $by, ?bool $maintainOrder = null): Phpolars\LazyGroupBy
 groupByDynamic(mixed $indexColumn, string $every, ?string $period = null, ?string $offset = null, ?bool $includeBoundaries = null, ?string $closed = null, ?string $label = null, mixed $groupBy = null, ?string $startBy = null): Phpolars\LazyGroupBy
@@ -143,15 +155,19 @@ join(mixed $other, mixed $on = null, ?string $how = null, mixed $leftOn = null, 
 joinAsof(mixed $other, mixed $on = null, mixed $leftOn = null, mixed $rightOn = null, mixed $by = null, mixed $byLeft = null, mixed $byRight = null, ?string $strategy = null, ?string $suffix = null, mixed $tolerance = null, ?bool $allowExactMatches = null, ?bool $checkSortedness = null, ?bool $coalesce = null): Phpolars\LazyFrame
 joinWhere(mixed $other, mixed ...$predicates): Phpolars\LazyFrame
 last(): Phpolars\LazyFrame
+lazy(): Phpolars\LazyFrame
 limit(?int $n = null): Phpolars\LazyFrame
 max(): Phpolars\LazyFrame
 mean(): Phpolars\LazyFrame
 median(): Phpolars\LazyFrame
+mergeSorted(mixed $other, mixed $key, ?bool $maintainOrder = null): Phpolars\LazyFrame
 min(): Phpolars\LazyFrame
 nUnique(): Phpolars\LazyFrame
 nullCount(): Phpolars\LazyFrame
 product(): Phpolars\LazyFrame
+profile(): array
 quantile(float $quantile, ?string $interpolation = null): Phpolars\LazyFrame
+remove(mixed ...$predicates): Phpolars\LazyFrame
 rename(array $mapping, ?bool $strict = null): Phpolars\LazyFrame
 reverse(): Phpolars\LazyFrame
 rolling(mixed $indexColumn, string $period, ?string $offset = null, ?string $closed = null, mixed $groupBy = null): Phpolars\LazyGroupBy
@@ -173,6 +189,7 @@ topK(int $k, mixed $by, mixed $reverse = null): Phpolars\LazyFrame
 unique(mixed $subset = null, ?string $keep = null, ?bool $maintainOrder = null): Phpolars\LazyFrame
 unnest(mixed ...$columns): Phpolars\LazyFrame
 unpivot(mixed $on = null, mixed $index = null, ?string $variableName = null, ?string $valueName = null): Phpolars\LazyFrame
+update(mixed $other, mixed $on = null, ?string $how = null, mixed $leftOn = null, mixed $rightOn = null, ?bool $includeNulls = null, ?string $maintainOrder = null): Phpolars\LazyFrame
 var(?int $ddof = null): Phpolars\LazyFrame
 width(): int
 withColumns(mixed ...$exprs): Phpolars\LazyFrame
@@ -188,6 +205,7 @@ all(): Phpolars\DataFrame
 count(): Phpolars\DataFrame
 first(): Phpolars\DataFrame
 getIterator(): Phpolars\GroupIterator
+having(mixed ...$predicates): Phpolars\GroupBy
 head(?int $n = null): Phpolars\DataFrame
 last(): Phpolars\DataFrame
 len(?string $name = null): Phpolars\DataFrame
@@ -209,6 +227,7 @@ all(): Phpolars\LazyFrame
 count(): Phpolars\LazyFrame
 first(): Phpolars\LazyFrame
 getIterator(): Phpolars\GroupIterator
+having(mixed ...$predicates): Phpolars\LazyGroupBy
 head(?int $n = null): Phpolars\LazyFrame
 last(): Phpolars\LazyFrame
 len(?string $name = null): Phpolars\LazyFrame

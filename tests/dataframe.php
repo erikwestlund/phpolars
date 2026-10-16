@@ -170,3 +170,14 @@ same('argTrue', (new Series('b', [false, true, true]))->argTrue()->toList(), [1,
 same('zipWith', $sv->zipWith(new Series('m', [true, false, true]), new Series('o', [9, 9, 9]))->toList(), [1, 9, 3]);
 same('Series clear', $sv->clear(2)->toList(), [null, null]);
 same('Series extend', $sv->extend($sv)->len(), 6);
+
+// rowsByKey, profile, Series helpers
+$byKey = $w->rowsByKey('k', named: true);
+same('rowsByKey groups', array_map('count', $byKey), ['a' => 2, 'b' => 2]);
+same('rowsByKey unique', $w->rowsByKey('k', unique: true)['a'], [2, 30]);
+[$res, $timings] = $w->lazy()->filter(col('id')->gt(1))->profile();
+same('profile result', $res->height(), 2);
+same('profile timings', in_array('node', $timings->columns(), true), true);
+same('newFromIndex', $sv->newFromIndex(-1, 2)->toList(), [3, 3]);
+same('shape', $sv->shape(), [3]);
+same('UInt64 beyond int64 stays per value', (new Series('u', [1, 2], 'Int64'))->cast('UInt64')->extend((new Series('u', [-1], 'Int64'))->reinterpret(signed: false))->toList(), [1, 2, 18446744073709551615.0]);

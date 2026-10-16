@@ -367,6 +367,7 @@ macro_rules! frame_verbs {
                     keys,
                     maintain_order: maintainOrder.unwrap_or(false),
                     window: Window::None,
+                    having: Vec::new(),
                 })
             }
 
@@ -511,6 +512,7 @@ macro_rules! frame_verbs {
                     keys: given(groupBy).map(|g| exprs(&[g])).transpose()?.unwrap_or_default(),
                     maintain_order: true,
                     window: Window::Dynamic(into_expr(indexColumn)?, options),
+                    having: Vec::new(),
                 })
             }
 
@@ -528,6 +530,7 @@ macro_rules! frame_verbs {
                     keys: given(groupBy).map(|g| exprs(&[g])).transpose()?.unwrap_or_default(),
                     maintain_order: true,
                     window: Window::Rolling(into_expr(indexColumn)?, options),
+                    having: Vec::new(),
                 })
             }
 
@@ -624,6 +627,98 @@ macro_rules! frame_verbs {
             pub fn sql(&self, query: String, tableName: Option<String>) -> PhpResult<Self> {
                 let name = tableName.unwrap_or_else(|| "self".into());
                 Self::out(crate::sql::run(&query, &[(name, self.lf())])?)
+            }
+
+            /// Drop rows where every predicate is true; the inverse of filter().
+            pub fn remove(&self, predicates: &[&Zval]) -> PhpResult<Self> {
+                Self::out(self.lf().remove(all_of(predicates)?))
+            }
+
+            /// Rows at the given positions: gather([0, 2]) or gather(col('i')).
+            pub fn gather(&self, indices: &Zval) -> PhpResult<Self> {
+                let idx = if indices.long().is_some() {
+                    lit(Series::new("".into(), [indices.long().unwrap()]))
+                } else {
+                    crate::input::collection_or_operand(indices)?
+                };
+                Self::out(self.lf().select([all().as_expr().gather(idx, false)]))
+            }
+
+            /// Merge two frames already sorted by key into one sorted frame.
+            pub fn mergeSorted(&self, other: &Zval, key: &Zval, maintainOrder: Option<bool>) -> PhpResult<Self> {
+                let key: Vec<PlSmallStr> = names(&[key])?.into_iter().map(Into::into).collect();
+                Self::out(self.lf().merge_sorted(other_frame(other)?, key, maintainOrder.unwrap_or(false)).php()?)
+            }
+
+            /// Update values from other, matched on `on` (or row position when on
+            /// is omitted). Nulls in other leave values alone unless includeNulls.
+            pub fn update(&self, other: &Zval, on: Option<&Zval>, how: Option<String>, leftOn: Option<&Zval>, rightOn: Option<&Zval>, includeNulls: Option<bool>, maintainOrder: Option<String>) -> PhpResult<Self> {
+                const IDX: &str = "__phpolars_update_row";
+                const VALID: &str = "__phpolars_update_valid";
+                let how = match how.as_deref().unwrap_or("left") {
+                    h @ ("left" | "inner" | "full") => h.to_string(),
+                    h => return Err(value_error(format!("how must be left, inner, or full, not '{h}'"))),
+                };
+                let mut left = self.lf();
+                let mut right = other_frame(other)?;
+                let (left_on, right_on) = match (opt_names(on)?, opt_names(leftOn)?, opt_names(rightOn)?) {
+                    (Some(o), None, None) => (o.clone(), o),
+                    (None, Some(l), Some(r)) => (l, r),
+                    (None, None, None) => {
+                        left = left.with_row_index(IDX, None);
+                        right = right.with_row_index(IDX, None);
+                        (vec![IDX.to_string()], vec![IDX.to_string()])
+                    }
+                    _ => return Err(value_error("update() takes on, or both leftOn and rightOn")),
+                };
+                let left_schema = left.clone().collect_schema().php()?;
+                let right_schema = right.clone().collect_schema().php()?;
+                let updated: Vec<String> = right_schema
+                    .iter_names()
+                    .map(|n| n.to_string())
+                    .filter(|n| !right_on.contains(n) && left_schema.get(n.as_str()).is_some())
+                    .collect();
+                let tmp = |n: &str| format!("__phpolars_update_{n}");
+                let mut select: Vec<Expr> = right_on.iter().map(|n| col(n.as_str())).collect();
+                select.extend(updated.iter().map(|n| col(n.as_str()).alias(tmp(n))));
+                select.push(lit(true).alias(VALID));
+                let right = right.select(select);
+                let joined = left.join(
+                    right,
+                    left_on.iter().map(|n| col(n.as_str())).collect::<Vec<_>>(),
+                    right_on.iter().map(|n| col(n.as_str())).collect::<Vec<_>>(),
+                    {
+                        let mut args = JoinArgs::new(join_type(Some(how))?).with_coalesce(JoinCoalesce::CoalesceColumns);
+                        args.maintain_order = match maintainOrder.as_deref().unwrap_or("left") {
+                            "none" => MaintainOrderJoin::None,
+                            "left" => MaintainOrderJoin::Left,
+                            "right" => MaintainOrderJoin::Right,
+                            "left_right" => MaintainOrderJoin::LeftRight,
+                            "right_left" => MaintainOrderJoin::RightLeft,
+                            o => return Err(value_error(format!("unknown maintainOrder '{o}'"))),
+                        };
+                        args
+                    },
+                );
+                let include = includeNulls.unwrap_or(false);
+                let fixes: Vec<Expr> = updated
+                    .iter()
+                    .map(|n| {
+                        let new = col(tmp(n));
+                        let e = if include {
+                            when(col(VALID).fill_null(lit(false))).then(new).otherwise(col(n.as_str()))
+                        } else {
+                            coalesce(&[new, col(n.as_str())])
+                        };
+                        e.alias(n.as_str())
+                    })
+                    .collect();
+                let mut drop: Vec<String> = updated.iter().map(|n| tmp(n)).collect();
+                drop.push(VALID.into());
+                if on.is_none() && leftOn.is_none() {
+                    drop.push(IDX.into());
+                }
+                Self::out(joined.with_columns(fixes).drop(selector(drop)))
             }
 
             /// Columns and their py data type names.
@@ -1360,6 +1455,112 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
         Self::wrap(df)
     }
 
+    /// The frame in slices of nRows rows.
+    pub fn iterSlices(&self, nRows: Option<i64>) -> PhpResult<Vec<PhpDataFrame>> {
+        let n = crate::input::count(nRows.unwrap_or(10_000), "nRows")?.max(1);
+        let h = self.inner.height();
+        Ok((0..h)
+            .step_by(n)
+            .map(|o| Self::wrap(self.inner.slice(o as i64, n)))
+            .collect())
+    }
+
+    /// The rows as an array keyed by one key column: rowsByKey('id', named: true).
+    /// unique: true keeps one row per key; otherwise each key holds a list of rows.
+    pub fn rowsByKey(
+        &self,
+        key: String,
+        named: Option<bool>,
+        includeKey: Option<bool>,
+        unique: Option<bool>,
+    ) -> PhpResult<ZBox<ZendHashTable>> {
+        let keys = convert::series_values(
+            self.inner
+                .column(&key)
+                .map_err(|_| column_not_found(&key))?
+                .as_materialized_series(),
+        )?;
+        let rest = if includeKey.unwrap_or(false) {
+            self.inner.clone()
+        } else {
+            self.inner.drop(&key).php()?
+        };
+        let rows = if named.unwrap_or(false) {
+            convert::to_rows(&rest)?
+        } else {
+            convert::to_tuples(&rest)?
+        };
+        let unique = unique.unwrap_or(false);
+        let mut out = ZendHashTable::new();
+        for (k, row) in keys.iter().zip(rows.values()) {
+            let k = match (k.long(), k.str()) {
+                (Some(i), _) => i.to_string(),
+                (None, Some(s)) => s.to_string(),
+                _ if k.is_null() => String::new(),
+                _ => k.coerce_to_string().unwrap_or_default(),
+            };
+            if unique {
+                out.insert(k.as_str(), row.shallow_clone())?;
+                continue;
+            }
+            match out.get_mut(k.as_str()) {
+                Some(list) => {
+                    list.array_mut().unwrap().push(row.shallow_clone())?;
+                }
+                None => {
+                    let mut list = ZendHashTable::new();
+                    list.push(row.shallow_clone())?;
+                    out.insert(k.as_str(), list)?;
+                }
+            }
+        }
+        Ok(out)
+    }
+
+    /// Call a PHP function on each row (a list of values). A scalar result
+    /// gives a column named "map"; an array gives column_0, column_1, ...
+    pub fn mapRows(&self, function: &Zval) -> PhpResult<Self> {
+        let f = ext_php_rs::types::ZendCallable::new(function)
+            .map_err(|_| value_error("mapRows() needs a callable"))?;
+        let rows = convert::to_tuples(&self.inner)?;
+        let mut results: Vec<Zval> = Vec::with_capacity(rows.len());
+        for row in rows.values() {
+            results.push(f.try_call(vec![&row.shallow_clone()])?);
+        }
+        if !results.is_empty() && results.iter().all(|r| r.array().is_some()) {
+            let mut table = ZendHashTable::new();
+            for r in &results {
+                let mut named = ZendHashTable::new();
+                for (i, v) in r.array().unwrap().values().enumerate() {
+                    named.insert(format!("column_{i}").as_str(), v.shallow_clone())?;
+                }
+                table.push(named)?;
+            }
+            return convert::from_rows(&table, None).map(Self::wrap);
+        }
+        let refs: Vec<&Zval> = results.iter().collect();
+        let s = convert::series("map".into(), &refs, None)?;
+        DataFrame::new_infer_height(vec![s.into()])
+            .php()
+            .map(Self::wrap)
+    }
+
+    /// toDicts() keyed and grouped differently: py's iter_rows(named: true) is toDicts().
+    pub fn iterRows(&self, named: Option<bool>) -> PhpResult<ZBox<ZendHashTable>> {
+        self.rows(named)
+    }
+
+    pub fn nChunks(&self) -> i64 {
+        self.inner.first_col_n_chunks() as i64
+    }
+
+    /// Kept for py compatibility; Polars frees unused memory itself.
+    pub fn shrinkToFit(&self) -> Self {
+        let mut df = self.inner.clone();
+        df.shrink_to_fit();
+        Self::wrap(df)
+    }
+
     /// A transposed preview: one line per column with its type and first values.
     pub fn glimpse(&self, maxItemsPerColumn: Option<i64>) -> PhpResult<String> {
         let n = crate::input::count(maxItemsPerColumn.unwrap_or(10), "maxItemsPerColumn")?;
@@ -1485,6 +1686,21 @@ frame_verbs!(PhpLazyFrame, PhpLazyGroupBy, {
         crate::io::sink_ndjson(self.lf(), &file)
     }
 
+    /// Run the query and time each step: [result, timings].
+    pub fn profile(&self) -> PhpResult<Vec<PhpDataFrame>> {
+        init_threads();
+        let (df, timings) = self.inner.clone().profile().php()?;
+        Ok(vec![PhpDataFrame::wrap(df), PhpDataFrame::wrap(timings)])
+    }
+
+    pub fn clone(&self) -> Self {
+        Self::wrap(self.inner.clone())
+    }
+
+    pub fn lazy(&self) -> Self {
+        Self::wrap(self.inner.clone())
+    }
+
     pub fn width(&self) -> PhpResult<i64> {
         Ok(self.schema_ref()?.len() as i64)
     }
@@ -1541,19 +1757,24 @@ macro_rules! group_by {
             keys: Vec<Expr>,
             maintain_order: bool,
             window: Window,
+            having: Vec<Expr>,
         }
 
         impl $ty {
             fn grouped(&self) -> LazyGroupBy {
                 let (lf, keys) = (self.lf.clone(), self.keys.clone());
-                match &self.window {
+                let mut g = match &self.window {
                     Window::Dynamic(index, o) => {
                         lf.group_by_dynamic(index.clone(), keys, o.clone())
                     }
                     Window::Rolling(index, o) => lf.rolling(index.clone(), keys, o.clone()),
                     Window::None if self.maintain_order => lf.group_by_stable(keys),
                     Window::None => lf.group_by(keys),
+                };
+                for p in &self.having {
+                    g = g.having(p.clone());
                 }
+                g
             }
 
             fn all_other(&self, f: impl Fn(Expr) -> Expr) -> PhpResult<$frame> {
@@ -1643,9 +1864,26 @@ macro_rules! group_by {
                 )
             }
 
+            /// Keep only the groups where every predicate (an aggregation) is true:
+            /// groupBy('g')->having(len()->gt(1))->agg(...).
+            pub fn having(&self, predicates: &[&Zval]) -> PhpResult<Self> {
+                let mut having = self.having.clone();
+                having.extend(exprs(predicates)?);
+                Ok(Self {
+                    lf: self.lf.clone(),
+                    keys: self.keys.clone(),
+                    maintain_order: self.maintain_order,
+                    window: self.window.clone(),
+                    having,
+                })
+            }
+
             /// foreach ($df->groupBy('g') as $key => $group): $key lists the
             /// group's key values (py's tuple) and $group is a DataFrame.
             pub fn getIterator(&self) -> PhpResult<GroupIterator> {
+                if !self.having.is_empty() {
+                    return Err(value_error("iterate a groupBy() without having()"));
+                }
                 group_iterator(&self.lf, &self.keys, self.maintain_order, &self.window)
             }
 

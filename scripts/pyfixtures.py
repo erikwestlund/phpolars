@@ -811,6 +811,65 @@ simple("group_by_iter", lambda: pl.DataFrame(
     [{"key": k[0], "k2": k[1], "n": g.height, "ids": g["id"].to_list()} for k, g in base.group_by("g", col("x") > 2, maintain_order=True)]))
 
 
+# remaining py API: expressions
+simple("top_k_by", lambda: base.select(col("id").top_k_by("y", 3).alias("top"), col("id").bottom_k_by(["k", "id"], 3, reverse=[False, True]).alias("bottom")))
+simple("ewm_sum", lambda: base.select(col("y").ewm_sum(alpha=0.5).alias("s"), col("y").ewm_sum(com=1, ignore_nulls=True).alias("s2")))
+simple("ewm_sum_by", lambda: tsf.select(col("v").ewm_sum_by("t", half_life="1d")))
+simple("extend_constant", lambda: base.select(col("x").extend_constant(0, 2)))
+simple("reshape", lambda: pl.DataFrame({"a": [1, 2, 3, 4]}).select(col("a").reshape((-1, 2)).arr.sum()))
+simple("rolling_rank", lambda: base.select(col("y").rolling_rank(3, "min").alias("r"), col("id").rolling_rank(2, "dense", min_samples=1).alias("d")))
+simple("rolling_rank_by", lambda: tsf.select(col("v").rolling_rank_by("t", "1d", "max")))
+simple("expr_rolling", lambda: tsf.select("t", col("v").sum().rolling("t", period="1d").alias("s"), col("v").max().rolling("t", period="2h", closed="both").alias("m")))
+simple("reinterpret", lambda: pl.DataFrame({"a": [-1, 1]}).select(col("a").reinterpret(signed=False)))
+simple("is_empty_arg_true", lambda: base.select(
+    col("x").is_empty().alias("e"), col("x").filter(col("x") > 100).is_empty().alias("e2"),
+    col("b").arg_true().implode().alias("t"), col("l").flatten().implode().alias("f")))
+simple("meta", lambda: {
+    "out": (col("a") * 2).alias("b").meta.output_name(), "roots": ",".join((col("a") + col("c")).meta.root_names()),
+    "multi": pl.col("a", "b").meta.has_multiple_outputs(), "is_col": col("a").meta.is_column(),
+    "undo": col("a").alias("z").meta.undo_aliases().meta.output_name(), "regex": col("^a.*$").meta.is_regex_projection(),
+    "lit": lit(1).meta.is_literal(), "eq": col("a").meta.eq(col("a")),
+})
+simple("ns_extras", lambda: base.select(
+    col("t").dt.replace_time_zone("UTC").dt.datetime().alias("naive"),
+    pl.struct("id", "g").name.prefix_fields("p_").alias("st"),
+).unnest("st"))
+simple("list_item", lambda: pl.DataFrame({"l": [[1], [2], []]}).select(col("l").list.item(allow_empty=True)))
+simple("struct_unnest", lambda: base.select(pl.struct("id", "g").alias("s")).select(col("s").struct.unnest()))
+simple("bin_reinterpret", lambda: pl.DataFrame({"b": [b"\x01\x00\x00\x00", b"\x00\x00\x00\x02"]}).select(
+    col("b").bin.reinterpret(dtype=pl.Int32).alias("le"), col("b").bin.reinterpret(dtype=pl.Int32, endianness="big").alias("be")))
+
+# remaining py API: frames, groups, and series
+simple("frame_remove", lambda: base.select("id", "x").remove(col("x") > 2))
+simple("frame_gather", lambda: base.select("id", "g").gather([0, 5, 2]))
+simple("frame_merge_sorted", lambda: pl.DataFrame({"k": [1, 3, 5], "s": ["a", "c", "e"]}).merge_sorted(pl.DataFrame({"k": [2, 3, 6], "s": ["b", "c2", "f"]}), "k"))
+upd = pl.DataFrame({"id": [2, 4, 9], "x": [20, None, 90], "g": ["B", None, "Z"]})
+simple("frame_update", lambda: base.select("id", "x", "g").update(upd, on="id"))
+simple("frame_update_nulls_full", lambda: base.select("id", "x", "g").update(upd, on="id", how="full", include_nulls=True))
+simple("frame_update_by_row", lambda: base.select("x", "g").update(pl.DataFrame({"x": [None, 50]})))
+simple("frame_iter_slices", lambda: pl.concat([sl.with_columns(lit(i, dtype=pl.Int64).alias("slice")) for i, sl in enumerate(base.select("id").iter_slices(4))]))
+simple("frame_map_rows", lambda: base.select("id", "x").map_rows(lambda r: (r[0] * 2, r[1])))
+simple("frame_map_rows_scalar", lambda: base.select("id").map_rows(lambda r: r[0] + 1))
+simple("group_by_having", lambda: base.group_by("g", maintain_order=True).having(pl.len() > 1).agg(col("id").sum()))
+simple("series_describe", lambda: ys.describe())
+simple("series_scatter", lambda: pl.DataFrame([xs.clone().scatter([0, -1], [100, 200]).alias("a"), xs.clone().scatter(1, None).alias("b")]))
+simple("series_set", lambda: xs.clone().set(xs.is_null(), 0))
+
+# remaining py API: functions
+simple("fn_more", lambda: base.select(
+    pl.any("b").alias("any"), pl.arctan2("y", "x").alias("atan2"), pl.cum_sum("x").alias("cs"),
+    pl.cum_count("x").alias("cc"), pl.row_index().alias("ri"), pl.zeros(6, dtype=pl.Int32).alias("z"),
+    pl.ones(6).alias("o"),
+))
+simple("fn_cum_sum_horizontal", lambda: base.select(pl.cum_sum_horizontal("id", "x", "k")).unnest("cum_sum"))
+simple("fn_head_tail", lambda: base.select(pl.head("id", 2).alias("h"), pl.tail("id", 2).alias("t")))
+simple("fn_linear_spaces", lambda: base.head(2).select(pl.linear_spaces(0, col("id"), 3).alias("l"), pl.linear_spaces(0, 1, 2, as_array=True).alias("a")))
+simple("fn_time", lambda: base.select(pl.time(col("k").fill_null(0), 30).alias("t")))
+simple("fn_time_range", lambda: pl.select(pl.time_range(dt.time(9), dt.time(12), "90m").alias("t")))
+simple("fn_rolling_corr_cov", lambda: base.select(pl.rolling_corr("id", "y", window_size=3).alias("c"), pl.rolling_cov("id", "x", window_size=2, ddof=0).alias("v")))
+simple("fn_escape_regex", lambda: {"e": pl.select(pl.lit("a.b*c").str.escape_regex()).item()})
+
+
 
 # ---------------------------------------------------------------------------
 # Serialisation

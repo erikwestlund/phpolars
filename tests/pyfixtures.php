@@ -52,6 +52,7 @@ $wide = new DataFrame([
     'i8' => 'Int8', 'u32' => 'UInt32', 'f32' => 'Float32', 'day' => 'Date', 'ts_ms_utc' => 'Datetime(ms, UTC)', 'dur' => 'Duration(us)',
     'cat' => 'Categorical', 'arr' => 'Array(Int64, 2)', 'bin' => 'Binary', 'dec' => 'Decimal(10, 2)',
 ])->withColumns(col('tm')->str()->toTime('%H:%M:%S'));
+$upd = new DataFrame(['id' => [2, 4, 9], 'x' => [20, null, 90], 'g' => ['B', null, 'Z']]);
 $tsf = new DataFrame([
     't' => array_map($dt, ['2024-01-01 00:00', '2024-01-01 01:00', '2024-01-01 03:00', '2024-01-02 00:00', '2024-01-02 05:00', '2024-01-04 00:00']),
     'g' => ['a', 'b', 'a', 'a', 'b', 'a'],
@@ -749,6 +750,62 @@ $cases = [
     'fn_format' => fn () => $S(format('{} has {}', 'g', col('x'))->alias('f')),
     'fn_arg_sort_by' => fn () => $S(arg_sort_by(['k', 'id'], descending: [true, false], nullsLast: true)),
     'fn_concat_arr' => fn () => $S(concat_arr('id', 'k')->alias('a'))->select(col('a')->arr()->sum()),
+    // remaining py API: expressions
+    'top_k_by' => fn () => $S(col('id')->topKBy('y', 3)->alias('top'), col('id')->bottomKBy(['k', 'id'], 3, reverse: [false, true])->alias('bottom')),
+    'ewm_sum' => fn () => $S(col('y')->ewmSum(alpha: 0.5)->alias('s'), col('y')->ewmSum(com: 1, ignoreNulls: true)->alias('s2')),
+    'ewm_sum_by' => fn () => $tsf->select(col('v')->ewmSumBy('t', halfLife: '1d')),
+    'extend_constant' => fn () => $S(col('x')->extendConstant(0, 2)),
+    'reshape' => fn () => (new DataFrame(['a' => [1, 2, 3, 4]]))->select(col('a')->reshape([-1, 2])->arr()->sum()),
+    'rolling_rank' => fn () => $S(col('y')->rollingRank(3, 'min')->alias('r'), col('id')->rollingRank(2, 'dense', minPeriods: 1)->alias('d')),
+    'rolling_rank_by' => fn () => $tsf->select(col('v')->rollingRankBy('t', '1d', 'max')),
+    'expr_rolling' => fn () => $tsf->select('t', col('v')->sum()->rolling('t', period: '1d')->alias('s'), col('v')->max()->rolling('t', period: '2h', closed: 'both')->alias('m')),
+    'reinterpret' => fn () => (new DataFrame(['a' => [-1, 1]]))->select(col('a')->reinterpret(signed: false)),
+    'is_empty_arg_true' => fn () => $S(
+        col('x')->isEmpty()->alias('e'), col('x')->filter(col('x')->gt(100))->isEmpty()->alias('e2'),
+        col('b')->argTrue()->implode()->alias('t'), col('l')->flatten()->implode()->alias('f')),
+    'meta' => fn () => [
+        'out' => col('a')->mul(2)->alias('b')->meta()->outputName(), 'roots' => \implode(',', col('a')->add(col('c'))->meta()->rootNames()),
+        'multi' => col('a', 'b')->meta()->hasMultipleOutputs(), 'is_col' => col('a')->meta()->isColumn(),
+        'undo' => col('a')->alias('z')->meta()->undoAliases()->meta()->outputName(), 'regex' => col('^a.*$')->meta()->isRegexProjection(),
+        'lit' => lit(1)->meta()->isLiteral(), 'eq' => col('a')->meta()->eq(col('a')),
+    ],
+    'ns_extras' => fn () => $S(
+        col('t')->dt()->replaceTimeZone('UTC')->dt()->datetime()->alias('naive'),
+        struct_('id', 'g')->name()->prefixFields('p_')->alias('st'),
+    )->unnest('st'),
+    'list_item' => fn () => (new DataFrame(['l' => [[1], [2], []]]))->select(col('l')->list()->item(allowEmpty: true)),
+    'struct_unnest' => fn () => $S(struct_('id', 'g')->alias('s'))->select(col('s')->struct()->unnest()),
+    'bin_reinterpret' => fn () => (new DataFrame(['b' => ["\x01\x00\x00\x00", "\x00\x00\x00\x02"]], schema: ['b' => 'Binary']))->select(
+        col('b')->bin()->reinterpret('Int32')->alias('le'), col('b')->bin()->reinterpret('Int32', 'big')->alias('be')),
+
+    // remaining py API: frames, groups, and series
+    'frame_remove' => fn () => $base->select('id', 'x')->remove(col('x')->gt(2)),
+    'frame_gather' => fn () => $base->select('id', 'g')->gather([0, 5, 2]),
+    'frame_merge_sorted' => fn () => (new DataFrame(['k' => [1, 3, 5], 's' => ['a', 'c', 'e']]))->mergeSorted(new DataFrame(['k' => [2, 3, 6], 's' => ['b', 'c2', 'f']]), 'k'),
+    'frame_update' => fn () => $base->select('id', 'x', 'g')->update($upd, on: 'id'),
+    'frame_update_nulls_full' => fn () => $base->select('id', 'x', 'g')->update($upd, on: 'id', how: 'full', includeNulls: true),
+    'frame_update_by_row' => fn () => $base->select('x', 'g')->update(new DataFrame(['x' => [null, 50]], schema: ['x' => 'Int64'])),
+    'frame_iter_slices' => fn () => concat(array_map(fn ($sl, $i) => $sl->withColumns(lit($i, 'Int64')->alias('slice')), $base->select('id')->iterSlices(4), [0, 1])),
+    'frame_map_rows' => fn () => $base->select('id', 'x')->mapRows(fn ($r) => [$r[0] * 2, $r[1]]),
+    'frame_map_rows_scalar' => fn () => $base->select('id')->mapRows(fn ($r) => $r[0] + 1),
+    'group_by_having' => fn () => $base->groupBy('g', maintainOrder: true)->having(len()->gt(1))->agg(col('id')->sum()),
+    'series_describe' => fn () => $ys->describe(),
+    'series_scatter' => fn () => new DataFrame(['a' => $xs->scatter([0, -1], [100, 200]), 'b' => $xs->scatter(1, null)]),
+    'series_set' => fn () => $xs->set($xs->isNull(), 0),
+
+    // remaining py API: functions
+    'fn_more' => fn () => $S(
+        Phpolars\any('b')->alias('any'), Phpolars\arctan2('y', 'x')->alias('atan2'), Phpolars\cum_sum('x')->alias('cs'),
+        Phpolars\cum_count('x')->alias('cc'), Phpolars\row_index()->alias('ri'), Phpolars\zeros(6, dtype: 'Int32')->alias('z'),
+        Phpolars\ones(6)->alias('o'),
+    ),
+    'fn_cum_sum_horizontal' => fn () => $S(Phpolars\cum_sum_horizontal('id', 'x', 'k'))->unnest('cum_sum'),
+    'fn_head_tail' => fn () => $S(Phpolars\head('id', 2)->alias('h'), Phpolars\tail('id', 2)->alias('t')),
+    'fn_linear_spaces' => fn () => $base->head(2)->select(Phpolars\linear_spaces(0, col('id'), 3)->alias('l'), Phpolars\linear_spaces(0, 1, 2, asArray: true)->alias('a')),
+    'fn_time' => fn () => $S(Phpolars\time(col('k')->fillNull(0), 30)->alias('t')),
+    'fn_time_range' => fn () => select(Phpolars\time_range('09:00:00', '12:00:00', '90m')->alias('t')),
+    'fn_rolling_corr_cov' => fn () => $S(Phpolars\rolling_corr('id', 'y', windowSize: 3)->alias('c'), Phpolars\rolling_cov('id', 'x', windowSize: 2, ddof: 0)->alias('v')),
+    'fn_escape_regex' => fn () => ['e' => Phpolars\escape_regex('a.b*c')],
     'group_by_iter' => function () use ($base) {
         $rows = [];
         foreach ($base->groupBy(['g', col('x')->gt(2)], maintainOrder: true) as $key => $group) {

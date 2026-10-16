@@ -221,6 +221,17 @@ fn ewm_options(
     })
 }
 
+fn rolling_rank_method(s: Option<String>) -> PhpResult<RollingRankMethod> {
+    Ok(match s.as_deref().unwrap_or("average") {
+        "average" => RollingRankMethod::Average,
+        "min" => RollingRankMethod::Min,
+        "max" => RollingRankMethod::Max,
+        "dense" => RollingRankMethod::Dense,
+        "random" => RollingRankMethod::Random,
+        other => return Err(value_error(format!("unknown rank method '{other}'"))),
+    })
+}
+
 fn float_list(v: &Zval, what: &str) -> PhpResult<Vec<f64>> {
     v.array()
         .ok_or_else(|| value_error(format!("{what} must be a list of numbers")))?
@@ -1575,6 +1586,171 @@ impl PhpExpr {
                 "exclude() applies to all(), col('*'), or a multi-column col()",
             )),
         }
+    }
+
+    /// The k values with the largest by; reverse: true for the smallest.
+    pub fn topKBy(&self, by: &Zval, k: Option<i64>, reverse: Option<&Zval>) -> PhpResult<Self> {
+        let by = exprs(&[by])?;
+        let desc = bools(reverse, false)?;
+        let desc = if desc.len() == 1 {
+            vec![desc[0]; by.len()]
+        } else {
+            desc
+        };
+        Ok(wrap(self.inner.clone().top_k_by(
+            lit(crate::input::count(k.unwrap_or(5), "k")? as u64),
+            by,
+            desc,
+        )))
+    }
+
+    pub fn bottomKBy(&self, by: &Zval, k: Option<i64>, reverse: Option<&Zval>) -> PhpResult<Self> {
+        let by = exprs(&[by])?;
+        let desc = bools(reverse, false)?;
+        let desc = if desc.len() == 1 {
+            vec![desc[0]; by.len()]
+        } else {
+            desc
+        };
+        Ok(wrap(self.inner.clone().bottom_k_by(
+            lit(crate::input::count(k.unwrap_or(5), "k")? as u64),
+            by,
+            desc,
+        )))
+    }
+
+    pub fn ewmSum(
+        &self,
+        com: Option<crate::input::Num>,
+        span: Option<crate::input::Num>,
+        halfLife: Option<crate::input::Num>,
+        alpha: Option<crate::input::Num>,
+        minPeriods: Option<i64>,
+        ignoreNulls: Option<bool>,
+    ) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().ewm_sum(ewm_options(
+            com,
+            span,
+            halfLife,
+            alpha,
+            Some(true),
+            minPeriods,
+            ignoreNulls,
+            None,
+        )?)))
+    }
+
+    pub fn ewmSumBy(&self, by: &Zval, halfLife: String) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().ewm_sum_by(
+            into_expr(by)?,
+            crate::input::duration(&halfLife)?,
+        )))
+    }
+
+    /// Append n copies of value.
+    pub fn extendConstant(&self, value: &Zval, n: &Zval) -> PhpResult<Self> {
+        Ok(wrap(
+            self.inner
+                .clone()
+                .extend_constant(operand(value)?, operand(n)?),
+        ))
+    }
+
+    /// Reshape into an Array column: reshape([-1, 2]); -1 infers that dimension.
+    pub fn reshape(&self, dimensions: Vec<i64>) -> Self {
+        wrap(self.inner.clone().reshape(&dimensions))
+    }
+
+    pub fn rollingRank(
+        &self,
+        windowSize: i64,
+        method: Option<String>,
+        seed: Option<i64>,
+        minPeriods: Option<i64>,
+        center: Option<bool>,
+    ) -> PhpResult<Self> {
+        let mut o = rolling(windowSize, minPeriods, center)?;
+        o.fn_params = Some(RollingFnParams::Rank {
+            method: rolling_rank_method(method)?,
+            seed: seed.map(|s| s as u64),
+        });
+        Ok(wrap(self.inner.clone().rolling_rank(o)))
+    }
+
+    pub fn rollingRankBy(
+        &self,
+        by: &Zval,
+        windowSize: String,
+        method: Option<String>,
+        seed: Option<i64>,
+        minPeriods: Option<i64>,
+        closed: Option<String>,
+    ) -> PhpResult<Self> {
+        let mut o = rolling_by(&windowSize, minPeriods, closed)?;
+        o.fn_params = Some(RollingFnParams::Rank {
+            method: rolling_rank_method(method)?,
+            seed: seed.map(|s| s as u64),
+        });
+        Ok(wrap(self.inner.clone().rolling_rank_by(into_expr(by)?, o)))
+    }
+
+    /// Evaluate this expression over a time window ending at each row:
+    /// col('v')->sum()->rolling('t', period: '2d').
+    pub fn rolling(
+        &self,
+        indexColumn: &Zval,
+        period: String,
+        offset: Option<String>,
+        closed: Option<String>,
+    ) -> PhpResult<Self> {
+        let p = crate::input::duration(&period)?;
+        let o = match offset {
+            Some(o) => crate::input::duration(&o)?,
+            None => -p,
+        };
+        Ok(wrap(self.inner.clone().rolling(
+            into_expr(indexColumn)?,
+            p,
+            o,
+            crate::input::closed_window(closed, ClosedWindow::Right)?,
+        )))
+    }
+
+    /// Reinterpret the bits of a 64-bit integer as signed or unsigned.
+    pub fn reinterpret(&self, signed: Option<bool>) -> Self {
+        wrap(
+            self.inner
+                .clone()
+                .reinterpret(Some(signed.unwrap_or(true)), None),
+        )
+    }
+
+    /// True when there are no values (ignoreNulls: true counts only non-null values).
+    pub fn isEmpty(&self, ignoreNulls: Option<bool>) -> Self {
+        let n = if ignoreNulls.unwrap_or(false) {
+            self.inner.clone().count()
+        } else {
+            self.inner.clone().len()
+        };
+        wrap(n.eq(lit(0)))
+    }
+
+    /// The positions of the true values.
+    pub fn argTrue(&self) -> Self {
+        wrap(pl::arg_where(self.inner.clone()))
+    }
+
+    /// The same as explode().
+    pub fn flatten(&self) -> Self {
+        wrap(self.inner.clone().explode(ExplodeOptions {
+            empty_as_null: true,
+            keep_nulls: true,
+        }))
+    }
+
+    /// Introspection of the expression itself: meta()->outputName().
+    pub fn meta(&self) -> crate::namespace::PhpMetaNameSpace {
+        crate::namespace::PhpMetaNameSpace::new(self.inner.clone())
     }
 
     pub fn degrees(&self) -> Self {

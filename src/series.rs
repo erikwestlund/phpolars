@@ -539,6 +539,170 @@ impl PhpSeries {
         self.apply(crate::expr::clip(me(), lowerBound, upperBound)?)
     }
 
+    /// Summary statistics as a statistic/value frame, as py's Series.describe().
+    pub fn describe(&self, percentiles: Option<Vec<crate::input::Num>>) -> PhpResult<PhpDataFrame> {
+        let df = DataFrame::new_infer_height(vec![self.inner.clone().into_column()]).php()?;
+        let d = PhpDataFrame::wrap(df).describe(percentiles)?;
+        let stats = d.inner.column("statistic").php()?.clone();
+        let values = d.inner.columns()[1]
+            .as_materialized_series()
+            .clone()
+            .with_name("value".into());
+        DataFrame::new_infer_height(vec![stats, values.into_column()])
+            .php()
+            .map(PhpDataFrame::wrap)
+    }
+
+    /// Set the values at the given positions: scatter([0, 2], [10, 30]) or scatter(1, null).
+    pub fn scatter(&self, indices: &Zval, values: &Zval) -> PhpResult<Self> {
+        const ROW: &str = "__phpolars_row";
+        const NEW: &str = "__phpolars_new";
+        const SET: &str = "__phpolars_set";
+        let n = self.inner.len() as i64;
+        let idx: Vec<i64> = match (
+            indices.long(),
+            indices.array(),
+            indices.extract::<&PhpSeries>(),
+        ) {
+            (Some(i), _, _) => vec![i],
+            (_, Some(a), _) => a
+                .values()
+                .map(|v| {
+                    v.long()
+                        .ok_or_else(|| value_error("scatter() indices must be integers"))
+                })
+                .collect::<PhpResult<_>>()?,
+            (_, _, Some(s)) => s
+                .inner
+                .cast(&DataType::Int64)
+                .php()?
+                .i64()
+                .php()?
+                .into_no_null_iter()
+                .collect(),
+            _ => return Err(value_error("scatter() indices must be integers")),
+        };
+        let mut pos = Vec::with_capacity(idx.len());
+        for i in idx {
+            let j = if i < 0 { n + i } else { i };
+            if j < 0 || j >= n {
+                return Err(PhpException::from_class::<crate::error::OutOfBoundsError>(
+                    format!("index {i} is out of bounds for a Series of length {n}"),
+                ));
+            }
+            pos.push(j);
+        }
+        let vals = match values.array() {
+            Some(_) => convert::series_from_array(NEW, values.array().unwrap(), None)?,
+            None => match values.extract::<&PhpSeries>() {
+                Some(s) => s.inner.clone().with_name(NEW.into()),
+                None => convert::series(NEW.into(), &[values], None)?.new_from_index(0, pos.len()),
+            },
+        };
+        if vals.len() != pos.len() {
+            return Err(value_error("scatter() needs one value per index"));
+        }
+        let upd = DataFrame::new_infer_height(vec![
+            Series::new(ROW.into(), pos).into_column(),
+            vals.cast(self.inner.dtype()).php()?.into_column(),
+        ])
+        .php()?
+        .lazy()
+        // The last value wins when an index repeats.
+        .unique_stable(Some(by_name([ROW], true, false)), UniqueKeepStrategy::Last)
+        .with_column(lit(true).alias(SET));
+        crate::init_threads();
+        let base = DataFrame::new_infer_height(vec![
+            self.inner.clone().with_name(SELF.into()).into_column(),
+        ])
+        .php()?
+        .lazy()
+        .with_row_index(ROW, None)
+        .with_column(col(ROW).cast(DataType::Int64));
+        let mut args = JoinArgs::new(JoinType::Left);
+        args.maintain_order = MaintainOrderJoin::Left;
+        let out = base
+            .join(upd, [col(ROW)], [col(ROW)], args)
+            .select([when(col(SET).fill_null(lit(false)))
+                .then(col(NEW))
+                .otherwise(col(SELF))
+                .alias(SELF)])
+            .collect()
+            .php()?;
+        Ok(wrap(
+            out.columns()[0]
+                .as_materialized_series()
+                .clone()
+                .with_name(self.inner.name().clone()),
+        ))
+    }
+
+    /// Set every value where mask is true: set($mask, 0).
+    pub fn set(&self, filter: &PhpSeries, value: &Zval) -> PhpResult<Self> {
+        let mask = filter.inner.clone();
+        let df = DataFrame::new_infer_height(vec![
+            self.inner.clone().with_name(SELF.into()).into_column(),
+            mask.with_name("__phpolars_mask".into()).into_column(),
+        ])
+        .php()?;
+        crate::init_threads();
+        let out = df
+            .lazy()
+            .select([when(col("__phpolars_mask"))
+                .then(operand(value)?)
+                .otherwise(me())
+                .alias(SELF)])
+            .collect()
+            .php()?;
+        Ok(wrap(
+            out.columns()[0]
+                .as_materialized_series()
+                .clone()
+                .with_name(self.inner.name().clone()),
+        ))
+    }
+
+    pub fn estimatedSize(&self) -> i64 {
+        self.inner.estimated_size() as i64
+    }
+
+    /// [length], as py's shape tuple.
+    pub fn shape(&self) -> Vec<i64> {
+        vec![self.inner.len() as i64]
+    }
+
+    pub fn nChunks(&self) -> i64 {
+        self.inner.n_chunks() as i64
+    }
+
+    pub fn chunkLengths(&self) -> Vec<i64> {
+        self.inner.chunk_lengths().map(|n| n as i64).collect()
+    }
+
+    pub fn rechunk(&self) -> Self {
+        wrap(self.inner.rechunk())
+    }
+
+    /// A Series of length copies of the value at index.
+    pub fn newFromIndex(&self, index: i64, length: i64) -> PhpResult<Self> {
+        let n = self.inner.len() as i64;
+        let i = if index < 0 { n + index } else { index };
+        if i < 0 || i >= n {
+            return Err(PhpException::from_class::<crate::error::OutOfBoundsError>(
+                format!("index {index} is out of bounds"),
+            ));
+        }
+        Ok(wrap(self.inner.new_from_index(
+            i as usize,
+            crate::input::count(length, "length")?,
+        )))
+    }
+
+    /// Kept for py compatibility; returns the same Series.
+    pub fn shrinkToFit(&self) -> Self {
+        wrap(self.inner.clone())
+    }
+
     /// Whether the values are sorted in the given order.
     pub fn isSorted(&self, descending: Option<bool>, nullsLast: Option<bool>) -> PhpResult<bool> {
         use polars::prelude::SeriesMethods;

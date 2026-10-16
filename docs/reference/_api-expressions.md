@@ -19,6 +19,7 @@ arctanh(): Phpolars\Expr
 argMax(): Phpolars\Expr
 argMin(): Phpolars\Expr
 argSort(?bool $descending = null, ?bool $nullsLast = null): Phpolars\Expr
+argTrue(): Phpolars\Expr
 argUnique(): Phpolars\Expr
 arr(): Phpolars\ArrayNameSpace
 backwardFill(?int $limit = null): Phpolars\Expr
@@ -33,6 +34,7 @@ bitwiseTrailingOnes(): Phpolars\Expr
 bitwiseTrailingZeros(): Phpolars\Expr
 bitwiseXor(): Phpolars\Expr
 bottomK(?int $k = null): Phpolars\Expr
+bottomKBy(mixed $by, ?int $k = null, mixed $reverse = null): Phpolars\Expr
 cast(string $dtype, ?bool $strict = null): Phpolars\Expr
 cat(): Phpolars\CatNameSpace
 cbrt(): Phpolars\Expr
@@ -62,14 +64,18 @@ eqMissing(mixed $other): Phpolars\Expr
 ewmMean(?float $com = null, ?float $span = null, ?float $halfLife = null, ?float $alpha = null, ?bool $adjust = null, ?int $minPeriods = null, ?bool $ignoreNulls = null): Phpolars\Expr
 ewmMeanBy(mixed $by, string $halfLife): Phpolars\Expr
 ewmStd(?float $com = null, ?float $span = null, ?float $halfLife = null, ?float $alpha = null, ?bool $adjust = null, ?bool $bias = null, ?int $minPeriods = null, ?bool $ignoreNulls = null): Phpolars\Expr
+ewmSum(?float $com = null, ?float $span = null, ?float $halfLife = null, ?float $alpha = null, ?int $minPeriods = null, ?bool $ignoreNulls = null): Phpolars\Expr
+ewmSumBy(mixed $by, string $halfLife): Phpolars\Expr
 ewmVar(?float $com = null, ?float $span = null, ?float $halfLife = null, ?float $alpha = null, ?bool $adjust = null, ?bool $bias = null, ?int $minPeriods = null, ?bool $ignoreNulls = null): Phpolars\Expr
 exclude(mixed ...$columns): Phpolars\Expr
 exp(): Phpolars\Expr
 explode(): Phpolars\Expr
+extendConstant(mixed $value, mixed $n): Phpolars\Expr
 fillNan(mixed $value): Phpolars\Expr
 fillNull(mixed $value = null, ?string $strategy = null, ?int $limit = null): Phpolars\Expr
 filter(mixed $predicate): Phpolars\Expr
 first(?bool $ignoreNulls = null): Phpolars\Expr
+flatten(): Phpolars\Expr
 floor(): Phpolars\Expr
 floordiv(mixed $other): Phpolars\Expr
 forwardFill(?int $limit = null): Phpolars\Expr
@@ -88,6 +94,7 @@ interpolateBy(mixed $by): Phpolars\Expr
 isBetween(mixed $lower, mixed $upper, ?string $closed = null): Phpolars\Expr
 isClose(mixed $other, ?float $absTol = null, ?float $relTol = null, ?bool $nansEqual = null): Phpolars\Expr
 isDuplicated(): Phpolars\Expr
+isEmpty(?bool $ignoreNulls = null): Phpolars\Expr
 isFinite(): Phpolars\Expr
 isFirstDistinct(): Phpolars\Expr
 isIn(mixed $other, ?bool $nullsEqual = null): Phpolars\Expr
@@ -114,6 +121,7 @@ max(): Phpolars\Expr
 maxBy(mixed $by): Phpolars\Expr
 mean(): Phpolars\Expr
 median(): Phpolars\Expr
+meta(): Phpolars\MetaNameSpace
 min(): Phpolars\Expr
 minBy(mixed $by): Phpolars\Expr
 mod(mixed $other): Phpolars\Expr
@@ -139,12 +147,15 @@ qcut(mixed $quantiles, ?array $labels = null, ?bool $leftClosed = null, ?bool $a
 quantile(mixed $quantile, ?string $interpolation = null): Phpolars\Expr
 radians(): Phpolars\Expr
 rank(?string $method = null, ?bool $descending = null, ?int $seed = null): Phpolars\Expr
+reinterpret(?bool $signed = null): Phpolars\Expr
 repeatBy(mixed $by): Phpolars\Expr
 replace(mixed $old, mixed $new = null): Phpolars\Expr
 replaceStrict(mixed $old, mixed $new = null, mixed $default = null, ?string $returnDtype = null): Phpolars\Expr
+reshape(array $dimensions): Phpolars\Expr
 reverse(): Phpolars\Expr
 rle(): Phpolars\Expr
 rleId(): Phpolars\Expr
+rolling(mixed $indexColumn, string $period, ?string $offset = null, ?string $closed = null): Phpolars\Expr
 rollingKurtosis(int $windowSize, ?bool $fisher = null, ?bool $bias = null, ?int $minPeriods = null, ?bool $center = null): Phpolars\Expr
 rollingMax(int $windowSize, ?int $minPeriods = null, ?bool $center = null): Phpolars\Expr
 rollingMaxBy(mixed $by, string $windowSize, ?int $minPeriods = null, ?string $closed = null): Phpolars\Expr
@@ -156,6 +167,8 @@ rollingMin(int $windowSize, ?int $minPeriods = null, ?bool $center = null): Phpo
 rollingMinBy(mixed $by, string $windowSize, ?int $minPeriods = null, ?string $closed = null): Phpolars\Expr
 rollingQuantile(float $quantile, int $windowSize, ?string $interpolation = null, ?int $minPeriods = null, ?bool $center = null): Phpolars\Expr
 rollingQuantileBy(mixed $by, string $windowSize, float $quantile, ?string $interpolation = null, ?int $minPeriods = null, ?string $closed = null): Phpolars\Expr
+rollingRank(int $windowSize, ?string $method = null, ?int $seed = null, ?int $minPeriods = null, ?bool $center = null): Phpolars\Expr
+rollingRankBy(mixed $by, string $windowSize, ?string $method = null, ?int $seed = null, ?int $minPeriods = null, ?string $closed = null): Phpolars\Expr
 rollingSkew(int $windowSize, ?bool $bias = null, ?int $minPeriods = null, ?bool $center = null): Phpolars\Expr
 rollingStd(int $windowSize, ?int $minPeriods = null, ?bool $center = null): Phpolars\Expr
 rollingStdBy(mixed $by, string $windowSize, ?int $minPeriods = null, ?string $closed = null, ?int $ddof = null): Phpolars\Expr
@@ -187,6 +200,7 @@ tan(): Phpolars\Expr
 tanh(): Phpolars\Expr
 toPhysical(): Phpolars\Expr
 topK(?int $k = null): Phpolars\Expr
+topKBy(mixed $by, ?int $k = null, mixed $reverse = null): Phpolars\Expr
 truediv(mixed $other): Phpolars\Expr
 unique(?bool $maintainOrder = null): Phpolars\Expr
 uniqueCounts(): Phpolars\Expr
@@ -271,6 +285,7 @@ century(): mixed
 combine(mixed $time, ?string $timeUnit = null): mixed
 convertTimeZone(string $timeZone): mixed
 date(): mixed
+datetime(): mixed
 day(): mixed
 daysInMonth(): mixed
 dstOffset(): mixed
@@ -333,6 +348,7 @@ gather(mixed $indices, ?bool $nullOnOob = null): mixed
 gatherEvery(mixed $n, mixed $offset = null): mixed
 get(mixed $index, ?bool $nullOnOob = null): mixed
 head(?int $n = null): mixed
+item(?bool $allowEmpty = null): mixed
 join(mixed $separator, ?bool $ignoreNulls = null): mixed
 last(): mixed
 len(): mixed
@@ -365,6 +381,7 @@ var(?int $ddof = null): mixed
 field(string $name): mixed
 jsonEncode(): mixed
 renameFields(mixed $names): mixed
+unnest(): mixed
 withFields(mixed ...$exprs): mixed
 ```
 
@@ -373,8 +390,10 @@ withFields(mixed ...$exprs): mixed
 ```php
 keep(): Phpolars\Expr
 prefix(string $prefix): Phpolars\Expr
+prefixFields(string $prefix): Phpolars\Expr
 replace(string $pattern, string $value, ?bool $literal = null): Phpolars\Expr
 suffix(string $suffix): Phpolars\Expr
+suffixFields(string $suffix): Phpolars\Expr
 toLowercase(): Phpolars\Expr
 toUppercase(): Phpolars\Expr
 ```
@@ -435,6 +454,7 @@ encode(string $encoding): mixed
 endsWith(mixed $suffix): mixed
 get(mixed $index, ?bool $nullOnOob = null): mixed
 head(?int $n = null): mixed
+reinterpret(string $dtype, ?string $endianness = null): mixed
 size(?string $unit = null): mixed
 slice(mixed $offset, mixed $length = null): mixed
 startsWith(mixed $prefix): mixed

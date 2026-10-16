@@ -717,6 +717,11 @@ impl PhpDtNameSpace {
                 .total_microseconds(fractional.unwrap_or(false)),
         )
     }
+    /// The datetime without its time zone, on the wall clock.
+    pub fn datetime(&self) -> PhpResult<Zval> {
+        self.finish(self.base().dt().datetime())
+    }
+
     pub fn millennium(&self) -> PhpResult<Zval> {
         self.finish(self.base().dt().millennium())
     }
@@ -1085,6 +1090,15 @@ impl PhpListNameSpace {
         )
     }
 
+    /// The single element of each list; an error unless each has one (allowEmpty: empty gives null).
+    pub fn item(&self, allowEmpty: Option<bool>) -> PhpResult<Zval> {
+        self.finish(
+            self.base()
+                .list()
+                .agg(element().item(allowEmpty.unwrap_or(false))),
+        )
+    }
+
     /// Run an aggregation over each list: agg(element()->sum()).
     pub fn agg(&self, expr: &Zval) -> PhpResult<Zval> {
         self.finish(self.base().list().agg(into_expr(expr)?))
@@ -1095,6 +1109,11 @@ impl PhpListNameSpace {
 impl PhpStructNameSpace {
     pub fn field(&self, name: String) -> PhpResult<Zval> {
         self.finish(self.base().struct_().field_by_name(&name))
+    }
+
+    /// Every field as its own column: select(col('s')->struct()->unnest()).
+    pub fn unnest(&self) -> PhpResult<Zval> {
+        self.finish(self.base().struct_().field_by_names(["*"]))
     }
 
     /// Add or replace fields: withFields(field('a')->mul(2)->alias('b')).
@@ -1170,6 +1189,88 @@ impl PhpNameNameSpace {
                 .name()
                 .replace(&pattern, &value, literal.unwrap_or(false)),
         )
+    }
+
+    /// Prefix the field names of a struct column.
+    pub fn prefixFields(&self, prefix: String) -> crate::expr::PhpExpr {
+        wrap(self.e.clone().name().prefix_fields(&prefix))
+    }
+
+    pub fn suffixFields(&self, suffix: String) -> crate::expr::PhpExpr {
+        wrap(self.e.clone().name().suffix_fields(&suffix))
+    }
+}
+
+/// Facts about an expression itself, for code that builds expressions.
+#[php_class]
+#[php(name = "Phpolars\\MetaNameSpace")]
+pub struct PhpMetaNameSpace {
+    e: Expr,
+}
+
+impl PhpMetaNameSpace {
+    pub fn new(e: Expr) -> Self {
+        Self { e }
+    }
+}
+
+#[php_impl]
+impl PhpMetaNameSpace {
+    /// The name of the column the expression produces.
+    pub fn outputName(&self) -> PhpResult<String> {
+        self.e
+            .clone()
+            .meta()
+            .output_name()
+            .php()
+            .map(|n| n.to_string())
+    }
+
+    /// The input columns the expression reads.
+    pub fn rootNames(&self) -> Vec<String> {
+        self.e
+            .clone()
+            .meta()
+            .root_names()
+            .into_iter()
+            .map(|n| n.to_string())
+            .collect()
+    }
+
+    pub fn hasMultipleOutputs(&self) -> bool {
+        self.e.clone().meta().has_multiple_outputs()
+    }
+
+    pub fn isColumn(&self) -> bool {
+        self.e.clone().meta().is_column()
+    }
+
+    pub fn isColumnSelection(&self, allowAliasing: Option<bool>) -> bool {
+        self.e
+            .clone()
+            .meta()
+            .is_column_selection(allowAliasing.unwrap_or(false))
+    }
+
+    pub fn isLiteral(&self, allowAliasing: Option<bool>) -> bool {
+        self.e
+            .clone()
+            .meta()
+            .is_literal(allowAliasing.unwrap_or(false))
+    }
+
+    pub fn isRegexProjection(&self) -> bool {
+        self.e.clone().meta().is_regex_projection()
+    }
+
+    /// The expression without its alias() calls.
+    pub fn undoAliases(&self) -> crate::expr::PhpExpr {
+        wrap(self.e.clone().meta().undo_aliases())
+    }
+
+    /// Whether two expressions are the same.
+    pub fn eq(&self, other: &crate::expr::PhpExpr) -> bool {
+        self.e == other.inner
     }
 }
 
@@ -1477,6 +1578,24 @@ impl PhpBinNameSpace {
             self.base()
                 .binary()
                 .get(operand(index)?, nullOnOob.unwrap_or(false)),
+        )
+    }
+
+    /// Read the bytes as values of dtype, e.g. reinterpret('Int32', 'big').
+    pub fn reinterpret(&self, dtype: String, endianness: Option<String>) -> PhpResult<Zval> {
+        let little = match endianness.as_deref().unwrap_or("little") {
+            "little" => true,
+            "big" => false,
+            e => {
+                return Err(value_error(format!(
+                    "endianness must be little or big, not '{e}'"
+                )));
+            }
+        };
+        self.finish(
+            self.base()
+                .binary()
+                .reinterpret(dtype::parse(&dtype)?, little),
         )
     }
 }

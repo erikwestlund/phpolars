@@ -231,6 +231,20 @@ namespace Phpolars {
         public function toPhysical(): Phpolars\Expr {}
         public function limit(?int $n = null): Phpolars\Expr {}
         public function exclude(mixed ...$columns): Phpolars\Expr {}
+        public function topKBy(mixed $by, ?int $k = null, mixed $reverse = null): Phpolars\Expr {}
+        public function bottomKBy(mixed $by, ?int $k = null, mixed $reverse = null): Phpolars\Expr {}
+        public function ewmSum(?float $com = null, ?float $span = null, ?float $halfLife = null, ?float $alpha = null, ?int $minPeriods = null, ?bool $ignoreNulls = null): Phpolars\Expr {}
+        public function ewmSumBy(mixed $by, string $halfLife): Phpolars\Expr {}
+        public function extendConstant(mixed $value, mixed $n): Phpolars\Expr {}
+        public function reshape(array $dimensions): Phpolars\Expr {}
+        public function rollingRank(int $windowSize, ?string $method = null, ?int $seed = null, ?int $minPeriods = null, ?bool $center = null): Phpolars\Expr {}
+        public function rollingRankBy(mixed $by, string $windowSize, ?string $method = null, ?int $seed = null, ?int $minPeriods = null, ?string $closed = null): Phpolars\Expr {}
+        public function rolling(mixed $indexColumn, string $period, ?string $offset = null, ?string $closed = null): Phpolars\Expr {}
+        public function reinterpret(?bool $signed = null): Phpolars\Expr {}
+        public function isEmpty(?bool $ignoreNulls = null): Phpolars\Expr {}
+        public function argTrue(): Phpolars\Expr {}
+        public function flatten(): Phpolars\Expr {}
+        public function meta(): Phpolars\MetaNameSpace {}
         public function degrees(): Phpolars\Expr {}
         public function radians(): Phpolars\Expr {}
         public function sinh(): Phpolars\Expr {}
@@ -346,6 +360,7 @@ namespace Phpolars {
         public function totalSeconds(?bool $fractional = null): mixed {}
         public function totalMilliseconds(?bool $fractional = null): mixed {}
         public function totalMicroseconds(?bool $fractional = null): mixed {}
+        public function datetime(): mixed {}
         public function millennium(): mixed {}
         public function century(): mixed {}
         public function daysInMonth(): mixed {}
@@ -403,6 +418,7 @@ namespace Phpolars {
         public function sample(mixed $n = null, mixed $fraction = null, ?bool $withReplacement = null, ?bool $shuffle = null, ?int $seed = null): mixed {}
         public function gatherEvery(mixed $n, mixed $offset = null): mixed {}
         public function toArray(int $width): mixed {}
+        public function item(?bool $allowEmpty = null): mixed {}
         public function agg(mixed $expr): mixed {}
         public function __construct() {}
     }
@@ -410,6 +426,7 @@ namespace Phpolars {
     class StructNameSpace
     {
         public function field(string $name): mixed {}
+        public function unnest(): mixed {}
         public function withFields(mixed ...$exprs): mixed {}
         public function renameFields(mixed $names): mixed {}
         public function jsonEncode(): mixed {}
@@ -424,6 +441,8 @@ namespace Phpolars {
         public function toLowercase(): Phpolars\Expr {}
         public function toUppercase(): Phpolars\Expr {}
         public function replace(string $pattern, string $value, ?bool $literal = null): Phpolars\Expr {}
+        public function prefixFields(string $prefix): Phpolars\Expr {}
+        public function suffixFields(string $suffix): Phpolars\Expr {}
         public function __construct() {}
     }
 
@@ -486,6 +505,21 @@ namespace Phpolars {
         public function head(?int $n = null): mixed {}
         public function tail(?int $n = null): mixed {}
         public function get(mixed $index, ?bool $nullOnOob = null): mixed {}
+        public function reinterpret(string $dtype, ?string $endianness = null): mixed {}
+        public function __construct() {}
+    }
+
+    class MetaNameSpace
+    {
+        public function outputName(): string {}
+        public function rootNames(): array {}
+        public function hasMultipleOutputs(): bool {}
+        public function isColumn(): bool {}
+        public function isColumnSelection(?bool $allowAliasing = null): bool {}
+        public function isLiteral(?bool $allowAliasing = null): bool {}
+        public function isRegexProjection(): bool {}
+        public function undoAliases(): Phpolars\Expr {}
+        public function eq(Phpolars\Expr $other): bool {}
         public function __construct() {}
     }
 
@@ -572,6 +606,16 @@ namespace Phpolars {
         public function pctChange(?int $n = null): Phpolars\Series {}
         public function rank(?string $method = null, ?bool $descending = null, ?int $seed = null): Phpolars\Series {}
         public function clip(mixed $lowerBound = null, mixed $upperBound = null): Phpolars\Series {}
+        public function describe(?array $percentiles = null): Phpolars\DataFrame {}
+        public function scatter(mixed $indices, mixed $values): Phpolars\Series {}
+        public function set(Phpolars\Series $filter, mixed $value): Phpolars\Series {}
+        public function estimatedSize(): int {}
+        public function shape(): array {}
+        public function nChunks(): int {}
+        public function chunkLengths(): array {}
+        public function rechunk(): Phpolars\Series {}
+        public function newFromIndex(int $index, int $length): Phpolars\Series {}
+        public function shrinkToFit(): Phpolars\Series {}
         public function isSorted(?bool $descending = null, ?bool $nullsLast = null): bool {}
         public function argTrue(): Phpolars\Series {}
         public function zipWith(Phpolars\Series $mask, Phpolars\Series $other): Phpolars\Series {}
@@ -647,6 +691,12 @@ namespace Phpolars {
         public function replaceColumn(int $index, Phpolars\Series $column): Phpolars\DataFrame {}
         public function extend(Phpolars\DataFrame $other): Phpolars\DataFrame {}
         public function rechunk(): Phpolars\DataFrame {}
+        public function iterSlices(?int $nRows = null): array {}
+        public function rowsByKey(string $key, ?bool $named = null, ?bool $includeKey = null, ?bool $unique = null): array {}
+        public function mapRows(mixed $function): Phpolars\DataFrame {}
+        public function iterRows(?bool $named = null): array {}
+        public function nChunks(): int {}
+        public function shrinkToFit(): Phpolars\DataFrame {}
         public function glimpse(?int $maxItemsPerColumn = null): string {}
         public function __toString(): string {}
         public function select(mixed ...$exprs): Phpolars\DataFrame {}
@@ -700,6 +750,10 @@ namespace Phpolars {
         public function withColumnsSeq(mixed ...$exprs): Phpolars\DataFrame {}
         public function clear(?int $n = null): Phpolars\DataFrame {}
         public function sql(string $query, ?string $tableName = null): Phpolars\DataFrame {}
+        public function remove(mixed ...$predicates): Phpolars\DataFrame {}
+        public function gather(mixed $indices): Phpolars\DataFrame {}
+        public function mergeSorted(mixed $other, mixed $key, ?bool $maintainOrder = null): Phpolars\DataFrame {}
+        public function update(mixed $other, mixed $on = null, ?string $how = null, mixed $leftOn = null, mixed $rightOn = null, ?bool $includeNulls = null, ?string $maintainOrder = null): Phpolars\DataFrame {}
         public function collectSchema(): array {}
         public function __construct(?array $data = null, ?array $schema = null) {}
     }
@@ -713,6 +767,9 @@ namespace Phpolars {
         public function sinkParquet(string $file, ?string $compression = null, ?int $compressionLevel = null, ?bool $statistics = null, ?int $rowGroupSize = null): void {}
         public function sinkIpc(string $file): void {}
         public function sinkNdjson(string $file): void {}
+        public function profile(): array {}
+        public function clone(): Phpolars\LazyFrame {}
+        public function lazy(): Phpolars\LazyFrame {}
         public function width(): int {}
         public function schema(): array {}
         public function dtypes(): array {}
@@ -771,6 +828,10 @@ namespace Phpolars {
         public function withColumnsSeq(mixed ...$exprs): Phpolars\LazyFrame {}
         public function clear(?int $n = null): Phpolars\LazyFrame {}
         public function sql(string $query, ?string $tableName = null): Phpolars\LazyFrame {}
+        public function remove(mixed ...$predicates): Phpolars\LazyFrame {}
+        public function gather(mixed $indices): Phpolars\LazyFrame {}
+        public function mergeSorted(mixed $other, mixed $key, ?bool $maintainOrder = null): Phpolars\LazyFrame {}
+        public function update(mixed $other, mixed $on = null, ?string $how = null, mixed $leftOn = null, mixed $rightOn = null, ?bool $includeNulls = null, ?string $maintainOrder = null): Phpolars\LazyFrame {}
         public function collectSchema(): array {}
         public function __construct() {}
     }
@@ -801,6 +862,7 @@ namespace Phpolars {
         public function quantile(float $quantile, ?string $interpolation = null): Phpolars\DataFrame {}
         public function all(): Phpolars\DataFrame {}
         public function head(?int $n = null): Phpolars\DataFrame {}
+        public function having(mixed ...$predicates): Phpolars\GroupBy {}
         public function getIterator(): Phpolars\GroupIterator {}
         public function tail(?int $n = null): Phpolars\DataFrame {}
         public function __construct() {}
@@ -822,6 +884,7 @@ namespace Phpolars {
         public function quantile(float $quantile, ?string $interpolation = null): Phpolars\LazyFrame {}
         public function all(): Phpolars\LazyFrame {}
         public function head(?int $n = null): Phpolars\LazyFrame {}
+        public function having(mixed ...$predicates): Phpolars\LazyGroupBy {}
         public function getIterator(): Phpolars\GroupIterator {}
         public function tail(?int $n = null): Phpolars\LazyFrame {}
         public function __construct() {}
@@ -920,6 +983,46 @@ namespace Phpolars {
     function from_records(array $data, ?array $schema = null): Phpolars\DataFrame {}
 
     function read_database(string $query, mixed $connection, ?array $params = null, ?array $schemaOverrides = null): Phpolars\DataFrame {}
+
+    function any(mixed $names, ?bool $ignoreNulls = null): Phpolars\Expr {}
+
+    function arctan2(mixed $y, mixed $x): Phpolars\Expr {}
+
+    function cum_sum(mixed $names, ?bool $reverse = null): Phpolars\Expr {}
+
+    function cum_count(mixed $names, ?bool $reverse = null): Phpolars\Expr {}
+
+    function cum_sum_horizontal(mixed ...$exprs): Phpolars\Expr {}
+
+    function escape_regex(string $s): string {}
+
+    function head(mixed $names, ?int $n = null): Phpolars\Expr {}
+
+    function tail(mixed $names, ?int $n = null): Phpolars\Expr {}
+
+    function linear_spaces(mixed $start, mixed $end, mixed $numSamples, ?string $closed = null, ?bool $asArray = null): Phpolars\Expr {}
+
+    function ones(mixed $n, ?string $dtype = null): Phpolars\Expr {}
+
+    function zeros(mixed $n, ?string $dtype = null): Phpolars\Expr {}
+
+    function row_index(?string $name = null): Phpolars\Expr {}
+
+    function set_random_seed(int $seed): void {}
+
+    function threadpool_size(): int {}
+
+    function time(mixed $hour = null, mixed $minute = null, mixed $second = null, mixed $microsecond = null): Phpolars\Expr {}
+
+    function time_range(mixed $start = null, mixed $end = null, ?string $interval = null, ?string $closed = null): Phpolars\Expr {}
+
+    function time_ranges(mixed $start = null, mixed $end = null, ?string $interval = null, ?string $closed = null): Phpolars\Expr {}
+
+    function rolling_corr(mixed $a, mixed $b, int $windowSize, ?int $minPeriods = null, ?int $ddof = null): Phpolars\Expr {}
+
+    function rolling_cov(mixed $a, mixed $b, int $windowSize, ?int $minPeriods = null, ?int $ddof = null): Phpolars\Expr {}
+
+    function union(array $items, ?string $how = null): mixed {}
 
     function date_range(mixed $start = null, mixed $end = null, ?string $interval = null, ?int $numSamples = null, ?string $closed = null): Phpolars\Expr {}
 
