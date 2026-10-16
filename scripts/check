@@ -23,6 +23,13 @@ esac
 "$PHP" -n -d "extension=$extension" scripts/stubs.php | diff -u stubs/phpolars.php - \
     || { echo 'stubs/phpolars.php is stale; regenerate it with scripts/stubs.php' >&2; exit 1; }
 "$PHP" -n -l stubs/phpolars.php >/dev/null
+# The API of the latest release must keep working, when its tag is available.
+if tag="$(git describe --tags --abbrev=0 2>/dev/null)"; then
+    old="$(mktemp)"
+    git show "$tag:stubs/phpolars.php" >"$old"
+    "$PHP" -n -d "extension=$extension" scripts/api-compat.php "$old"
+    rm -f "$old"
+fi
 for suite in dataframe expr io regressions pyfixtures; do
     "$PHP" -n -d "extension=$extension" "tests/$suite.php"
 done

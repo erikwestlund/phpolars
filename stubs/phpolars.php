@@ -928,7 +928,7 @@ namespace Phpolars {
 
     function scan_parquet(string $source, ?int $nRows = null, ?string $rowIndexName = null, ?int $rowIndexOffset = null, ?string $parallel = null, ?bool $useStatistics = null, ?bool $hivePartitioning = null, ?bool $glob = null, ?bool $allowMissingColumns = null, ?string $includeFilePaths = null): Phpolars\LazyFrame {}
 
-    function read_ipc(string $source, mixed $columns = null, ?int $nRows = null, ?string $rowIndexName = null, ?int $rowIndexOffset = null): Phpolars\DataFrame {}
+    function read_ipc(string $source, ?int $nRows = null, ?string $rowIndexName = null, ?int $rowIndexOffset = null, mixed $columns = null): Phpolars\DataFrame {}
 
     function scan_ipc(string $source, ?int $nRows = null, ?string $rowIndexName = null, ?int $rowIndexOffset = null): Phpolars\LazyFrame {}
 

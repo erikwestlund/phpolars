@@ -18,10 +18,24 @@ use crate::{
 #[derive(Clone)]
 pub struct PhpExpr {
     pub(crate) inner: Expr,
+    /// Made by a Phpolars\cs function. Only these combine as sets; col('a', 'b')
+    /// and all() stay ordinary expressions, as in py.
+    pub(crate) selector: bool,
 }
 
 pub fn wrap(inner: Expr) -> PhpExpr {
-    PhpExpr { inner }
+    PhpExpr {
+        inner,
+        selector: false,
+    }
+}
+
+/// A selector expression from Phpolars\cs.
+pub fn wrap_selector(s: Selector) -> PhpExpr {
+    PhpExpr {
+        inner: s.as_expr(),
+        selector: true,
+    }
 }
 
 impl PhpExpr {
@@ -33,11 +47,14 @@ impl PhpExpr {
         columns: bool,
         f: impl Fn(Selector, Selector) -> Selector,
     ) -> Option<Self> {
+        if !self.selector {
+            return None;
+        }
         let Expr::Selector(a) = &self.inner else {
             return None;
         };
         let b = crate::selectors::as_selector(other, columns)?;
-        Some(wrap(f(a.clone(), b).as_expr()))
+        Some(wrap_selector(f(a.clone(), b)))
     }
 }
 
@@ -365,10 +382,10 @@ impl PhpExpr {
         Ok(wrap(self.inner.clone().xor(operand(other)?)))
     }
 
-    /// Logical not; on a selector, every other column.
+    /// Logical not; on a Phpolars\cs selector, every other column.
     pub fn not(&self) -> Self {
         match &self.inner {
-            Expr::Selector(s) => wrap((!s.clone()).as_expr()),
+            Expr::Selector(s) if self.selector => wrap_selector(!s.clone()),
             e => wrap(e.clone().not()),
         }
     }
@@ -1581,6 +1598,7 @@ impl PhpExpr {
     pub fn exclude(&self, columns: &[&Zval]) -> PhpResult<Self> {
         let names = crate::input::names(columns)?;
         match &self.inner {
+            Expr::Selector(s) if self.selector => Ok(wrap_selector(s.clone().exclude_cols(names))),
             Expr::Selector(s) => Ok(wrap(s.clone().exclude_cols(names).as_expr())),
             _ => Err(value_error(
                 "exclude() applies to all(), col('*'), or a multi-column col()",

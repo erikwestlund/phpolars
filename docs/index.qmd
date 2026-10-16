@@ -3,7 +3,7 @@ title: "phpolars"
 subtitle: "Polars data frames for PHP"
 ---
 
-phpolars brings [Polars](https://pola.rs) to PHP as a native extension written in Rust. It follows the py-polars API: the same classes, methods, and semantics, with camelCase method names and snake_case functions. A test suite compares 169 cases against py-polars 1.43.2, and all of them match.
+phpolars brings [Polars](https://pola.rs) to PHP as a native extension written in Rust. It follows the py-polars API: the same classes, methods, and semantics, with camelCase method names and snake_case functions. A test suite compares 314 cases against py-polars 1.43.2, and all of them match.
 
 {{< include examples/_quickstart.md >}}
 

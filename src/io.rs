@@ -385,10 +385,10 @@ fn ipc_scan(_: &str, _: Option<i64>, _: Option<String>, _: Option<i64>) -> PhpRe
 #[php(name = "Phpolars\\read_ipc")]
 pub fn read_ipc(
     source: String,
-    columns: Option<&Zval>,
     nRows: Option<i64>,
     rowIndexName: Option<String>,
     rowIndexOffset: Option<i64>,
+    columns: Option<&Zval>,
 ) -> PhpResult<PhpDataFrame> {
     let lf = ipc_scan(&source, nRows, rowIndexName, rowIndexOffset)?;
     collect(select_columns(lf, columns)?)

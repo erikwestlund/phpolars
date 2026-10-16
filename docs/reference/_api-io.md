@@ -1,7 +1,7 @@
 ```php
 read_csv(string $source, ?bool $hasHeader = null, ?string $separator = null, mixed $nullValues = null, ?array $schemaOverrides = null, ?int $nRows = null, ?int $skipRows = null, ?int $inferSchemaLength = null, ?bool $tryParseDates = null, mixed $columns = null, ?array $schema = null, ?string $commentPrefix = null, mixed $quoteChar = null, ?string $eolChar = null, ?string $encoding = null, ?bool $ignoreErrors = null, ?bool $missingUtf8IsEmptyString = null, ?bool $truncateRaggedLines = null, ?bool $decimalComma = null, ?string $rowIndexName = null, ?int $rowIndexOffset = null, ?int $skipRowsAfterHeader = null, ?array $newColumns = null, ?bool $raiseIfEmpty = null, ?bool $glob = null): Phpolars\DataFrame
 read_database(string $query, mixed $connection, ?array $params = null, ?array $schemaOverrides = null): Phpolars\DataFrame
-read_ipc(string $source, mixed $columns = null, ?int $nRows = null, ?string $rowIndexName = null, ?int $rowIndexOffset = null): Phpolars\DataFrame
+read_ipc(string $source, ?int $nRows = null, ?string $rowIndexName = null, ?int $rowIndexOffset = null, mixed $columns = null): Phpolars\DataFrame
 read_ipc_schema(string $source): array
 read_ipc_stream(string $source, mixed $columns = null, ?int $nRows = null): Phpolars\DataFrame
 read_json(string $source, ?array $schema = null, ?array $schemaOverrides = null, ?int $inferSchemaLength = null): Phpolars\DataFrame

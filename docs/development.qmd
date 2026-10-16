@@ -6,7 +6,7 @@ title: "Development"
 
 ```sh
 scripts/test        # build and run tests/dataframe.php, expr.php, io.php, and pyfixtures.php
-scripts/check       # release gate: rustfmt, clippy, the suites, and a stub freshness check
+scripts/check       # release gate: rustfmt, clippy, the suites, stub freshness, and API compatibility with the latest tag
 PHIBBLE=path/to/phibble/vendor/autoload.php scripts/test   # also the phibble round-trip
 ```
 
@@ -14,7 +14,7 @@ Set `PHP` and `PHP_CONFIG` to a PHP 8.5 installation. On macOS, also set `LIBCLA
 
 ## Comparing with py-polars
 
-`scripts/pyfixtures.py` builds 169 cases with py-polars and writes `tests/fixtures/py/expected.json`. `tests/pyfixtures.php` builds the same cases with phpolars and compares column names, data types, and values. Regenerate the fixtures with:
+`scripts/pyfixtures.py` builds 314 cases with py-polars and writes `tests/fixtures/py/expected.json`. `tests/pyfixtures.php` builds the same cases with phpolars and compares column names, data types, and values. Regenerate the fixtures with:
 
 ```sh
 uv run --with 'polars==1.43.2' --with numpy python scripts/pyfixtures.py

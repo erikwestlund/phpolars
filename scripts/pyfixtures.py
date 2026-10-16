@@ -761,6 +761,11 @@ simple("selectors", lambda: {k: ",".join(wide.select(v).columns) for k, v in {
     "difference": cs.numeric() - cs.by_name("id"), "complement": ~cs.temporal() & ~cs.nested(),
     "xor": cs.integer() ^ cs.starts_with("i", "f"),
 }.items()})
+bools2 = pl.DataFrame({"a": [True, False], "b": [False, False]})
+simple("multi_col_logic_is_boolean", lambda: pl.concat([
+    bools2.select(~pl.all()), bools2.select(~pl.col("a", "b")), bools2.select(pl.col("a", "b") | pl.col("b")),
+    bools2.select(pl.all() & True),
+]))
 simple("selectors_in_ops", lambda: base.select(cs.numeric() - cs.by_name("id")).with_columns((cs.float() * 2).name.suffix("_x2")))
 
 

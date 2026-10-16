@@ -20,7 +20,8 @@
 - IO options: `read_csv` and `scan_csv` add `schema`, `commentPrefix`, `quoteChar`, `eolChar`, `encoding`, `ignoreErrors`, `missingUtf8IsEmptyString`, `truncateRaggedLines`, `decimalComma`, `rowIndexName`, `rowIndexOffset`, `skipRowsAfterHeader`, `newColumns`, `raiseIfEmpty`, and `glob`. Parquet reads add `rowIndexName`, `parallel`, `useStatistics`, `hivePartitioning`, `glob`, `allowMissingColumns`, and `includeFilePaths`. IPC reads add `columns` and a row index. NDJSON and JSON reads take a `schema` and `schemaOverrides`. `writeCsv` and `sinkCsv` add `quoteChar`, `dateFormat`, `datetimeFormat`, `timeFormat`, `floatScientific`, `floatPrecision`, `decimalComma`, `lineTerminator`, `quoteStyle`, and `includeBom`. `writeParquet` and `sinkParquet` add `compression`, `compressionLevel`, `statistics`, and `rowGroupSize`.
 - Data type strings accept `Array(Int64, 3)`, `Struct(a: Int64, b: String)`, `Int128`, and `UInt128`.
 - Lists of dates and datetimes convert to PHP `DateTimeImmutable` values; some list results had come back as raw integers.
-- 313 cases are compared against py-polars 1.43.2, and all match.
+- Every v0.1.0 function and method keeps its parameters; `scripts/check` now verifies this against the latest release's stubs.
+- 314 cases are compared against py-polars 1.43.2, and all match.
 
 ## 0.1.0
 

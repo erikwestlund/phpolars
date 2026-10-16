@@ -9,6 +9,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Tags, so scripts/check can compare the API with the latest release.
+          fetch-depth: 0
       - name: PHP 8.5 with headers
         uses: shivammathur/setup-php@v2
         with:

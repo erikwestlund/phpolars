@@ -53,6 +53,7 @@ $wide = new DataFrame([
     'cat' => 'Categorical', 'arr' => 'Array(Int64, 2)', 'bin' => 'Binary', 'dec' => 'Decimal(10, 2)',
 ])->withColumns(col('tm')->str()->toTime('%H:%M:%S'));
 $nested = [['a' => 1, 'b' => ['c' => 2, 'd' => ['e' => 3, 'u' => 'x/y']], 'f' => [1, 2]], ['a' => null, 'b' => ['c' => 5]], ['g' => true]];
+$bools2 = new DataFrame(['a' => [true, false], 'b' => [false, false]]);
 $upd = new DataFrame(['id' => [2, 4, 9], 'x' => [20, null, 90], 'g' => ['B', null, 'Z']]);
 $tsf = new DataFrame([
     't' => array_map($dt, ['2024-01-01 00:00', '2024-01-01 01:00', '2024-01-01 03:00', '2024-01-02 00:00', '2024-01-02 05:00', '2024-01-04 00:00']),
@@ -709,6 +710,10 @@ $cases = [
         'union' => cs\string()->or(cs\boolean()), 'intersect' => cs\numeric()->and(cs\starts_with('i')),
         'difference' => cs\numeric()->sub(cs\by_name('id')), 'complement' => cs\temporal()->not()->and(cs\nested()->not()),
         'xor' => cs\integer()->xor(cs\starts_with('i', 'f')),
+    ]),
+    'multi_col_logic_is_boolean' => fn () => concat([
+        $bools2->select(Phpolars\all()->not()), $bools2->select(col('a', 'b')->not()), $bools2->select(col('a', 'b')->or(col('b'))),
+        $bools2->select(Phpolars\all()->and(true)),
     ]),
     'selectors_in_ops' => fn () => $S(cs\numeric()->sub(cs\by_name('id')))->withColumns(cs\float()->mul(2)->name()->suffix('_x2')),
     // SQL

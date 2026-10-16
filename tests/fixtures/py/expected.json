@@ -10236,6 +10236,50 @@
    ],
    "scalar": true
   },
+  "multi_col_logic_is_boolean": {
+   "columns": [
+    "a",
+    "b"
+   ],
+   "dtypes": [
+    "Boolean",
+    "Boolean"
+   ],
+   "rows": [
+    [
+     false,
+     true
+    ],
+    [
+     true,
+     true
+    ],
+    [
+     false,
+     true
+    ],
+    [
+     true,
+     true
+    ],
+    [
+     true,
+     false
+    ],
+    [
+     false,
+     false
+    ],
+    [
+     true,
+     false
+    ],
+    [
+     false,
+     false
+    ]
+   ]
+  },
   "selectors_in_ops": {
    "columns": [
     "x",

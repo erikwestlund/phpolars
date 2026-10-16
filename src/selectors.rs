@@ -8,12 +8,12 @@ use polars::prelude::*;
 
 use crate::{
     error::value_error,
-    expr::{PhpExpr, wrap},
+    expr::{PhpExpr, wrap_selector},
     input::names,
 };
 
 fn sel(s: Selector) -> PhpExpr {
-    wrap(s.as_expr())
+    wrap_selector(s)
 }
 
 fn dtypes(d: DataTypeSelector) -> PhpExpr {
@@ -45,11 +45,12 @@ fn any_of_pattern(parts: Vec<String>, prefix: &str, suffix: &str) -> PhpExpr {
     sel(Selector::Matches(format!("{prefix}({alt}){suffix}").into()))
 }
 
-/// The selector inside an Expr. With `columns`, a col('x') Expr counts as
-/// by_name('x'), as py's selector |, &, and ^ treat it.
+/// The selector inside a Phpolars\cs Expr. With `columns`, a col('x') Expr
+/// counts as by_name('x'), as py's selector |, &, and ^ treat it.
 pub fn as_selector(v: &Zval, columns: bool) -> Option<Selector> {
-    match &v.extract::<&PhpExpr>()?.inner {
-        Expr::Selector(s) => Some(s.clone()),
+    let e = v.extract::<&PhpExpr>()?;
+    match &e.inner {
+        Expr::Selector(s) if e.selector => Some(s.clone()),
         Expr::Column(n) if columns => Some(by_name([n.clone()], true, false)),
         _ => None,
     }
