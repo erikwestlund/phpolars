@@ -6,8 +6,11 @@
 - Functions: `date_range`, `date_ranges`, `datetime_range`, `datetime_ranges`, `int_ranges`, `date`, `datetime`, `duration`, `from_epoch`, `arg_where`, `corr`, `cov`, `nth`, `repeat`, `linear_space`, `select`, `std`, `var_`, `quantile`, `implode`, and `approx_n_unique`. `var_` has a trailing underscore because PHP reserves `var`.
 - Frame verbs: `shift`, `interpolate`, `quantile`, `product`, `approxNUnique`, `topK`, `bottomK`, `gatherEvery`, `dropNans`, `selectSeq`, and `withColumnsSeq`. DataFrame adds `isDuplicated`, `isUnique`, `partitionBy`, `toStruct`, `corr`, and `insertColumn`, and LazyFrame adds `describe`.
 - Expressions: `cut`, `qcut`, `rle`, `rleId`, `searchSorted`, `peakMax`, `peakMin`, `entropy`, `hist`, `interpolateBy`, `isClose`, `argUnique`, `indexOf`, `upperBound`, `lowerBound`, `toPhysical`, `limit`, `exclude`, and the hyperbolic and degree functions.
+- Namespaces: `str` adds `containsAny`, `replaceMany`, `extractMany`, `findMany`, `extractGroups`, `splitExact`, `encode`, `decode`, `toDecimal`, `normalize`, `jsonDecode`, `jsonPathMatch`, and `escapeRegex`. `dt` adds `addBusinessDays`, `isBusinessDay`, `combine`, `replace`, `withTimeUnit`, `millennium`, `century`, `daysInMonth`, `baseUtcOffset`, `dstOffset`, and `totalNanoseconds`. `list` adds `any`, `all`, `filter`, `sample`, `gatherEvery`, `toArray`, and `agg`. New `cat`, `arr`, and `bin` namespaces cover Categorical, Array, and Binary columns.
+- `Series` runs any `Expr` method it does not define itself, so every expression method works on a Series. Reductions such as `skew()` return a PHP value.
+- Data type strings accept `Array(Int64, 3)`, `Struct(a: Int64, b: String)`, `Int128`, and `UInt128`.
 - Lists of dates and datetimes convert to PHP `DateTimeImmutable` values; some list results had come back as raw integers.
-- 223 cases are compared against py-polars 1.43.2, and all match.
+- 244 cases are compared against py-polars 1.43.2, and all match.
 
 ## 0.1.0
 

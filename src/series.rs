@@ -24,6 +24,19 @@ pub struct PhpSeries {
     pub(crate) inner: Series,
 }
 
+/// Expr reductions that py's Series returns as a scalar.
+const SCALAR_METHODS: &[&str] = &[
+    "approxNUnique",
+    "entropy",
+    "hasNulls",
+    "indexOf",
+    "kurtosis",
+    "nanMax",
+    "nanMin",
+    "searchSorted",
+    "skew",
+];
+
 /// Placeholder column name while evaluating an expression on a series.
 const SELF: &str = "__phpolars_series";
 
@@ -562,6 +575,18 @@ impl PhpSeries {
         PhpListNameSpace::new(me(), Some(self.inner.clone()))
     }
 
+    pub fn cat(&self) -> crate::namespace::PhpCatNameSpace {
+        crate::namespace::PhpCatNameSpace::new(me(), Some(self.inner.clone()))
+    }
+
+    pub fn arr(&self) -> crate::namespace::PhpArrNameSpace {
+        crate::namespace::PhpArrNameSpace::new(me(), Some(self.inner.clone()))
+    }
+
+    pub fn bin(&self) -> crate::namespace::PhpBinNameSpace {
+        crate::namespace::PhpBinNameSpace::new(me(), Some(self.inner.clone()))
+    }
+
     #[php(name = "struct")]
     pub fn struct_ns(&self) -> PhpStructNameSpace {
         PhpStructNameSpace::new(me(), Some(self.inner.clone()))
@@ -569,6 +594,42 @@ impl PhpSeries {
 
     pub fn equals(&self, other: &PhpSeries) -> bool {
         self.inner.equals_missing(&other.inner)
+    }
+
+    /// Any Expr method this class does not define runs on the Series as an
+    /// expression, as py's Series mirrors Expr: $s->cut([0, 1]), $s->ewmMean(alpha: 0.5).
+    /// Reductions in SCALAR_METHODS return a PHP value; everything else a Series.
+    pub fn __call(&self, name: String, arguments: &ZendHashTable) -> PhpResult<Zval> {
+        use ext_php_rs::{convert::IntoZval, types::ZendCallable};
+        let expr = crate::expr::wrap(me()).into_zval(false)?;
+        let exists = ZendCallable::try_from_name("method_exists")?
+            .try_call(vec![&expr, &name])?
+            .bool()
+            .unwrap_or(false);
+        if !exists || name.starts_with("__") {
+            return Err(PhpException::new(
+                format!("Call to undefined method Phpolars\\Series::{name}()"),
+                0,
+                ext_php_rs::zend::ce::error(),
+            ));
+        }
+        let mut target = ZendHashTable::with_capacity(2);
+        target.push(expr)?;
+        target.push(name.as_str())?;
+        let out = ZendCallable::try_from_name("call_user_func_array")?
+            .try_call(vec![&target, &arguments.to_owned()])?;
+        let Some(e) = out.extract::<&crate::expr::PhpExpr>() else {
+            return Ok(out);
+        };
+        let result = eval(&self.inner, e.inner.clone())?;
+        let first_is_list = arguments
+            .values()
+            .next()
+            .is_some_and(|v| v.array().is_some());
+        if SCALAR_METHODS.contains(&name.as_str()) && result.len() == 1 && !first_is_list {
+            return convert::scalar(&result);
+        }
+        Ok(PhpSeries { inner: result }.into_zval(false)?)
     }
 
     pub fn __to_string(&self) -> String {

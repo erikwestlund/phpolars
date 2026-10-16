@@ -1,6 +1,7 @@
 ### `Phpolars\Series`
 
 ```php
+__call(string $name, array $arguments): mixed
 __toString(): string
 abs(): Phpolars\Series
 add(mixed $other): Phpolars\Series
@@ -12,7 +13,10 @@ append(Phpolars\Series $other): Phpolars\Series
 argMax(): mixed
 argMin(): mixed
 argSort(?bool $descending = null, ?bool $nullsLast = null): Phpolars\Series
+arr(): Phpolars\ArrayNameSpace
+bin(): Phpolars\BinaryNameSpace
 cast(string $dtype, ?bool $strict = null): Phpolars\Series
+cat(): Phpolars\CatNameSpace
 clip(mixed $lowerBound = null, mixed $upperBound = null): Phpolars\Series
 count(): int
 cumMax(?bool $reverse = null): Phpolars\Series

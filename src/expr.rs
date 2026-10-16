@@ -444,6 +444,18 @@ impl PhpExpr {
         PhpListNameSpace::new(self.inner.clone(), None)
     }
 
+    pub fn cat(&self) -> crate::namespace::PhpCatNameSpace {
+        crate::namespace::PhpCatNameSpace::new(self.inner.clone(), None)
+    }
+
+    pub fn arr(&self) -> crate::namespace::PhpArrNameSpace {
+        crate::namespace::PhpArrNameSpace::new(self.inner.clone(), None)
+    }
+
+    pub fn bin(&self) -> crate::namespace::PhpBinNameSpace {
+        crate::namespace::PhpBinNameSpace::new(self.inner.clone(), None)
+    }
+
     #[php(name = "struct")]
     pub fn struct_ns(&self) -> PhpStructNameSpace {
         PhpStructNameSpace::new(self.inner.clone(), None)

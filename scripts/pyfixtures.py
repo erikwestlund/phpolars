@@ -510,7 +510,7 @@ simple("top_bottom_k", lambda: base.select(col("y").top_k(2).alias("top"), col("
 
 # asof joins, time windows, and rolling
 simple("join_asof_backward", lambda: tsf.join_asof(quotes, on="t"))
-simple("join_asof_forward_by", lambda: tsf.join_asof(quotes, on="t", by="g", strategy="forward"))
+simple("join_asof_forward_by", lambda: tsf.join_asof(quotes, on="t", by="g", strategy="forward", check_sortedness=False))
 simple("join_asof_nearest_tolerance", lambda: tsf.join_asof(quotes, on="t", strategy="nearest", tolerance="2h"))
 simple("join_asof_int_tolerance", lambda: pl.DataFrame({"k": [1, 5, 10]}).join_asof(
     pl.DataFrame({"k": [2, 4, 9], "r": ["a", "b", "c"]}), on="k", tolerance=1, allow_exact_matches=False))
@@ -635,6 +635,101 @@ simple("fn_select", lambda: pl.select(lit(1).alias("one"), (lit(2) * 3).alias("s
 simple("fn_stat_shorthands", lambda: base.select(
     pl.std("y").alias("std"), pl.var("y", ddof=0).alias("var"), pl.quantile("y", 0.5).alias("q"),
     pl.implode("g").alias("all"), pl.approx_n_unique("g").alias("au")))
+
+
+# namespaces: str, dt, list, cat, arr, and bin additions
+words = pl.DataFrame({"w": ["the quick fox", "Lazy DOG", None, "a.b*c", "café", '{"a": 1, "b": [1, 2]}']})
+simple("str_many", lambda: words.select(
+    col("w").str.contains_any(["fox", "dog"]).alias("any"),
+    col("w").str.contains_any(["fox", "dog"], ascii_case_insensitive=True).alias("any_ci"),
+    col("w").str.replace_many(["quick", "DOG"], "X").alias("rep"),
+    col("w").str.replace_many({"the": "a", "fox": "cat"}).alias("rep_map"),
+    col("w").str.extract_many(["o", "a"]).alias("ext"),
+    col("w").str.find_many(["o", "a"]).alias("find"),
+))
+simple("str_extract_groups", lambda: pl.DataFrame({"u": ["id=7&n=ab", "id=12", None]}).select(
+    col("u").str.extract_groups(r"id=(?<id>\d+)(?:&n=(\w+))?").alias("g")).unnest("g"))
+simple("str_split_exact", lambda: pl.DataFrame({"s": ["a,b,c", "d", None]}).select(
+    col("s").str.split_exact(",", 1).alias("e"), col("s").str.split_exact(",", 1, inclusive=True).alias("i")).unnest("e", "i", separator="_"))
+simple("str_encode_decode", lambda: pl.DataFrame({"s": ["hi", "", None]}).select(
+    col("s").str.encode("hex").alias("hex"), col("s").str.encode("base64").alias("b64"),
+    col("s").str.encode("hex").str.decode("hex").cast(pl.String).alias("back"),
+))
+simple("str_to_decimal", lambda: pl.DataFrame({"s": ["1.25", "-3.5", None]}).select(col("s").str.to_decimal(scale=2).cast(pl.Float64)))
+simple("str_normalize_escape", lambda: words.select(
+    col("w").str.normalize("NFD").str.len_chars().alias("nfd"), col("w").str.escape_regex().alias("esc")))
+simple("str_json", lambda: pl.DataFrame({"j": ['{"a": 1, "b": "x"}', '{"a": null}', None]}).select(
+    col("j").str.json_decode(pl.Struct({"a": pl.Int64, "b": pl.String})).alias("d"),
+    col("j").str.json_path_match("$.b").alias("jb"),
+).unnest("d"))
+days = pl.DataFrame({"d": [dt.date(2024, 1, 5), dt.date(2024, 2, 29), dt.date(1999, 12, 31), None]})
+simple("dt_parts_extra", lambda: days.select(
+    col("d").dt.millennium().alias("mil"), col("d").dt.century().alias("cen"), col("d").dt.days_in_month().alias("dim")))
+simple("dt_business", lambda: days.select(
+    col("d").dt.add_business_days(1).alias("next"),
+    col("d").dt.add_business_days(-2, roll="forward").alias("back"),
+    col("d").dt.add_business_days(1, holidays=[dt.date(2024, 1, 8)]).alias("hol"),
+    col("d").dt.is_business_day().alias("is"),
+    col("d").dt.add_business_days(1, week_mask=[True, True, True, True, True, True, False]).alias("six"),
+))
+simple("dt_combine_replace", lambda: days.select(
+    col("d").dt.combine(dt.time(12, 30)).alias("c"),
+    col("d").dt.replace(day=1).alias("first"),
+    col("d").cast(pl.Datetime).dt.replace(hour=6, minute=15).alias("t"),
+))
+simple("dt_time_unit", lambda: base.select(
+    col("t").dt.with_time_unit("ms").cast(pl.Int64).alias("ms"),
+    (col("t") - col("t").min()).dt.total_nanoseconds().alias("ns"),
+))
+simple("list_more", lambda: base.select(
+    col("l").list.any().alias("any"),
+    col("l").list.eval(pl.element() > 2).list.all().alias("all"),
+    col("l").list.filter(pl.element() > 2).alias("filt"),
+    col("l").list.gather_every(2).alias("ge"),
+    col("l").list.agg(pl.element().sum()).alias("agg"),
+))
+simple("list_to_array", lambda: pl.DataFrame({"l": [[1, 2], [3, 4]]}).select(
+    col("l").list.to_array(2).alias("a")).select(col("a").arr.sum().alias("sum"), col("a").arr.max().alias("max"), col("a").arr.to_list().alias("back")))
+arrs = pl.DataFrame({"a": [[1, 5, 2], [4, None, 4], None]}, schema={"a": pl.Array(pl.Int64, 3)})
+simple("arr_aggs", lambda: arrs.select(
+    col("a").arr.min().alias("min"), col("a").arr.max().alias("max"), col("a").arr.sum().alias("sum"),
+    col("a").arr.mean().alias("mean"), col("a").arr.median().alias("median"), col("a").arr.std().alias("std"),
+    col("a").arr.n_unique().alias("nu"), col("a").arr.arg_max().alias("am"), col("a").arr.len().alias("len"),
+))
+simple("arr_ops", lambda: arrs.select(
+    col("a").arr.sort(descending=True).alias("sort"), col("a").arr.reverse().alias("rev"),
+    col("a").arr.get(1).alias("get"), col("a").arr.first().alias("first"), col("a").arr.last().alias("last"),
+    col("a").arr.contains(4).alias("has4"), col("a").arr.count_matches(4).alias("n4"),
+    col("a").arr.shift(1).alias("shift"), col("a").arr.head(2).alias("head"), col("a").arr.tail(2).alias("tail"),
+    col("a").arr.unique(maintain_order=True).alias("uniq"),
+    col("a").cast(pl.Array(pl.String, 3)).arr.join("-").alias("join"),
+    col("a").arr.eval(pl.element() * 2).alias("eval"),
+))
+simple("arr_explode_struct", lambda: arrs.head(2).select(col("a").arr.to_struct().alias("s")).unnest("s"))
+cats = pl.DataFrame({"c": ["apple", "banana", "apple", None]}, schema={"c": pl.Categorical})
+simple("cat_ns", lambda: cats.select(
+    col("c").cat.len_bytes().alias("lb"), col("c").cat.len_chars().alias("lc"),
+    col("c").cat.starts_with("ba").alias("sw"), col("c").cat.ends_with("le").alias("ew"),
+    col("c").cat.slice(1, 3).alias("sl"),
+))
+simple("cat_categories", lambda: cats.select(col("c").cat.get_categories().sort()))
+simple("bin_ns", lambda: pl.DataFrame({"s": ["hello", "", None]}).select(col("s").cast(pl.Binary).alias("b")).select(
+    col("b").bin.contains(b"ell").alias("has"), col("b").bin.starts_with(b"he").alias("sw"),
+    col("b").bin.ends_with(b"lo").alias("ew"), col("b").bin.size().alias("size"), col("b").bin.size("kb").alias("kb"),
+    col("b").bin.encode("hex").alias("hex"), col("b").bin.encode("base64").alias("b64"),
+    col("b").bin.encode("hex").str.decode("hex").bin.slice(1, 2).cast(pl.String).alias("slice"),
+))
+
+# Series methods that mirror Expr
+simple("series_mirrors_expr", lambda: pl.DataFrame([
+    ys.ewm_mean(alpha=0.5).alias("ewm"), ys.rolling_quantile(0.5, window_size=2).alias("rq"),
+    xs.rle_id().alias("rle"), ys.degrees().alias("deg"), ys.cut([0, 2]).cast(pl.String).alias("cut"),
+]))
+simple("series_scalar_reductions", lambda: {
+    "skew": ys.skew(), "kurtosis": ys.kurtosis(), "entropy": xs.drop_nulls().entropy(),
+    "nan_max": ys.nan_max(), "approx": gs.approx_n_unique(), "index_of": xs.index_of(7),
+    "search": xs.drop_nulls().sort().search_sorted(4),
+})
 
 
 

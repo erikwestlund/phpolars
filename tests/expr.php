@@ -168,3 +168,13 @@ same('series cast', $ser->cast('String')->toList(), ['3', '1', null, '2']);
 same('series isIn', $ser->isIn([1, 2])->toList(), [false, true, null, true]);
 same('series item', (new Series('o', [42]))->item(), 42);
 same('series equals', $ser->equals(new Series('n', [3, 1, null, 2])), true);
+
+// Series forwards Expr methods it does not define
+$fs = new Series('f', [1.0, 3.0, 2.0]);
+same('series forwards to Expr', $fs->cumSum()->toList(), [1.0, 4.0, 6.0]);
+same('forwarded reduction is scalar', is_float($fs->skew()), true);
+same('forwarded keeps name', $fs->sinh()->name(), 'f');
+throws('unknown Series method', fn () => $fs->nope(), Error::class, 'Series::nope()');
+same('cat namespace on Series', (new Series('c', ['x', 'y', 'x'], 'Categorical'))->cat()->lenChars()->toList(), [1, 1, 1]);
+same('Array dtype parses', (new Series('a', [[1, 2]], 'Array(Int64, 2)'))->dtype(), 'Array(Int64, 2)');
+same('Struct dtype parses', (new Series('s', [['a' => 1]], 'Struct(a: Int64)'))->dtype(), 'Struct(a: Int64)');

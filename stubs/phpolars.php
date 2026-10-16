@@ -84,6 +84,9 @@ namespace Phpolars {
         public function str(): Phpolars\StrNameSpace {}
         public function dt(): Phpolars\DtNameSpace {}
         public function list(): Phpolars\ListNameSpace {}
+        public function cat(): Phpolars\CatNameSpace {}
+        public function arr(): Phpolars\ArrayNameSpace {}
+        public function bin(): Phpolars\BinaryNameSpace {}
         public function struct(): Phpolars\StructNameSpace {}
         public function sum(): Phpolars\Expr {}
         public function mean(): Phpolars\Expr {}
@@ -267,6 +270,19 @@ namespace Phpolars {
         public function toDatetime(?string $format = null, ?string $timeUnit = null, ?string $timeZone = null, ?bool $strict = null, ?bool $exact = null): mixed {}
         public function toTime(?string $format = null, ?bool $strict = null): mixed {}
         public function strptime(string $dtype, ?string $format = null, ?bool $strict = null, ?bool $exact = null): mixed {}
+        public function containsAny(mixed $patterns, ?bool $asciiCaseInsensitive = null): mixed {}
+        public function replaceMany(mixed $patterns, mixed $replaceWith = null, ?bool $asciiCaseInsensitive = null, ?bool $leftmost = null): mixed {}
+        public function extractMany(mixed $patterns, ?bool $asciiCaseInsensitive = null, ?bool $overlapping = null, ?bool $leftmost = null): mixed {}
+        public function findMany(mixed $patterns, ?bool $asciiCaseInsensitive = null, ?bool $overlapping = null, ?bool $leftmost = null): mixed {}
+        public function extractGroups(string $pattern): mixed {}
+        public function splitExact(mixed $by, int $n, ?bool $inclusive = null): mixed {}
+        public function encode(string $encoding): mixed {}
+        public function decode(string $encoding, ?bool $strict = null): mixed {}
+        public function toDecimal(int $scale): mixed {}
+        public function normalize(?string $form = null): mixed {}
+        public function jsonDecode(string $dtype): mixed {}
+        public function jsonPathMatch(mixed $jsonPath): mixed {}
+        public function escapeRegex(): mixed {}
         public function __construct() {}
     }
 
@@ -307,6 +323,17 @@ namespace Phpolars {
         public function totalSeconds(?bool $fractional = null): mixed {}
         public function totalMilliseconds(?bool $fractional = null): mixed {}
         public function totalMicroseconds(?bool $fractional = null): mixed {}
+        public function millennium(): mixed {}
+        public function century(): mixed {}
+        public function daysInMonth(): mixed {}
+        public function withTimeUnit(string $timeUnit): mixed {}
+        public function baseUtcOffset(): mixed {}
+        public function dstOffset(): mixed {}
+        public function totalNanoseconds(?bool $fractional = null): mixed {}
+        public function combine(mixed $time, ?string $timeUnit = null): mixed {}
+        public function replace(mixed $year = null, mixed $month = null, mixed $day = null, mixed $hour = null, mixed $minute = null, mixed $second = null, mixed $microsecond = null, ?string $ambiguous = null): mixed {}
+        public function addBusinessDays(mixed $n, ?array $weekMask = null, mixed $holidays = null, ?string $roll = null): mixed {}
+        public function isBusinessDay(?array $weekMask = null, mixed $holidays = null): mixed {}
         public function __construct() {}
     }
 
@@ -347,6 +374,13 @@ namespace Phpolars {
         public function setSymmetricDifference(mixed $other): mixed {}
         public function explode(): mixed {}
         public function toStruct(mixed $fields = null): mixed {}
+        public function any(?bool $ignoreNulls = null): mixed {}
+        public function all(?bool $ignoreNulls = null): mixed {}
+        public function filter(mixed $predicate): mixed {}
+        public function sample(mixed $n = null, mixed $fraction = null, ?bool $withReplacement = null, ?bool $shuffle = null, ?int $seed = null): mixed {}
+        public function gatherEvery(mixed $n, mixed $offset = null): mixed {}
+        public function toArray(int $width): mixed {}
+        public function agg(mixed $expr): mixed {}
         public function __construct() {}
     }
 
@@ -366,6 +400,68 @@ namespace Phpolars {
         public function toLowercase(): Phpolars\Expr {}
         public function toUppercase(): Phpolars\Expr {}
         public function replace(string $pattern, string $value, ?bool $literal = null): Phpolars\Expr {}
+        public function __construct() {}
+    }
+
+    class CatNameSpace
+    {
+        public function getCategories(): mixed {}
+        public function lenBytes(): mixed {}
+        public function lenChars(): mixed {}
+        public function startsWith(string $prefix): mixed {}
+        public function endsWith(string $suffix): mixed {}
+        public function slice(int $offset, ?int $length = null): mixed {}
+        public function __construct() {}
+    }
+
+    class ArrayNameSpace
+    {
+        public function len(): mixed {}
+        public function max(): mixed {}
+        public function min(): mixed {}
+        public function sum(): mixed {}
+        public function mean(): mixed {}
+        public function median(): mixed {}
+        public function std(?int $ddof = null): mixed {}
+        public function var(?int $ddof = null): mixed {}
+        public function unique(?bool $maintainOrder = null): mixed {}
+        public function nUnique(): mixed {}
+        public function any(?bool $ignoreNulls = null): mixed {}
+        public function all(?bool $ignoreNulls = null): mixed {}
+        public function toList(): mixed {}
+        public function sort(?bool $descending = null, ?bool $nullsLast = null): mixed {}
+        public function reverse(): mixed {}
+        public function argMin(): mixed {}
+        public function argMax(): mixed {}
+        public function get(mixed $index, ?bool $nullOnOob = null): mixed {}
+        public function first(): mixed {}
+        public function last(): mixed {}
+        public function join(mixed $separator, ?bool $ignoreNulls = null): mixed {}
+        public function explode(): mixed {}
+        public function contains(mixed $item, ?bool $nullsEqual = null): mixed {}
+        public function countMatches(mixed $element): mixed {}
+        public function toStruct(): mixed {}
+        public function shift(mixed $n = null): mixed {}
+        public function slice(mixed $offset, mixed $length = null, ?bool $asArray = null): mixed {}
+        public function head(?int $n = null, ?bool $asArray = null): mixed {}
+        public function tail(?int $n = null, ?bool $asArray = null): mixed {}
+        public function eval(mixed $expr, ?bool $asList = null): mixed {}
+        public function agg(mixed $expr): mixed {}
+        public function __construct() {}
+    }
+
+    class BinaryNameSpace
+    {
+        public function contains(mixed $literal): mixed {}
+        public function startsWith(mixed $prefix): mixed {}
+        public function endsWith(mixed $suffix): mixed {}
+        public function encode(string $encoding): mixed {}
+        public function decode(string $encoding, ?bool $strict = null): mixed {}
+        public function size(?string $unit = null): mixed {}
+        public function slice(mixed $offset, mixed $length = null): mixed {}
+        public function head(?int $n = null): mixed {}
+        public function tail(?int $n = null): mixed {}
+        public function get(mixed $index, ?bool $nullOnOob = null): mixed {}
         public function __construct() {}
     }
 
@@ -457,8 +553,12 @@ namespace Phpolars {
         public function str(): Phpolars\StrNameSpace {}
         public function dt(): Phpolars\DtNameSpace {}
         public function list(): Phpolars\ListNameSpace {}
+        public function cat(): Phpolars\CatNameSpace {}
+        public function arr(): Phpolars\ArrayNameSpace {}
+        public function bin(): Phpolars\BinaryNameSpace {}
         public function struct(): Phpolars\StructNameSpace {}
         public function equals(Phpolars\Series $other): bool {}
+        public function __call(string $name, array $arguments): mixed {}
         public function __toString(): string {}
         public function __construct(?string $name = null, ?array $values = null, ?string $dtype = null) {}
     }

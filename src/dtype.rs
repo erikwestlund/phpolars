@@ -32,6 +32,24 @@ fn split(s: &str) -> PhpResult<(&str, Option<&str>)> {
     }
 }
 
+/// Split on commas outside parentheses: "a: List(Int64), b: String".
+fn split_top(s: &str) -> Vec<&str> {
+    let (mut depth, mut start, mut out) = (0i32, 0, Vec::new());
+    for (i, c) in s.char_indices() {
+        match c {
+            '(' | '[' => depth += 1,
+            ')' | ']' => depth -= 1,
+            ',' if depth == 0 => {
+                out.push(s[start..i].trim());
+                start = i + 1;
+            }
+            _ => {}
+        }
+    }
+    out.push(s[start..].trim());
+    out
+}
+
 pub fn parse(s: &str) -> PhpResult<DataType> {
     let s = s.trim();
     let (name, args) = split(s)?;
@@ -75,6 +93,26 @@ pub fn parse(s: &str) -> PhpResult<DataType> {
             }
         }
         ("List", Some(inner)) => DataType::List(Box::new(parse(inner)?)),
+        ("Int128", None) => DataType::Int128,
+        ("UInt128", None) => DataType::UInt128,
+        ("Array", Some(a)) => match split_top(a).as_slice() {
+            [inner, n] => DataType::Array(
+                Box::new(parse(inner)?),
+                n.parse::<usize>()
+                    .map_err(|_| value_error(format!("malformed data type '{s}'")))?,
+            ),
+            _ => return Err(value_error(format!("malformed data type '{s}'"))),
+        },
+        ("Struct", Some(a)) => {
+            let mut fields = Vec::new();
+            for f in split_top(a).into_iter().filter(|f| !f.is_empty()) {
+                let (n, t) = f
+                    .split_once(':')
+                    .ok_or_else(|| value_error(format!("malformed struct field '{f}'")))?;
+                fields.push(Field::new(n.trim().into(), parse(t)?));
+            }
+            DataType::Struct(fields)
+        }
         _ => return Err(value_error(format!("unknown data type '{s}'"))),
     };
     Ok(dtype)

@@ -20,9 +20,12 @@ argMax(): Phpolars\Expr
 argMin(): Phpolars\Expr
 argSort(?bool $descending = null, ?bool $nullsLast = null): Phpolars\Expr
 argUnique(): Phpolars\Expr
+arr(): Phpolars\ArrayNameSpace
 backwardFill(?int $limit = null): Phpolars\Expr
+bin(): Phpolars\BinaryNameSpace
 bottomK(?int $k = null): Phpolars\Expr
 cast(string $dtype, ?bool $strict = null): Phpolars\Expr
+cat(): Phpolars\CatNameSpace
 cbrt(): Phpolars\Expr
 ceil(): Phpolars\Expr
 clip(mixed $lowerBound = null, mixed $upperBound = null): Phpolars\Expr
@@ -198,22 +201,34 @@ when(mixed ...$condition): Phpolars\When
 
 ```php
 contains(mixed $pattern, ?bool $literal = null, ?bool $strict = null): mixed
+containsAny(mixed $patterns, ?bool $asciiCaseInsensitive = null): mixed
 countMatches(mixed $pattern, ?bool $literal = null): mixed
+decode(string $encoding, ?bool $strict = null): mixed
+encode(string $encoding): mixed
 endsWith(mixed $suffix): mixed
+escapeRegex(): mixed
 extract(mixed $pattern, ?int $groupIndex = null): mixed
 extractAll(mixed $pattern): mixed
+extractGroups(string $pattern): mixed
+extractMany(mixed $patterns, ?bool $asciiCaseInsensitive = null, ?bool $overlapping = null, ?bool $leftmost = null): mixed
 find(mixed $pattern, ?bool $literal = null, ?bool $strict = null): mixed
+findMany(mixed $patterns, ?bool $asciiCaseInsensitive = null, ?bool $overlapping = null, ?bool $leftmost = null): mixed
 head(int $n): mixed
 join(?string $delimiter = null, ?bool $ignoreNulls = null): mixed
+jsonDecode(string $dtype): mixed
+jsonPathMatch(mixed $jsonPath): mixed
 lenBytes(): mixed
 lenChars(): mixed
+normalize(?string $form = null): mixed
 padEnd(mixed $length, ?string $fillChar = null): mixed
 padStart(mixed $length, ?string $fillChar = null): mixed
 replace(mixed $pattern, mixed $value, ?bool $literal = null, ?int $n = null): mixed
 replaceAll(mixed $pattern, mixed $value, ?bool $literal = null): mixed
+replaceMany(mixed $patterns, mixed $replaceWith = null, ?bool $asciiCaseInsensitive = null, ?bool $leftmost = null): mixed
 reverse(): mixed
 slice(mixed $offset, mixed $length = null): mixed
 split(mixed $by, ?bool $inclusive = null, ?bool $literal = null): mixed
+splitExact(mixed $by, int $n, ?bool $inclusive = null): mixed
 splitn(mixed $by, int $n): mixed
 startsWith(mixed $prefix): mixed
 stripChars(?string $characters = null): mixed
@@ -225,6 +240,7 @@ strptime(string $dtype, ?string $format = null, ?bool $strict = null, ?bool $exa
 tail(int $n): mixed
 toDate(?string $format = null, ?bool $strict = null, ?bool $exact = null): mixed
 toDatetime(?string $format = null, ?string $timeUnit = null, ?string $timeZone = null, ?bool $strict = null, ?bool $exact = null): mixed
+toDecimal(int $scale): mixed
 toInteger(?int $base = null, ?string $dtype = null, ?bool $strict = null): mixed
 toLowercase(): mixed
 toTime(?string $format = null, ?bool $strict = null): mixed
@@ -235,15 +251,23 @@ zfill(int $length): mixed
 ### `Phpolars\DtNameSpace`
 
 ```php
+addBusinessDays(mixed $n, ?array $weekMask = null, mixed $holidays = null, ?string $roll = null): mixed
+baseUtcOffset(): mixed
 castTimeUnit(string $timeUnit): mixed
+century(): mixed
+combine(mixed $time, ?string $timeUnit = null): mixed
 convertTimeZone(string $timeZone): mixed
 date(): mixed
 day(): mixed
+daysInMonth(): mixed
+dstOffset(): mixed
 epoch(?string $timeUnit = null): mixed
 hour(): mixed
+isBusinessDay(?array $weekMask = null, mixed $holidays = null): mixed
 isLeapYear(): mixed
 isoYear(): mixed
 microsecond(): mixed
+millennium(): mixed
 millisecond(): mixed
 minute(): mixed
 month(): mixed
@@ -253,6 +277,7 @@ nanosecond(): mixed
 offsetBy(string $by): mixed
 ordinalDay(): mixed
 quarter(): mixed
+replace(mixed $year = null, mixed $month = null, mixed $day = null, mixed $hour = null, mixed $minute = null, mixed $second = null, mixed $microsecond = null, ?string $ambiguous = null): mixed
 replaceTimeZone(?string $timeZone = null, ?string $ambiguous = null, ?string $nonExistent = null): mixed
 round(string $every): mixed
 second(): mixed
@@ -265,16 +290,21 @@ totalHours(?bool $fractional = null): mixed
 totalMicroseconds(?bool $fractional = null): mixed
 totalMilliseconds(?bool $fractional = null): mixed
 totalMinutes(?bool $fractional = null): mixed
+totalNanoseconds(?bool $fractional = null): mixed
 totalSeconds(?bool $fractional = null): mixed
 truncate(string $every): mixed
 week(): mixed
 weekday(): mixed
+withTimeUnit(string $timeUnit): mixed
 year(): mixed
 ```
 
 ### `Phpolars\ListNameSpace`
 
 ```php
+agg(mixed $expr): mixed
+all(?bool $ignoreNulls = null): mixed
+any(?bool $ignoreNulls = null): mixed
 argMax(): mixed
 argMin(): mixed
 concat(mixed $other): mixed
@@ -284,8 +314,10 @@ diff(?int $n = null): mixed
 dropNulls(): mixed
 eval(mixed $expr): mixed
 explode(): mixed
+filter(mixed $predicate): mixed
 first(): mixed
 gather(mixed $indices, ?bool $nullOnOob = null): mixed
+gatherEvery(mixed $n, mixed $offset = null): mixed
 get(mixed $index, ?bool $nullOnOob = null): mixed
 head(?int $n = null): mixed
 join(mixed $separator, ?bool $ignoreNulls = null): mixed
@@ -297,6 +329,7 @@ median(): mixed
 min(): mixed
 nUnique(): mixed
 reverse(): mixed
+sample(mixed $n = null, mixed $fraction = null, ?bool $withReplacement = null, ?bool $shuffle = null, ?int $seed = null): mixed
 setDifference(mixed $other): mixed
 setIntersection(mixed $other): mixed
 setSymmetricDifference(mixed $other): mixed
@@ -307,6 +340,7 @@ sort(?bool $descending = null, ?bool $nullsLast = null): mixed
 std(?int $ddof = null): mixed
 sum(): mixed
 tail(?int $n = null): mixed
+toArray(int $width): mixed
 toStruct(mixed $fields = null): mixed
 unique(?bool $maintainOrder = null): mixed
 var(?int $ddof = null): mixed

@@ -37,6 +37,10 @@ $long = new DataFrame(['id' => [1, 1, 2, 2, 3, 1], 'k' => ['p', 'q', 'p', 'q', '
 $nums = new DataFrame(['n' => ['1', '20', '-3', 'x', null, '007']]);
 $rnd = new DataFrame(['f' => [0.5, 1.5, 2.5, -0.5, -1.5, 1.005, 2.675, null]]);
 $dt = fn (string $s) => new DateTimeImmutable($s);
+$words = new DataFrame(['w' => ['the quick fox', 'Lazy DOG', null, 'a.b*c', 'café', '{"a": 1, "b": [1, 2]}']]);
+$days = new DataFrame(['d' => [$dt('2024-01-05'), $dt('2024-02-29'), $dt('1999-12-31'), null]])->cast(['d' => 'Date']);
+$arrs = new DataFrame(['a' => [[1, 5, 2], [4, null, 4], null]], schema: ['a' => 'Array(Int64, 3)']);
+$cats = new DataFrame(['c' => ['apple', 'banana', 'apple', null]], schema: ['c' => 'Categorical']);
 $tsf = new DataFrame([
     't' => array_map($dt, ['2024-01-01 00:00', '2024-01-01 01:00', '2024-01-01 03:00', '2024-01-02 00:00', '2024-01-02 05:00', '2024-01-04 00:00']),
     'g' => ['a', 'b', 'a', 'a', 'b', 'a'],
@@ -461,7 +465,7 @@ $cases = [
 
     // asof joins, time windows, and rolling
     'join_asof_backward' => fn () => $tsf->joinAsof($quotes, on: 't'),
-    'join_asof_forward_by' => fn () => $tsf->joinAsof($quotes, on: 't', by: 'g', strategy: 'forward'),
+    'join_asof_forward_by' => fn () => $tsf->joinAsof($quotes, on: 't', by: 'g', strategy: 'forward', checkSortedness: false),
     'join_asof_nearest_tolerance' => fn () => $tsf->joinAsof($quotes, on: 't', strategy: 'nearest', tolerance: '2h'),
     'join_asof_int_tolerance' => fn () => (new DataFrame(['k' => [1, 5, 10]]))->joinAsof(
         new DataFrame(['k' => [2, 4, 9], 'r' => ['a', 'b', 'c']]), on: 'k', tolerance: 1, allowExactMatches: false),
@@ -585,6 +589,97 @@ $cases = [
     'fn_stat_shorthands' => fn () => $S(
         std('y')->alias('std'), Phpolars\var_('y', ddof: 0)->alias('var'), quantile('y', 0.5)->alias('q'),
         implode('g')->alias('all'), approx_n_unique('g')->alias('au')),
+
+    // namespaces: str, dt, list, cat, arr, and bin additions
+    'str_many' => fn () => $words->select(
+        col('w')->str()->containsAny(['fox', 'dog'])->alias('any'),
+        col('w')->str()->containsAny(['fox', 'dog'], asciiCaseInsensitive: true)->alias('any_ci'),
+        col('w')->str()->replaceMany(['quick', 'DOG'], 'X')->alias('rep'),
+        col('w')->str()->replaceMany(['the' => 'a', 'fox' => 'cat'])->alias('rep_map'),
+        col('w')->str()->extractMany(['o', 'a'])->alias('ext'),
+        col('w')->str()->findMany(['o', 'a'])->alias('find'),
+    ),
+    'str_extract_groups' => fn () => (new DataFrame(['u' => ['id=7&n=ab', 'id=12', null]]))->select(
+        col('u')->str()->extractGroups('id=(?<id>\d+)(?:&n=(\w+))?')->alias('g'))->unnest('g'),
+    'str_split_exact' => fn () => (new DataFrame(['s' => ['a,b,c', 'd', null]]))->select(
+        col('s')->str()->splitExact(',', 1)->struct()->renameFields(['e_field_0', 'e_field_1'])->alias('e'),
+        col('s')->str()->splitExact(',', 1, inclusive: true)->struct()->renameFields(['i_field_0', 'i_field_1'])->alias('i'))->unnest('e', 'i'),
+    'str_encode_decode' => fn () => (new DataFrame(['s' => ['hi', '', null]]))->select(
+        col('s')->str()->encode('hex')->alias('hex'), col('s')->str()->encode('base64')->alias('b64'),
+        col('s')->str()->encode('hex')->str()->decode('hex')->cast('String')->alias('back'),
+    ),
+    'str_to_decimal' => fn () => (new DataFrame(['s' => ['1.25', '-3.5', null]]))->select(col('s')->str()->toDecimal(2)->cast('Float64')),
+    'str_normalize_escape' => fn () => $words->select(
+        col('w')->str()->normalize('NFD')->str()->lenChars()->alias('nfd'), col('w')->str()->escapeRegex()->alias('esc')),
+    'str_json' => fn () => (new DataFrame(['j' => ['{"a": 1, "b": "x"}', '{"a": null}', null]]))->select(
+        col('j')->str()->jsonDecode('Struct(a: Int64, b: String)')->alias('d'),
+        col('j')->str()->jsonPathMatch('$.b')->alias('jb'),
+    )->unnest('d'),
+    'dt_parts_extra' => fn () => $days->select(
+        col('d')->dt()->millennium()->alias('mil'), col('d')->dt()->century()->alias('cen'), col('d')->dt()->daysInMonth()->alias('dim')),
+    'dt_business' => fn () => $days->select(
+        col('d')->dt()->addBusinessDays(1)->alias('next'),
+        col('d')->dt()->addBusinessDays(-2, roll: 'forward')->alias('back'),
+        col('d')->dt()->addBusinessDays(1, holidays: [$dt('2024-01-08')])->alias('hol'),
+        col('d')->dt()->isBusinessDay()->alias('is'),
+        col('d')->dt()->addBusinessDays(1, weekMask: [true, true, true, true, true, true, false])->alias('six'),
+    ),
+    'dt_combine_replace' => fn () => $days->select(
+        col('d')->dt()->combine('12:30:00')->alias('c'),
+        col('d')->dt()->replace(day: 1)->alias('first'),
+        col('d')->cast('Datetime')->dt()->replace(hour: 6, minute: 15)->alias('t'),
+    ),
+    'dt_time_unit' => fn () => $S(
+        col('t')->dt()->withTimeUnit('ms')->cast('Int64')->alias('ms'),
+        col('t')->sub(col('t')->min())->dt()->totalNanoseconds()->alias('ns'),
+    ),
+    'list_more' => fn () => $S(
+        col('l')->list()->any()->alias('any'),
+        col('l')->list()->eval(element()->gt(2))->list()->all()->alias('all'),
+        col('l')->list()->filter(element()->gt(2))->alias('filt'),
+        col('l')->list()->gatherEvery(2)->alias('ge'),
+        col('l')->list()->agg(element()->sum())->alias('agg'),
+    ),
+    'list_to_array' => fn () => (new DataFrame(['l' => [[1, 2], [3, 4]]]))->select(
+        col('l')->list()->toArray(2)->alias('a'))->select(col('a')->arr()->sum()->alias('sum'), col('a')->arr()->max()->alias('max'), col('a')->arr()->toList()->alias('back')),
+    'arr_aggs' => fn () => $arrs->select(
+        col('a')->arr()->min()->alias('min'), col('a')->arr()->max()->alias('max'), col('a')->arr()->sum()->alias('sum'),
+        col('a')->arr()->mean()->alias('mean'), col('a')->arr()->median()->alias('median'), col('a')->arr()->std()->alias('std'),
+        col('a')->arr()->nUnique()->alias('nu'), col('a')->arr()->argMax()->alias('am'), col('a')->arr()->len()->alias('len'),
+    ),
+    'arr_ops' => fn () => $arrs->select(
+        col('a')->arr()->sort(descending: true)->alias('sort'), col('a')->arr()->reverse()->alias('rev'),
+        col('a')->arr()->get(1)->alias('get'), col('a')->arr()->first()->alias('first'), col('a')->arr()->last()->alias('last'),
+        col('a')->arr()->contains(4)->alias('has4'), col('a')->arr()->countMatches(4)->alias('n4'),
+        col('a')->arr()->shift(1)->alias('shift'), col('a')->arr()->head(2)->alias('head'), col('a')->arr()->tail(2)->alias('tail'),
+        col('a')->arr()->unique(maintainOrder: true)->alias('uniq'),
+        col('a')->cast('Array(String, 3)')->arr()->join('-')->alias('join'),
+        col('a')->arr()->eval(element()->mul(2))->alias('eval'),
+    ),
+    'arr_explode_struct' => fn () => $arrs->head(2)->select(col('a')->arr()->toStruct()->alias('s'))->unnest('s'),
+    'cat_ns' => fn () => $cats->select(
+        col('c')->cat()->lenBytes()->alias('lb'), col('c')->cat()->lenChars()->alias('lc'),
+        col('c')->cat()->startsWith('ba')->alias('sw'), col('c')->cat()->endsWith('le')->alias('ew'),
+        col('c')->cat()->slice(1, 3)->alias('sl'),
+    ),
+    'cat_categories' => fn () => $cats->select(col('c')->cat()->getCategories()->sort()),
+    'bin_ns' => fn () => (new DataFrame(['s' => ['hello', '', null]]))->select(col('s')->cast('Binary')->alias('b'))->select(
+        col('b')->bin()->contains(lit('ell')->cast('Binary'))->alias('has'), col('b')->bin()->startsWith(lit('he')->cast('Binary'))->alias('sw'),
+        col('b')->bin()->endsWith(lit('lo')->cast('Binary'))->alias('ew'), col('b')->bin()->size()->alias('size'), col('b')->bin()->size('kb')->alias('kb'),
+        col('b')->bin()->encode('hex')->alias('hex'), col('b')->bin()->encode('base64')->alias('b64'),
+        col('b')->bin()->encode('hex')->str()->decode('hex')->bin()->slice(1, 2)->cast('String')->alias('slice'),
+    ),
+
+    // Series methods that mirror Expr
+    'series_mirrors_expr' => fn () => new DataFrame([
+        'ewm' => $ys->ewmMean(alpha: 0.5), 'rq' => $ys->rollingQuantile(0.5, windowSize: 2),
+        'rle' => $xs->rleId(), 'deg' => $ys->degrees(), 'cut' => $ys->cut([0, 2])->cast('String'),
+    ]),
+    'series_scalar_reductions' => fn () => [
+        'skew' => $ys->skew(), 'kurtosis' => $ys->kurtosis(), 'entropy' => $xs->dropNulls()->entropy(),
+        'nan_max' => $ys->nanMax(), 'approx' => $gs->approxNUnique(), 'index_of' => $xs->indexOf(7),
+        'search' => $xs->dropNulls()->sort()->searchSorted(4),
+    ],
 ];
 
 // ---------------------------------------------------------------------------
