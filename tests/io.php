@@ -98,6 +98,23 @@ if (extension_loaded('pdo_sqlite')) {
     same('read_database empty keeps columns', Phpolars\read_database('SELECT * FROM t WHERE id > 9', $pdo)->columns(), ['id', 'name', 'score']);
     same('read_database schemaOverrides', Phpolars\read_database('SELECT id FROM t', $pdo, schemaOverrides: ['id' => 'Int8'])->dtypes(), ['Int8']);
     throws('read_database bad query', fn () => Phpolars\read_database('SELECT nope FROM t', $pdo), PDOException::class);
+    $out = new DataFrame(['id' => [1, 2], 'name' => ['a', null], 'ok' => [true, false], 'd' => [new DateTimeImmutable('2024-01-02'), null], 'l' => [[1, 2], []]]);
+    $out = $out->cast(['d' => 'Date']);
+    same('writeDatabase rows', $out->writeDatabase('w', $pdo), 2);
+    same('writeDatabase round-trip', Phpolars\read_database('SELECT * FROM w', $pdo)->toDicts(), [
+        ['id' => 1, 'name' => 'a', 'ok' => 1, 'd' => '2024-01-02', 'l' => '[1,2]'],
+        ['id' => 2, 'name' => null, 'ok' => 0, 'd' => null, 'l' => '[]'],
+    ]);
+    throws('writeDatabase existing table', fn () => $out->writeDatabase('w', $pdo), ValueError::class, 'already exists');
+    same('writeDatabase append', $out->writeDatabase('w', $pdo, ifTableExists: 'append'), 2);
+    same('appended', Phpolars\read_database('SELECT COUNT(*) AS n FROM w', $pdo)->item(), 4);
+    $out->head(1)->writeDatabase('w', $pdo, ifTableExists: 'replace');
+    same('replaced', Phpolars\read_database('SELECT COUNT(*) AS n FROM w', $pdo)->item(), 1);
+    $big = new DataFrame(['v' => range(1, 2500), 'w' => array_fill(0, 2500, 'x')]);
+    same('writeDatabase in batches', $big->writeDatabase('big', $pdo), 2500);
+    $dates = Phpolars\read_database('SELECT d FROM w', $pdo, schemaOverrides: ['d' => 'Date']);
+    same('schemaOverrides parses dates', [$dates->dtypes(), $dates->item()->format('Y-m-d')], [['Date'], '2024-01-02']);
+    same('batched rows arrive', Phpolars\read_database('SELECT SUM(v) AS s FROM big', $pdo)->item(), 3126250);
 }
 
 array_map('unlink', glob("$dir/parts/*"));

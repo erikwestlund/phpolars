@@ -113,6 +113,7 @@ withColumns(mixed ...$exprs): Phpolars\DataFrame
 withColumnsSeq(mixed ...$exprs): Phpolars\DataFrame
 withRowIndex(?string $name = null, ?int $offset = null): Phpolars\DataFrame
 writeCsv(string $file, ?bool $includeHeader = null, ?string $separator = null, ?string $nullValue = null, ?string $quoteChar = null, ?string $dateFormat = null, ?string $datetimeFormat = null, ?string $timeFormat = null, ?bool $floatScientific = null, ?int $floatPrecision = null, ?bool $decimalComma = null, ?string $lineTerminator = null, ?string $quoteStyle = null, ?bool $includeBom = null): void
+writeDatabase(string $tableName, mixed $connection, ?string $ifTableExists = null): int
 writeIpc(string $file): void
 writeJson(string $file): void
 writeNdjson(string $file): void

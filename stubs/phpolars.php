@@ -691,6 +691,7 @@ namespace Phpolars {
         public function replaceColumn(int $index, Phpolars\Series $column): Phpolars\DataFrame {}
         public function extend(Phpolars\DataFrame $other): Phpolars\DataFrame {}
         public function rechunk(): Phpolars\DataFrame {}
+        public function writeDatabase(string $tableName, mixed $connection, ?string $ifTableExists = null): int {}
         public function iterSlices(?int $nRows = null): array {}
         public function rowsByKey(string $key, ?bool $named = null, ?bool $includeKey = null, ?bool $unique = null): array {}
         public function mapRows(mixed $function): Phpolars\DataFrame {}

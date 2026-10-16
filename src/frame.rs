@@ -1455,6 +1455,25 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
         Self::wrap(df)
     }
 
+    /// Write the rows to a table over a PDO connection; returns the number of rows.
+    /// ifTableExists: 'fail' (default), 'replace' (drop and create), or 'append'.
+    /// New tables get portable column types: BIGINT, DOUBLE PRECISION, TEXT,
+    /// BOOLEAN, DATE, and TIMESTAMP (DATETIME(6) on MySQL); nested values are
+    /// stored as JSON text.
+    pub fn writeDatabase(
+        &self,
+        tableName: String,
+        connection: &Zval,
+        ifTableExists: Option<String>,
+    ) -> PhpResult<i64> {
+        crate::sql::write_database(
+            &self.inner,
+            &tableName,
+            connection,
+            ifTableExists.as_deref().unwrap_or("fail"),
+        )
+    }
+
     /// The frame in slices of nRows rows.
     pub fn iterSlices(&self, nRows: Option<i64>) -> PhpResult<Vec<PhpDataFrame>> {
         let n = crate::input::count(nRows.unwrap_or(10_000), "nRows")?.max(1);

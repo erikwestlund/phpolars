@@ -791,12 +791,30 @@ pub fn read_database(
         convert::from_rows(rows, None)?
     };
     if let Some(o) = schemaOverrides {
-        use polars::prelude::IntoLazy;
-        let casts = convert::schema_overrides(Some(o))?;
-        let map: polars::prelude::PlHashMap<&str, polars::prelude::DataType> =
-            casts.iter().map(|(k, v)| (k.as_str(), v.clone())).collect();
+        use polars::prelude::{DataType, IntoLazy, StrptimeOptions, col, lit};
+        let mut exprs = Vec::new();
+        for (name, target) in convert::schema_overrides(Some(o))? {
+            let source = df
+                .column(&name)
+                .map_err(|_| error::column_not_found(&name))?
+                .dtype()
+                .clone();
+            let c = col(name.as_str());
+            // Text from the driver is parsed, since Polars deprecates casting it to temporal types.
+            exprs.push(match (&source, &target) {
+                (DataType::String, DataType::Date) => c.str().to_date(StrptimeOptions::default()),
+                (DataType::String, DataType::Datetime(tu, tz)) => c.str().to_datetime(
+                    Some(*tu),
+                    tz.clone(),
+                    StrptimeOptions::default(),
+                    lit("raise"),
+                ),
+                (DataType::String, DataType::Time) => c.str().to_time(StrptimeOptions::default()),
+                _ => c.strict_cast(target),
+            });
+        }
         init_threads();
-        df = df.lazy().cast(map, true).collect().php()?;
+        df = df.lazy().with_columns(exprs).collect().php()?;
     }
     Ok(frame::PhpDataFrame::wrap(df))
 }

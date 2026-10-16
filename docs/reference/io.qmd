@@ -11,9 +11,11 @@ title: "Reading and writing"
 | Arrow IPC | `read_ipc` | `scan_ipc` | `writeIpc` | `sinkIpc` |
 | NDJSON | `read_ndjson` | `scan_ndjson` | `writeNdjson` | `sinkNdjson` |
 | JSON (array of rows) | `read_json` | | `writeJson` | |
-| PDO query | `read_database` | | | |
+| PDO database | `read_database` | | `writeDatabase` | |
 
-`read_database($query, $pdo)` reads a query's result from any PDO connection. `params` binds placeholders through `prepare()` and `execute()`, and `schemaOverrides` casts columns afterwards, which helps with drivers that return numbers as strings.
+`read_database($query, $pdo)` reads a query's result from any PDO connection. `params` binds placeholders through `prepare()` and `execute()`. `schemaOverrides` casts columns afterwards, which helps with drivers that return numbers or dates as strings: `['d' => 'Date']` parses ISO date text.
+
+`$df->writeDatabase('table', $pdo)` inserts the rows in batches inside a transaction and returns the row count. `ifTableExists` is `fail` (the default), `append`, or `replace`. A new table gets portable column types: `BIGINT`, `DOUBLE PRECISION`, `TEXT`, `BOOLEAN`, `DATE`, and `TIMESTAMP` (`DATETIME(6)` on MySQL). List and struct values are stored as JSON text. It is tested against SQLite, PostgreSQL 17, and MySQL 8.4.
 
 Parquet, IPC, and JSON support are Cargo features. An extension built without one raises a `ComputeError` from that format's functions.
 
