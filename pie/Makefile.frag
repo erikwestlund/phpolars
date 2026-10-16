@@ -1,6 +1,6 @@
 # Use the workspace target so direct Cargo and PIE builds can share compilation.
 POLARS_CARGO_TARGET_DIR = $(top_srcdir)/../target
-POLARS_ARTIFACT = $(POLARS_CARGO_TARGET_DIR)/release/libphp_polars.$(POLARS_DYLIB_SUFFIX)
+POLARS_ARTIFACT = $(POLARS_CARGO_TARGET_DIR)/dist/libphp_polars.$(POLARS_DYLIB_SUFFIX)
 POLARS_MODULE = $(top_builddir)/modules/php_polars.so
 
 .PHONY: polars-rust-build polars-artifact-check install-polars-rust
@@ -12,7 +12,7 @@ ifneq ($(filter install install-modules install-polars-rust,$(MAKECMDGOALS)),)
 polars-rust-build: polars-artifact-check
 else
 polars-rust-build:
-	PHP="$(POLARS_PHP)" PHP_CONFIG="$(PHP_CONFIG)" CARGO_TARGET_DIR="$(POLARS_CARGO_TARGET_DIR)" "$(CARGO)" build --manifest-path "$(top_srcdir)/../Cargo.toml" --lib --release --locked
+	PHP="$(POLARS_PHP)" PHP_CONFIG="$(PHP_CONFIG)" CARGO_TARGET_DIR="$(POLARS_CARGO_TARGET_DIR)" "$(CARGO)" build --manifest-path "$(top_srcdir)/../Cargo.toml" --lib --profile dist --locked
 	@mkdir -p "$(top_builddir)/modules"
 	cp "$(POLARS_ARTIFACT)" "$(POLARS_MODULE)"
 endif

@@ -189,3 +189,34 @@ it('mutates with lists, scalars and later entries seeing earlier ones', function
         ->and($out->column('c'))->toBe(['const', 'const', 'const', 'const', 'const'])
         ->and($out->column('avg')[0])->toBe(4487.5);
 });
+
+// join_by cases (dplyr 1.2) shared with phibble's Frame and SqlTable tests.
+require_once __DIR__.'/../vendor/erikwestlund/phibble/tests/Support/JoinCases.php';
+
+dataset('join_by', fn () => joinByCases());
+
+it('matches dplyr join_by in Polars', function (Closure $x, Closure $y, array $by, string $type, array $options) {
+    $case = $this->dataName();
+    $case = substr($case, strpos($case, '"') + 1, -1);
+    $out = native(fn () => pt($x())->join(pt($y()), $by, $type, ...$options));
+    $expected = joinByExpected($case);
+
+    expect($out->columns())->toBe($expected['columns'])
+        ->and(joinRows($expected['columns'], $out->toRows()))->toBe(joinRows($expected['columns'], $expected['rows']));
+})->with('join_by');
+
+it('refuses keep: false with comparisons', function () {
+    expect(fn () => pt(joinByX())->join(pt(joinByY()), [['t', '>=', 't']], 'left', keep: false))
+        ->toThrow(InvalidArgumentException::class, "Can't set `keep = FALSE` when using an inequality, rolling, or overlap join.");
+});
+
+it('honours summarise .groups and groupBy(drop: false)', function () {
+    $grouped = penguinsPt()->groupBy(['species', 'year']);
+    $levels = pt(Frame::fromColumns(['g' => ['a', 'a'], 'x' => [1, 2]])->fctLevels('g', ['a', 'b']));
+
+    expect($grouped->summarise(['n' => n()], 'keep')->groups())->toBe(['species', 'year'])
+        ->and($grouped->summarise(['n' => n()], 'drop')->groups())->toBe([])
+        ->and($grouped->summarise(['n' => n()])->groups())->toBe(['species'])
+        ->and($levels->groupBy(['g'], drop: false)->dropsEmptyGroups())->toBeFalse()
+        ->and($levels->groupBy(['g'], drop: false)->summarise(['n' => n()])->toRows())->toBe([['g' => 'a', 'n' => 2], ['g' => 'b', 'n' => 0]]);
+});

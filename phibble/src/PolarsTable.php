@@ -44,6 +44,7 @@ final class PolarsTable implements Table
         private readonly array $groups = [],
         private readonly bool $rowwise = false,
         private readonly array $factors = [],
+        private readonly bool $dropGroups = true,
     ) {}
 
     /** Wrap a Polars frame; a LazyFrame is collected. */
@@ -81,7 +82,7 @@ final class PolarsTable implements Table
         }
         $df = DataFrame::fromDict($frame->toColumns(), schema: $schema);
 
-        return new self($df, $frame->groups(), $frame->isRowwise(), $factors);
+        return new self($df, $frame->groups(), $frame->isRowwise(), $factors, $frame->dropsEmptyGroups());
     }
 
     /** The underlying Polars frame. */
@@ -90,17 +91,29 @@ final class PolarsTable implements Table
         return $this->df;
     }
 
-    private function with(DataFrame $df, ?array $groups = null, ?bool $rowwise = null, ?array $factors = null): static
+    private function with(DataFrame $df, ?array $groups = null, ?bool $rowwise = null, ?array $factors = null, ?bool $drop = null): static
     {
         $factors ??= $this->factors;
         $columns = array_flip($df->columns());
+        $groups ??= $this->groups;
 
         return new self(
             $df,
-            $groups ?? $this->groups,
+            $groups,
             $rowwise ?? $this->rowwise,
             array_intersect_key($factors, $columns),
+            $groups === [] ? true : ($drop ?? $this->dropGroups),
         );
+    }
+
+    /**
+     * With groupBy(drop: false), a factor key has a group for every level,
+     * even empty ones. Polars only sees observed groups, so those verbs run
+     * on a Frame.
+     */
+    private function keepsEmptyGroups(): bool
+    {
+        return ! $this->dropGroups && array_any($this->groups, fn (string $g) => isset($this->factors[$g]));
     }
 
     /** How many verbs fell back to an in-memory Frame in this process. */
@@ -234,7 +247,7 @@ final class PolarsTable implements Table
             return $frame->rowwise($this->groups);
         }
 
-        return $this->groups === [] ? $frame : $frame->groupBy($this->groups);
+        return $this->groups === [] ? $frame : $frame->groupBy($this->groups, $this->dropGroups);
     }
 
     // Verbs
@@ -251,7 +264,7 @@ final class PolarsTable implements Table
 
     public function filter(Closure|PhibbleExpr $predicate): static
     {
-        if ($predicate instanceof Closure || $this->rowwise) {
+        if ($predicate instanceof Closure || $this->rowwise || $this->keepsEmptyGroups()) {
             return $this->viaFrame(fn (Frame $f) => $f->filter($predicate));
         }
 
@@ -269,7 +282,7 @@ final class PolarsTable implements Table
 
     public function mutate(array $columns): static
     {
-        if ($this->rowwise || array_any($columns, fn ($v) => $v instanceof Closure)) {
+        if ($this->rowwise || $this->keepsEmptyGroups() || array_any($columns, fn ($v) => $v instanceof Closure)) {
             return $this->viaFrame(fn (Frame $f) => $f->mutate($columns));
         }
         $df = $this->df;
@@ -350,11 +363,16 @@ final class PolarsTable implements Table
         return $this->with($this->df->sort($by, descending: $descending, nullsLast: true, maintainOrder: true));
     }
 
-    public function groupBy(array $names): static
+    public function groupBy(array $names, bool $drop = true): static
     {
         $this->check(...$names);
 
-        return $this->with($this->df, array_values($names), false);
+        return $this->with($this->df, array_values($names), false, drop: $drop);
+    }
+
+    public function dropsEmptyGroups(): bool
+    {
+        return $this->dropGroups;
     }
 
     public function ungroup(): static
@@ -381,7 +399,7 @@ final class PolarsTable implements Table
 
     public function eachGroup(): iterable
     {
-        if ($this->rowwise) {
+        if ($this->rowwise || $this->keepsEmptyGroups()) {
             foreach ($this->collect()->eachGroup() as $i => $group) {
                 yield $i => ['key' => $group['key'], 'table' => self::fromTable($group['table'])];
             }
@@ -404,10 +422,14 @@ final class PolarsTable implements Table
         }
     }
 
-    public function summarise(array $aggregates): static
+    /** @param ?string $groups dplyr's .groups: drop_last (default), drop, keep or rowwise. */
+    public function summarise(array $aggregates, ?string $groups = null): static
     {
-        if ($this->rowwise || array_any($aggregates, fn ($v) => $v instanceof Closure)) {
-            return $this->viaFrame(fn (Frame $f) => $f->summarise($aggregates));
+        if ($this->rowwise || $this->keepsEmptyGroups() || array_any($aggregates, fn ($v) => $v instanceof Closure)) {
+            return $this->viaFrame(fn (Frame $f) => $f->summarise($aggregates, $groups));
+        }
+        if (! in_array($groups, [null, 'drop_last', 'drop', 'keep', 'rowwise'], true)) {
+            throw new InvalidArgumentException("summarise() .groups must be drop_last, drop, keep or rowwise, not '{$groups}'.");
         }
         $translator = $this->translator(false);
         $named = [];
@@ -425,12 +447,19 @@ final class PolarsTable implements Table
         }
         $this->guard($translator);
         if ($this->groups === []) {
-            return $this->with($this->df->select($named), []);
+            $out = $this->with($this->df->select($named), []);
+
+            return $groups === 'rowwise' ? $out->rowwise() : $out;
         }
         $out = $this->df->groupBy($this->groups, maintainOrder: true)->agg($named)
             ->sort($this->groupOrder($this->groups), nullsLast: true, maintainOrder: true);
 
-        return $this->with($out, array_slice($this->groups, 0, -1));
+        return match ($groups ?? 'drop_last') {
+            'drop_last' => $this->with($out, array_slice($this->groups, 0, -1)),
+            'drop' => $this->with($out, []),
+            'keep' => $this->with($out, $this->groups),
+            'rowwise' => $this->with($out, $this->groups, true),
+        };
     }
 
     private function firstGroupSize(): int
@@ -472,7 +501,7 @@ final class PolarsTable implements Table
         array $by,
         string $type = 'inner',
         array $suffix = ['.x', '.y'],
-        bool $keep = false,
+        ?bool $keep = null,
         bool $naMatches = true,
         string $multiple = 'all',
         ?string $relationship = null,

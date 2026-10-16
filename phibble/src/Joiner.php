@@ -34,7 +34,7 @@ final class Joiner
         array $by,
         string $type,
         array $suffix,
-        bool $keep,
+        ?bool $keep,
         bool $naMatches,
         string $multiple,
         ?string $relationship,
@@ -52,16 +52,20 @@ final class Joiner
         if (! in_array($unmatched, ['drop', 'error'], true)) {
             throw new InvalidArgumentException("unmatched must be drop or error, got '{$unmatched}'.");
         }
-        $pairs = self::pairs($by);
-        if ($type === 'cross' && $pairs !== []) {
+        [$pairs, $conditions] = self::conditions($by);
+        if ($type === 'cross' && ($pairs !== [] || $conditions !== [])) {
             throw new InvalidArgumentException('A cross join takes no keys.');
         }
-        if ($type !== 'cross' && $pairs === []) {
+        if ($type !== 'cross' && $pairs === [] && $conditions === []) {
             throw new InvalidArgumentException('Join keys are required; pass by.');
         }
+        if ($conditions !== [] && $keep === false) {
+            throw new InvalidArgumentException("Can't set `keep = FALSE` when using an inequality, rolling, or overlap join.");
+        }
+        $keep ??= false;
         $xdf = $x->polars();
         $ydf = $y->polars();
-        foreach ($pairs as [$left, $right]) {
+        foreach ([...$pairs, ...array_map(fn ($c) => [$c['left'], $c['right']], $conditions)] as [$left, $right]) {
             if (! in_array($left, $xdf->columns(), true)) {
                 throw ColumnNotFound::named($left, $xdf->columns());
             }
@@ -72,16 +76,18 @@ final class Joiner
         $X = $xdf->withRowIndex('__xi');
         $Y = $ydf->withRowIndex('__yi');
 
-        $matches = $type === 'cross'
-            ? $X->select('__xi')->join($Y->select('__yi'), how: 'cross', maintainOrder: 'left_right')
-            : self::matches($X, $Y, $pairs, $naMatches);
+        $matches = match (true) {
+            $type === 'cross' => $X->select('__xi')->join($Y->select('__yi'), how: 'cross', maintainOrder: 'left_right'),
+            $conditions !== [] => self::conditionMatches($X, $Y, $pairs, $conditions, $naMatches),
+            default => self::matches($X, $Y, $pairs, $naMatches),
+        };
         $matches = match ($multiple) {
             'all' => $matches,
             'any', 'first' => $matches->unique(subset: '__xi', keep: 'first', maintainOrder: true),
             'last' => $matches->unique(subset: '__xi', keep: 'last', maintainOrder: true),
         };
         if ($type !== 'cross') {
-            self::checkRelationship($relationship, $matches, $type);
+            self::checkRelationship($relationship, $matches, $conditions === [] ? $type : 'semi');
             self::checkUnmatched($unmatched, $type, $matches, $X, $Y);
         }
         if ($type === 'semi' || $type === 'anti') {
@@ -101,6 +107,66 @@ final class Joiner
         }
 
         return self::assemble($x, $y, $X, $Y, $rows, $pairs, $suffix, $keep);
+    }
+
+    /**
+     * Pairs for joins with comparisons: equality keys first (or every pair),
+     * then the comparisons, then, for a rolling join, the closest y value per
+     * x row with ties kept. Under naMatches, NA vs NA satisfies ==, >= and <=.
+     *
+     * @param list<array{0: string, 1: string}> $pairs
+     * @param list<array{left: string, op: string, right: string, closest: bool}> $conditions
+     */
+    private static function conditionMatches(DataFrame $X, DataFrame $Y, array $pairs, array $conditions, bool $naMatches): DataFrame
+    {
+        $xs = $X->schema();
+        $ys = $Y->schema();
+        $kx = ['__xi' => col('__xi')];
+        $ky = ['__yi' => col('__yi')];
+        foreach ($pairs as $i => [$left, $right]) {
+            $common = self::keyType($xs[$left], $ys[$right]);
+            $kx["__k{$i}"] = $common === null ? col($left) : col($left)->cast($common);
+            $ky["__k{$i}"] = $common === null ? col($right) : col($right)->cast($common);
+        }
+        foreach ($conditions as $i => $c) {
+            $common = self::keyType($xs[$c['left']], $ys[$c['right']]);
+            $kx["__cl{$i}"] = $common === null ? col($c['left']) : col($c['left'])->cast($common);
+            $ky["__cr{$i}"] = $common === null ? col($c['right']) : col($c['right'])->cast($common);
+        }
+        $keys = array_map(fn ($i) => "__k{$i}", array_keys($pairs));
+        $candidates = $keys === []
+            ? $X->select($kx)->join($Y->select($ky), how: 'cross')
+            : $X->select($kx)->join($Y->select($ky), on: $keys, how: 'inner', nullsEqual: $naMatches);
+
+        $test = function (array $c, int $i) use ($naMatches) {
+            $l = col("__cl{$i}");
+            $r = col("__cr{$i}");
+            $holds = match ($c['op']) {
+                '==' => $l->eq($r),
+                '>=' => $l->ge($r),
+                '>' => $l->gt($r),
+                '<=' => $l->le($r),
+                '<' => $l->lt($r),
+            };
+            $holds = $holds->fillNull(false);
+            if ($naMatches && in_array($c['op'], ['==', '>=', '<='], true)) {
+                $holds = $holds->or($l->isNull()->and($r->isNull()));
+            }
+
+            return $holds;
+        };
+        foreach ($conditions as $i => $c) {
+            $candidates = $candidates->filter($test($c, $i));
+        }
+        foreach ($conditions as $i => $c) {
+            if ($c['closest']) {
+                $r = col("__cr{$i}");
+                $best = in_array($c['op'], ['>=', '>'], true) ? $r->max() : $r->min();
+                $candidates = $candidates->filter($r->eqMissing($best->over('__xi')));
+            }
+        }
+
+        return $candidates->select('__xi', '__yi')->sort(['__xi', '__yi'], maintainOrder: true);
     }
 
     /**
@@ -211,20 +277,46 @@ final class Joiner
         return [$out->select([...array_values($xRename), ...array_values($yRename)]), $factors];
     }
 
-    /** @return list<array{0: string, 1: string}> */
-    private static function pairs(array $by): array
+    /**
+     * Split by into equality pairs and comparisons: 'k', [l, r], l => r,
+     * [l, op, r], or ['closest', l, op, r].
+     *
+     * @return array{0: list<array{0: string, 1: string}>, 1: list<array{left: string, op: string, right: string, closest: bool}>}
+     */
+    private static function conditions(array $by): array
     {
         $pairs = [];
+        $conditions = [];
         foreach ($by as $left => $right) {
-            $pairs[] = match (true) {
-                is_array($right) && count($right) === 2 => [(string) $right[0], (string) $right[1]],
-                is_array($right) => throw new InvalidArgumentException('Inequality joins are not supported yet.'),
-                is_string($left) => [$left, (string) $right],
-                default => [(string) $right, (string) $right],
-            };
+            if (is_array($right) && count($right) === 4 && $right[0] === 'closest') {
+                $conditions[] = ['left' => (string) $right[1], 'op' => self::op($right[2]), 'right' => (string) $right[3], 'closest' => true];
+            } elseif (is_array($right) && count($right) === 3) {
+                $op = self::op($right[1]);
+                if ($op === '==') {
+                    $pairs[] = [(string) $right[0], (string) $right[2]];
+                } else {
+                    $conditions[] = ['left' => (string) $right[0], 'op' => $op, 'right' => (string) $right[2], 'closest' => false];
+                }
+            } elseif (is_array($right) && count($right) === 2) {
+                $pairs[] = [(string) $right[0], (string) $right[1]];
+            } elseif (is_array($right)) {
+                throw new InvalidArgumentException('Join conditions are [left, right], [left, op, right] or [\'closest\', left, op, right].');
+            } else {
+                $pairs[] = is_string($left) ? [$left, (string) $right] : [(string) $right, (string) $right];
+            }
+        }
+        if (count(array_filter($conditions, fn ($c) => $c['closest'])) > 1) {
+            throw new InvalidArgumentException('A join takes at most one closest() condition.');
         }
 
-        return $pairs;
+        return [$pairs, $conditions];
+    }
+
+    private static function op(mixed $op): string
+    {
+        return in_array($op, ['==', '>=', '>', '<=', '<'], true)
+            ? $op
+            : throw new InvalidArgumentException("Unknown join comparison '{$op}'; use ==, >=, >, <= or <.");
     }
 
     private static function checkRelationship(?string $relationship, DataFrame $matches, string $type): void
