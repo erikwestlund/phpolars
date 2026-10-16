@@ -1,0 +1,50 @@
+---
+title: "Deployment"
+---
+
+## Installing with PIE
+
+```sh
+pie install erikwestlund/phpolars
+```
+
+PIE builds the extension with Cargo's `dist` profile (fat LTO, `opt-level = "s"`, stripped) and enables it. A build needs a stable Rust toolchain and libclang, and takes several minutes. The extension supports PHP 8.5, non-thread-safe builds, on Linux and macOS.
+
+## Prebuilt binaries
+
+The packaging workflow builds the extension inside the official `php:8.5-fpm-bookworm` image, installs it with PIE, runs the release checks, and sends real requests through PHP-FPM. It then packages the tested `php_polars.so` for amd64 and arm64 with:
+
+- `manifest.json`: PHP version and API number, architecture, glibc, the Rust version, the Cargo.lock hash, and the extension's SHA-256.
+- `THIRD_PARTY_NOTICES.txt`: the licenses of every Rust dependency compiled into the binary.
+- `INSTALL.txt`: copy the file to `php-config --extension-dir`, add `extension=php_polars.so`, and set `php_polars.max_threads`.
+
+Release builds attach these archives to the GitHub release. They target Debian Bookworm's glibc and are not portable to Alpine (musl). Other platforms build from source with PIE.
+
+## Threads under PHP-FPM
+
+Polars runs queries on a thread pool. FPM workers are separate processes, so each worker that uses phpolars starts its own pool. The INI setting caps the pool per process:
+
+```ini
+; php.ini
+extension=php_polars.so
+php_polars.max_threads = 2
+```
+
+The setting defaults to 2 and is `PHP_INI_SYSTEM`, because the pool starts once per process and cannot be resized. An explicit `POLARS_MAX_THREADS` environment variable takes precedence. `Phpolars\thread_pool_size()` reports the size in effect. Size it so that `pm.max_children × max_threads` fits the machine's cores.
+
+PHP closures never run on Polars threads. Every phpolars operation is built from expressions that Polars evaluates natively.
+
+## Memory
+
+Polars allocates with its own allocator, outside PHP's memory manager, so its memory does not count against `memory_limit`. Reading a 1M-row CSV raises a process's resident memory to about 83 MB while `memory_get_peak_usage()` reports 2 MB. Size FPM pools by process memory, and limit request data with the application's own checks.
+
+## Checking an installation
+
+`tests/deployment.php` runs the same assertions through the CLI and, in `scripts/check-fpm` and `scripts/check-container`, through a real FastCGI request:
+
+```sh
+php tests/deployment.php
+docker build --target checks -f docker/Dockerfile -t php-polars-checks .
+docker build -f docker/Dockerfile -t php-polars-runtime .
+scripts/check-container php-polars-runtime php-polars-checks
+```

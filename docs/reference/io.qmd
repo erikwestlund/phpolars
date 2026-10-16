@@ -1,0 +1,21 @@
+---
+title: "Reading and writing"
+---
+
+`read_*` functions return a `DataFrame`. `scan_*` functions return a `LazyFrame`, so filters and column selections are pushed into the reader. `DataFrame::write*()` writes a file; `LazyFrame::sink*()` streams a query's result to a file without collecting it in memory.
+
+| Format | Read | Scan | Write | Sink |
+| --- | --- | --- | --- | --- |
+| CSV | `read_csv` | `scan_csv` | `writeCsv` | `sinkCsv` |
+| Parquet | `read_parquet` | `scan_parquet` | `writeParquet` | `sinkParquet` |
+| Arrow IPC | `read_ipc` | `scan_ipc` | `writeIpc` | `sinkIpc` |
+| NDJSON | `read_ndjson` | `scan_ndjson` | `writeNdjson` | `sinkNdjson` |
+| JSON (array of rows) | `read_json` | | `writeJson` | |
+
+Parquet, IPC, and JSON support are Cargo features. An extension built without one raises a `ComputeError` from that format's functions.
+
+{{< include ../examples/_io.md >}}
+
+## Functions
+
+{{< include _api-io.md >}}

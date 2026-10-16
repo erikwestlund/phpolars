@@ -1,0 +1,94 @@
+### `Phpolars\Series`
+
+```php
+__toString(): string
+abs(): Phpolars\Series
+add(mixed $other): Phpolars\Series
+alias(string $name): Phpolars\Series
+all(?bool $ignoreNulls = null): mixed
+and(mixed $other): Phpolars\Series
+any(?bool $ignoreNulls = null): mixed
+append(Phpolars\Series $other): Phpolars\Series
+argMax(): mixed
+argMin(): mixed
+argSort(?bool $descending = null, ?bool $nullsLast = null): Phpolars\Series
+cast(string $dtype, ?bool $strict = null): Phpolars\Series
+clip(mixed $lowerBound = null, mixed $upperBound = null): Phpolars\Series
+count(): int
+cumMax(?bool $reverse = null): Phpolars\Series
+cumMin(?bool $reverse = null): Phpolars\Series
+cumProd(?bool $reverse = null): Phpolars\Series
+cumSum(?bool $reverse = null): Phpolars\Series
+diff(?int $n = null): Phpolars\Series
+div(mixed $other): Phpolars\Series
+dropNulls(): Phpolars\Series
+dt(): Phpolars\DtNameSpace
+dtype(): string
+eq(mixed $other): Phpolars\Series
+equals(Phpolars\Series $other): bool
+exp(): Phpolars\Series
+fillNan(mixed $value): Phpolars\Series
+fillNull(mixed $value = null, ?string $strategy = null, ?int $limit = null): Phpolars\Series
+filter(mixed $predicate): Phpolars\Series
+first(): mixed
+floordiv(mixed $other): Phpolars\Series
+gather(mixed $indices): Phpolars\Series
+ge(mixed $other): Phpolars\Series
+get(int $index): mixed
+gt(mixed $other): Phpolars\Series
+hasNulls(): bool
+head(?int $n = null): Phpolars\Series
+isBetween(mixed $lower, mixed $upper, ?string $closed = null): Phpolars\Series
+isDuplicated(): Phpolars\Series
+isEmpty(): bool
+isIn(mixed $other, ?bool $nullsEqual = null): Phpolars\Series
+isNan(): Phpolars\Series
+isNotNull(): Phpolars\Series
+isNull(): Phpolars\Series
+isUnique(): Phpolars\Series
+item(): mixed
+last(): mixed
+le(mixed $other): Phpolars\Series
+len(): int
+list(): Phpolars\ListNameSpace
+log(?float $base = null): Phpolars\Series
+lt(mixed $other): Phpolars\Series
+max(): mixed
+mean(): mixed
+median(): mixed
+min(): mixed
+mod(mixed $other): Phpolars\Series
+mul(mixed $other): Phpolars\Series
+nUnique(): mixed
+name(): string
+ne(mixed $other): Phpolars\Series
+not(): Phpolars\Series
+nullCount(): int
+or(mixed $other): Phpolars\Series
+pctChange(?int $n = null): Phpolars\Series
+pow(mixed $exponent): Phpolars\Series
+product(): mixed
+quantile(float $quantile, ?string $interpolation = null): mixed
+rank(?string $method = null, ?bool $descending = null, ?int $seed = null): Phpolars\Series
+rename(string $name): Phpolars\Series
+reverse(): Phpolars\Series
+round(?int $decimals = null): Phpolars\Series
+sample(?int $n = null, ?float $fraction = null, ?bool $withReplacement = null, ?bool $shuffle = null, ?int $seed = null): Phpolars\Series
+shift(?int $n = null): Phpolars\Series
+slice(int $offset, ?int $length = null): Phpolars\Series
+sort(?bool $descending = null, ?bool $nullsLast = null): Phpolars\Series
+sqrt(): Phpolars\Series
+std(?int $ddof = null): mixed
+str(): Phpolars\StrNameSpace
+struct(): Phpolars\StructNameSpace
+sub(mixed $other): Phpolars\Series
+sum(): mixed
+tail(?int $n = null): Phpolars\Series
+toFrame(?string $name = null): Phpolars\DataFrame
+toList(): array
+truediv(mixed $other): Phpolars\Series
+unique(?bool $maintainOrder = null): Phpolars\Series
+valueCounts(?bool $sort = null, ?string $name = null, ?bool $normalize = null): Phpolars\DataFrame
+var(?int $ddof = null): mixed
+```
+

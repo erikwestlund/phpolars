@@ -1,0 +1,47 @@
+---
+title: "Performance"
+---
+
+All timings are on an Apple M5 Ultra with Homebrew PHP 8.5.10 and Polars limited to its default 2 threads, unless noted.
+
+## A CSV pipeline
+
+`bench/pipeline.php` reads a 1M-row, 16 MB CSV, filters it, groups and aggregates it, and returns PHP arrays. Each implementation runs five times and the fastest run is reported. All produce the same result.
+
+| Implementation | Time |
+| --- | --- |
+| phpolars, 1 thread | 49 ms |
+| phpolars, 2 threads (default) | 27 ms |
+| phpolars, 4 threads | 17 ms |
+| plain PHP arrays (`fgetcsv` loop) | 342 ms |
+
+## phplyr pipelines on three backends
+
+`bench/phplyr.php` runs phplyr pipelines on phibble's in-memory `Frame`, `PolarsTable`, and phibble's `SqlTable` over SQLite. The data is a sales table (store, product, day, units with 2% NA and 5% zeros, price) and a 100-row store lookup. Loading is not timed; each pipeline is timed through `collect()`, best of three. The results of all backends are compared.
+
+- **A:** filter, left join, grouped summary, then a ranked window within regions.
+- **B:** per-store windows over every row: `lag(order_by: day)`, `cumsum`, and a share of the group sum.
+- **C:** pipeline A with a PHP closure in `filter()`.
+
+| Pipeline | Rows | Frame | PolarsTable | SqlTable |
+| --- | --- | --- | --- | --- |
+| A | 100k | 0.166 s | 0.009 s | 0.044 s |
+| B | 100k | 0.212 s | 0.048 s | 0.279 s |
+| C | 100k | 0.180 s | 0.088 s | 0.291 s |
+| A | 1M | 1.517 s | 0.062 s | 0.456 s |
+| B | 1M | 2.677 s | 0.438 s | 3.571 s |
+| C | 1M | 1.670 s | 0.909 s | 2.875 s |
+
+These runs used phibble at dbd8b1e. SqlTable's pipeline B results differed from the other backends then; phibble fixed this in ccafa98.
+
+## Where the time goes
+
+Polars runs the verbs themselves 10 to 100 times faster than the in-memory frame. Returning rows to PHP is the cost that remains. Collecting 1M rows into PHP takes about 0.2 s for plain columns, plus about 0.5 s per datetime column, because each `DateTimeImmutable` is a PHP object.
+
+PolarsTable is the faster backend when a pipeline reduces the data (summaries, filters, joins followed by summaries) or chains several verbs before collecting. Reading files with `Phpolars\read_csv()` or `read_parquet()` and wrapping the result with `PolarsTable::fromPolars()` also avoids parsing the file in PHP.
+
+A verb given a PHP closure converts the table to a phibble `Frame` and back, about 1 s per million rows with a datetime column. On large data, use expressions, or use the in-memory `Frame` for closure-heavy pipelines.
+
+## Binary size
+
+{{< include _size-table.md >}}

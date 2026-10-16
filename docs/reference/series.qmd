@@ -1,0 +1,11 @@
+---
+title: "Series"
+---
+
+A `Series` is one named column. Aggregations return PHP values; element-wise methods return a new `Series`. The `str()`, `dt()`, `list()`, and `struct()` namespaces work on a `Series` and return a `Series`.
+
+{{< include ../examples/_series.md >}}
+
+## Methods
+
+{{< include _api-series.md >}}

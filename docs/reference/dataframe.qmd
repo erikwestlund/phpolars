@@ -1,0 +1,44 @@
+---
+title: "DataFrame and LazyFrame"
+---
+
+`DataFrame` holds data in memory and runs each operation immediately. `LazyFrame` records operations and runs them, optimized, on `collect()`. Both have the same verbs; a `DataFrame` builds each verb on a lazy query and collects it, as py-polars does.
+
+## Creating frames
+
+```php
+$df = new DataFrame(['a' => [1, 2], 'b' => ['x', 'y']]);          // columns
+$df = new DataFrame([['a' => 1, 'b' => 'x'], ['a' => 2, 'b' => 'y']]);  // rows
+$df = DataFrame::fromRows([[1, 'x'], [2, 'y']], schema: ['a' => 'Int32', 'b' => 'String']);
+$df = new DataFrame(['a' => new Series('a', [1, 2])]);
+$df = read_csv('data.csv');
+$lf = $df->lazy();      // or scan_csv(), scan_parquet(), ...
+```
+
+A `schema` argument names columns and sets their types.
+
+## Joins
+
+`join()` takes `on`, or `leftOn` and `rightOn`, and `how`: `inner`, `left`, `right`, `full`, `semi`, `anti`, or `cross`. `suffix` names clashing right-hand columns, `coalesce` merges key columns, `nullsEqual` lets null keys match, and `maintainOrder` (`none`, `left`, `right`, `left_right`, `right_left`) fixes the row order.
+
+{{< include ../examples/_joins.md >}}
+
+## Reshaping
+
+{{< include ../examples/_reshape.md >}}
+
+## Getting values out
+
+| Method | Returns |
+| --- | --- |
+| `toDicts()` | list of rows, each `['column' => value]` |
+| `rows()` | list of rows, each a list of values |
+| `row($i, named: true)` | one row |
+| `toDict()` | `['column' => Series]`; `toDict(asSeries: false)` gives lists |
+| `getColumn('a')` | a `Series` |
+| `item()`, `item($row, $column)` | one value |
+| `schema()`, `dtypes()`, `columns()`, `shape()` | structure |
+
+## Methods
+
+{{< include _api-dataframe.md >}}

@@ -1,0 +1,40 @@
+name: Installer and PHP-FPM checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    env:
+      PHP_IMAGE: php:8.5-fpm-bookworm@sha256:dd198c828c224e479bdaa184cdcf04a28c73d186bf5a885493bf9cc78d7196ef
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and verify the PIE installation
+        run: docker build --progress=plain --build-arg "PHP_IMAGE=$PHP_IMAGE" --target checks -f docker/Dockerfile -t php-polars-checks .
+      - name: Build the production runtime
+        run: docker build --progress=plain --build-arg "PHP_IMAGE=$PHP_IMAGE" -f docker/Dockerfile -t php-polars-runtime .
+      - name: Verify CLI and production FPM requests
+        run: ./scripts/check-container php-polars-runtime php-polars-checks > deployment.json
+      - name: Package the tested binary with dependency notices
+        run: docker build --progress=plain --build-arg "PHP_IMAGE=$PHP_IMAGE" --target binaries --output type=local,dest=binaries -f docker/Dockerfile .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}-php-8.5-nts-bookworm
+          path: binaries/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}-php-8.5-deployment
+          path: deployment.json

@@ -1,0 +1,21 @@
+---
+title: "phpolars"
+subtitle: "Polars data frames for PHP"
+---
+
+phpolars brings [Polars](https://pola.rs) to PHP as a native extension written in Rust. It follows the py-polars API: the same classes, methods, and semantics, with camelCase method names and snake_case functions. A test suite compares 169 cases against py-polars 1.43.2, and all of them match.
+
+{{< include examples/_quickstart.md >}}
+
+## What it includes
+
+- `DataFrame` and `LazyFrame` with py-polars' verbs: `select`, `withColumns`, `filter`, `sort`, `groupBy`/`agg`, `join`, `unique`, `pivot`, `unpivot`, `explode`, `describe`, and more.
+- Expressions with arithmetic, three-valued logic, aggregations, window functions (`over`), `when`/`then`/`otherwise`, and the `str`, `dt`, `list`, `struct`, and `name` namespaces.
+- `Series`, with the same expression methods.
+- CSV, Parquet, JSON, NDJSON, and Arrow IPC reading and writing, with lazy scans and streaming sinks.
+- A thread-pool cap for PHP-FPM (`php_polars.max_threads`).
+- An adapter, `Phpolars\Phibble\PolarsTable`, that runs [phibble](https://erikwestlund.github.io/phibble/) and [phplyr](https://erikwestlund.github.io/phplyr/) pipelines in Polars.
+
+## The family
+
+phpolars is one of a set of PHP 8.5 packages for data work. phibble is a pure-PHP data frame and the shared table contract. phplyr adds dplyr verbs on top of it. php-stats fits regression and mixed models. phpolars is the optional fast backend: install it when the data is large or the pipeline is heavy, and keep using phplyr's verbs.

@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Release gate: formatting, lints, the PHP suites, and the IDE stubs.
+set -euo pipefail
+root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
+cd "$root"
+export PHP="${PHP:-$(command -v php)}"
+export PHP_CONFIG="${PHP_CONFIG:-$(command -v php-config)}"
+runtime="$($PHP -n -r 'echo PHP_MAJOR_VERSION,".",PHP_MINOR_VERSION;')"
+headers="$($PHP_CONFIG --version)"
+if [[ "$headers" != "$runtime".* ]]; then
+    echo "PHP and php-config versions differ: $runtime / $headers" >&2
+    exit 1
+fi
+cargo fmt --all -- --check
+cargo clippy --all-targets --locked -- -D warnings
+cargo build --release --locked
+case "$(uname -s)" in
+    Darwin) extension="$root/target/release/libphp_polars.dylib" ;;
+    Linux) extension="$root/target/release/libphp_polars.so" ;;
+    *) echo 'The release gate supports macOS and Linux' >&2; exit 1 ;;
+esac
+"$PHP" -n -d "extension=$extension" tests/deployment.php >/dev/null
+"$PHP" -n -d "extension=$extension" scripts/stubs.php | diff -u stubs/phpolars.php - \
+    || { echo 'stubs/phpolars.php is stale; regenerate it with scripts/stubs.php' >&2; exit 1; }
+"$PHP" -n -l stubs/phpolars.php >/dev/null
+for suite in dataframe expr io pyfixtures; do
+    "$PHP" -n -d "extension=$extension" "tests/$suite.php"
+done
+echo 'Release checks passed'

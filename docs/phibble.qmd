@@ -1,0 +1,29 @@
+---
+title: "phibble and phplyr"
+---
+
+The `erikwestlund/phpolars-phibble` package provides `Phpolars\Phibble\PolarsTable`, an implementation of phibble's table contract backed by a Polars `DataFrame`. phplyr's verbs work on any table that implements the contract, so a phplyr pipeline runs in Polars when it starts from a `PolarsTable`.
+
+```php
+use Phpolars\Phibble\PolarsTable;
+
+$table = PolarsTable::fromPolars(Phpolars\read_csv('sales.csv'));   // or PolarsTable::fromTable($frame)
+```
+
+{{< include examples/_phibble.md >}}
+
+## What runs in Polars
+
+Verbs given column names or phibble expressions (`Phibble\Expr`, which phplyr's helpers such as `col()`, `mean()`, and `n()` build) run in Polars. The translation follows dplyr's semantics, the same ones phibble's in-memory `Frame` uses:
+
+- NA propagates, logic is three-valued, and aggregates default to `na_rm = FALSE`.
+- In a grouped `mutate()` or `filter()`, aggregates and window functions run per group.
+- Groups are visited and summarised in sorted key order, with factors in level order and NA last.
+- Joins follow dplyr 1.2, including `join_by()` inequality and rolling joins.
+- `round()` follows R 4, and `quantile()` over NA without `na_rm` raises R's error.
+
+The adapter's tests run phibble's own dplyr reference fixtures (69 expression cases, the contract cases, and 14 `join_by()` cases) against `PolarsTable`, and assert that they run without falling back.
+
+## Closures
+
+PHP closures cannot run on Polars threads. A verb given a closure, such as `filter(fn ($r) => $r->units > 0)`, converts the table to a phibble `Frame`, runs there, and converts the result back. `PolarsTable::$fallbacks` counts these conversions. Converting 1M rows costs roughly a second when the table has a datetime column, so pipelines on large data should use expressions. See [Performance](performance.qmd).

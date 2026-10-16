@@ -1,0 +1,59 @@
+name: Prepare versioned release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deployment:
+    uses: ./.github/workflows/packaging.yml
+  source:
+    needs: deployment
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify tag, crate version, and MIT license
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, re, tomllib
+          root = pathlib.Path('.')
+          version = tomllib.loads((root / 'Cargo.toml').read_text())['package']['version']
+          assert re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.-]+)?', version)
+          if os.environ['GITHUB_REF_TYPE'] == 'tag':
+              assert os.environ['GITHUB_REF_NAME'] == 'v' + version, 'tag/crate version mismatch'
+          assert (root / 'LICENSE').read_text().startswith('MIT License')
+          with open(os.environ['GITHUB_ENV'], 'a') as out:
+              out.write('RELEASE_VERSION=' + version + '\n')
+          PY
+      - name: Source archive and checksums
+        run: |
+          mkdir -p dist
+          git archive --format=tar.gz --prefix="phpolars-$RELEASE_VERSION/" HEAD > "dist/phpolars-$RELEASE_VERSION.tar.gz"
+          sha256sum "dist/phpolars-$RELEASE_VERSION.tar.gz" > dist/SHA256SUMS
+      - name: Check required package files
+        run: |
+          python3 - <<'PY'
+          import os, tarfile
+          version = os.environ['RELEASE_VERSION']
+          with tarfile.open(f'dist/phpolars-{version}.tar.gz') as archive:
+              names = {p.name.removeprefix(f'phpolars-{version}/') for p in archive.getmembers()}
+          for path in ['LICENSE', 'composer.json', 'Cargo.lock', 'Cargo.toml', 'pie/config.m4',
+                       'pie/Makefile.frag', 'src/lib.rs', 'tests/deployment.php', 'stubs/phpolars.php']:
+              assert path in names, path
+          assert not any(p.startswith(('docs/_site/', 'docs/_freeze/', 'phibble/vendor/')) for p in names)
+          PY
+      - name: Verify installation from the source archive itself
+        run: |
+          mkdir -p .context/source-test
+          tar -xzf "dist/phpolars-$RELEASE_VERSION.tar.gz" -C .context/source-test
+          source_root=".context/source-test/phpolars-$RELEASE_VERSION"
+          docker build --progress=plain --target checks -f "$source_root/docker/Dockerfile" -t archive-checks "$source_root"
+          docker build --progress=plain -f "$source_root/docker/Dockerfile" -t archive-runtime "$source_root"
+          "$source_root/scripts/check-container" archive-runtime archive-checks > dist/deployment.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: phpolars-source
+          path: dist/

@@ -5,3 +5,5 @@
 !/pie/config.m4
 !/pie/Makefile.frag
 /bench/*.csv
+/docs/_site/
+/docs/.quarto/

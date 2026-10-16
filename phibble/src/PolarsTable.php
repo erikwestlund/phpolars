@@ -534,6 +534,24 @@ final class PolarsTable implements Table
         return $this->with($this->df->head($n));
     }
 
+    /**
+     * tidyr's pivot_longer_spec(). Runs on an in-memory Frame for now; the
+     * result comes back to Polars.
+     */
+    public function pivotLongerSpec(array $spec, bool $dropNa = false): static
+    {
+        return $this->viaFrame(fn (Frame $f) => $f->pivotLongerSpec($spec, $dropNa));
+    }
+
+    /**
+     * tidyr's pivot_wider_spec(). Runs on an in-memory Frame for now; the
+     * result comes back to Polars.
+     */
+    public function pivotWiderSpec(array $spec, ?array $idColumns = null, array $valuesFill = []): static
+    {
+        return $this->viaFrame(fn (Frame $f) => $f->pivotWiderSpec($spec, $idColumns, $valuesFill));
+    }
+
     /** @internal Factor metadata for Joiner. */
     public function factorLevels(): array
     {

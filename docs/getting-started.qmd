@@ -1,0 +1,53 @@
+---
+title: "Getting started"
+---
+
+## Installing
+
+phpolars needs PHP 8.5 (non-thread-safe), Linux or macOS, a stable Rust toolchain, and libclang. Install it with [PIE](https://github.com/php/pie):
+
+```sh
+pie install erikwestlund/phpolars
+```
+
+PIE runs Cargo, so the first install takes several minutes. Prebuilt Linux binaries are attached to releases; see [Deployment](deployment.qmd).
+
+From a checkout:
+
+```sh
+PHP=$(which php) PHP_CONFIG=$(which php-config) cargo build --profile dist
+php -d extension=$PWD/target/dist/libphp_polars.so script.php   # .dylib on macOS
+```
+
+On macOS with Homebrew, also set `LIBCLANG_PATH=$(brew --prefix llvm)/lib`. When several PHP versions are installed, point `PHP` and `PHP_CONFIG` at PHP 8.5, because the build uses that PHP's headers.
+
+## Imports
+
+Classes live in `Phpolars` and functions are namespaced, so import them:
+
+```php
+use Phpolars\{DataFrame, Series};
+use function Phpolars\{col, lit, when, read_csv};
+```
+
+## A first query
+
+{{< include examples/_select.md >}}
+
+Strings passed where py-polars expects an expression input, such as `select()`, name columns. Use `lit()` for a string value there. In comparisons and arithmetic, strings are literals: `col('store')->ne('S1')`.
+
+## Filtering
+
+{{< include examples/_filter.md >}}
+
+## Grouping
+
+{{< include examples/_group-by.md >}}
+
+`groupBy()` follows py-polars and does not keep group order unless `maintainOrder: true` is passed.
+
+## Lazy queries
+
+A `LazyFrame` records operations and optimizes them before running. `scan_csv()` starts one from a file, and `collect()` runs it:
+
+{{< include examples/_lazy.md >}}

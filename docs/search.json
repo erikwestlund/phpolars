@@ -1,0 +1,583 @@
+[
+  {
+    "objectID": "reference/types.html",
+    "href": "reference/types.html",
+    "title": "Types and values",
+    "section": "",
+    "text": "Data types are written as py-polars names: 'Int8' … 'Int64', 'UInt8' … 'UInt64', 'Float32', 'Float64', 'Boolean', 'String', 'Binary', 'Date', 'Datetime' (microseconds), 'Datetime(ms, UTC)', 'Duration(us)', 'Time', 'Categorical', 'Null', 'Decimal(10, 2)', and 'List(Int64)'. Phpolars\\DataType has the same names as constants (DataType::Int64), and DataType::datetime('ms', 'UTC') builds the parameterized names.",
+    "crumbs": [
+      "Reference",
+      "Types and values"
+    ]
+  },
+  {
+    "objectID": "reference/types.html#data-types",
+    "href": "reference/types.html#data-types",
+    "title": "Types and values",
+    "section": "",
+    "text": "Data types are written as py-polars names: 'Int8' … 'Int64', 'UInt8' … 'UInt64', 'Float32', 'Float64', 'Boolean', 'String', 'Binary', 'Date', 'Datetime' (microseconds), 'Datetime(ms, UTC)', 'Duration(us)', 'Time', 'Categorical', 'Null', 'Decimal(10, 2)', and 'List(Int64)'. Phpolars\\DataType has the same names as constants (DataType::Int64), and DataType::datetime('ms', 'UTC') builds the parameterized names.",
+    "crumbs": [
+      "Reference",
+      "Types and values"
+    ]
+  },
+  {
+    "objectID": "reference/types.html#values",
+    "href": "reference/types.html#values",
+    "title": "Types and values",
+    "section": "Values",
+    "text": "Values\n$df = new DataFrame([\n    'n' =&gt; [1, null],\n    'x' =&gt; [1.5, 2.0],\n    'ok' =&gt; [true, false],\n    'when' =&gt; [new DateTimeImmutable('2024-05-01 12:30:00'), null],\n    'tags' =&gt; [['a', 'b'], []],\n]);\n\nprint_r($df-&gt;schema());\nvar_dump($df-&gt;toDicts()[0]);\nArray\n(\n    [n] =&gt; Int64\n    [x] =&gt; Float64\n    [ok] =&gt; Boolean\n    [when] =&gt; Datetime(us)\n    [tags] =&gt; List(String)\n)\narray(5) {\n  [\"n\"]=&gt;\n  int(1)\n  [\"x\"]=&gt;\n  float(1.5)\n  [\"ok\"]=&gt;\n  bool(true)\n  [\"when\"]=&gt;\n  object(DateTimeImmutable)#3 (3) {\n    [\"date\"]=&gt;\n    string(26) \"2024-05-01 12:30:00.000000\"\n    [\"timezone_type\"]=&gt;\n    int(3)\n    [\"timezone\"]=&gt;\n    string(3) \"UTC\"\n  }\n  [\"tags\"]=&gt;\n  array(2) {\n    [0]=&gt;\n    string(1) \"a\"\n    [1]=&gt;\n    string(1) \"b\"\n  }\n}\n\n\n\n\n\n\n\nPolars\nPHP\n\n\n\n\ninteger types\nint (UInt64 values beyond PHP_INT_MAX become float)\n\n\nFloat32, Float64\nfloat\n\n\nBoolean\nbool\n\n\nString, Categorical\nstring\n\n\nDate, Datetime\nDateTimeImmutable (naive values in UTC, zoned values in their zone)\n\n\nTime\nstring, \"HH:MM:SS.ffffff\"\n\n\nDuration\nint in the column’s time unit\n\n\nDecimal\nstring\n\n\nList, Array\nlist\n\n\nStruct\nassociative array\n\n\n\nFrom PHP, each column gets one inferred type. Integers widen to floats, nulls fit any type, DateTimeInterface values become Datetime(us) on their wall-clock time, lists become List, and associative arrays become Struct. Any other mix raises SchemaError; pass a schema to set types.",
+    "crumbs": [
+      "Reference",
+      "Types and values"
+    ]
+  },
+  {
+    "objectID": "reference/types.html#errors",
+    "href": "reference/types.html#errors",
+    "title": "Types and values",
+    "section": "Errors",
+    "text": "Errors\nPolars errors are thrown as subclasses of Phpolars\\PolarsError, named after the py-polars exceptions: ColumnNotFoundError, ComputeError, DuplicateError, InvalidOperationError, NoDataError, OutOfBoundsError, SchemaError, SchemaFieldNotFoundError, ShapeError, and StructFieldNotFoundError, all in Phpolars\\Exception. Invalid arguments raise PHP’s ValueError.\nuse Phpolars\\Exception\\{ColumnNotFoundError, SchemaError};\n\n$df = new DataFrame(['a' =&gt; [1, 2]]);\n\ntry {\n    $df-&gt;select('b');\n} catch (ColumnNotFoundError $e) {\n    echo get_class($e), ': ', strtok($e-&gt;getMessage(), \"\\n\"), \"\\n\";\n}\ntry {\n    new DataFrame(['a' =&gt; [1, 'two']]);\n} catch (SchemaError $e) {\n    echo get_class($e), ': ', $e-&gt;getMessage(), \"\\n\";\n}\necho $e instanceof Phpolars\\PolarsError ? \"both extend Phpolars\\\\PolarsError\\n\" : '';\nPhpolars\\Exception\\ColumnNotFoundError: not found: unable to find column \"b\"; valid columns: [\"a\"]\nPhpolars\\Exception\\SchemaError: column 'a' mixes incompatible types; pass a dtype or cast first\nboth extend Phpolars\\PolarsError",
+    "crumbs": [
+      "Reference",
+      "Types and values"
+    ]
+  },
+  {
+    "objectID": "reference/io.html",
+    "href": "reference/io.html",
+    "title": "Reading and writing",
+    "section": "",
+    "text": "read_* functions return a DataFrame. scan_* functions return a LazyFrame, so filters and column selections are pushed into the reader. DataFrame::write*() writes a file; LazyFrame::sink*() streams a query’s result to a file without collecting it in memory.\nParquet, IPC, and JSON support are Cargo features. An extension built without one raises a ComputeError from that format’s functions.",
+    "crumbs": [
+      "Reference",
+      "Reading and writing"
+    ]
+  },
+  {
+    "objectID": "reference/io.html#functions",
+    "href": "reference/io.html#functions",
+    "title": "Reading and writing",
+    "section": "Functions",
+    "text": "Functions\nread_csv(string $source, ?bool $hasHeader = null, ?string $separator = null, mixed $nullValues = null, ?array $schemaOverrides = null, ?int $nRows = null, ?int $skipRows = null, ?int $inferSchemaLength = null, ?bool $tryParseDates = null, mixed $columns = null): Phpolars\\DataFrame\nread_ipc(string $source, ?int $nRows = null): Phpolars\\DataFrame\nread_json(string $source): Phpolars\\DataFrame\nread_ndjson(string $source, ?int $nRows = null, ?int $inferSchemaLength = null): Phpolars\\DataFrame\nread_parquet(string $source, mixed $columns = null, ?int $nRows = null): Phpolars\\DataFrame\nscan_csv(string $source, ?bool $hasHeader = null, ?string $separator = null, mixed $nullValues = null, ?array $schemaOverrides = null, ?int $nRows = null, ?int $skipRows = null, ?int $inferSchemaLength = null, ?bool $tryParseDates = null): Phpolars\\LazyFrame\nscan_ipc(string $source, ?int $nRows = null): Phpolars\\LazyFrame\nscan_ndjson(string $source, ?int $nRows = null, ?int $inferSchemaLength = null): Phpolars\\LazyFrame\nscan_parquet(string $source, ?int $nRows = null): Phpolars\\LazyFrame",
+    "crumbs": [
+      "Reference",
+      "Reading and writing"
+    ]
+  },
+  {
+    "objectID": "reference/dataframe.html",
+    "href": "reference/dataframe.html",
+    "title": "DataFrame and LazyFrame",
+    "section": "",
+    "text": "DataFrame holds data in memory and runs each operation immediately. LazyFrame records operations and runs them, optimized, on collect(). Both have the same verbs; a DataFrame builds each verb on a lazy query and collects it, as py-polars does.",
+    "crumbs": [
+      "Reference",
+      "DataFrame and LazyFrame"
+    ]
+  },
+  {
+    "objectID": "reference/dataframe.html#creating-frames",
+    "href": "reference/dataframe.html#creating-frames",
+    "title": "DataFrame and LazyFrame",
+    "section": "Creating frames",
+    "text": "Creating frames\n$df = new DataFrame(['a' =&gt; [1, 2], 'b' =&gt; ['x', 'y']]);          // columns\n$df = new DataFrame([['a' =&gt; 1, 'b' =&gt; 'x'], ['a' =&gt; 2, 'b' =&gt; 'y']]);  // rows\n$df = DataFrame::fromRows([[1, 'x'], [2, 'y']], schema: ['a' =&gt; 'Int32', 'b' =&gt; 'String']);\n$df = new DataFrame(['a' =&gt; new Series('a', [1, 2])]);\n$df = read_csv('data.csv');\n$lf = $df-&gt;lazy();      // or scan_csv(), scan_parquet(), ...\nA schema argument names columns and sets their types.",
+    "crumbs": [
+      "Reference",
+      "DataFrame and LazyFrame"
+    ]
+  },
+  {
+    "objectID": "reference/dataframe.html#joins",
+    "href": "reference/dataframe.html#joins",
+    "title": "DataFrame and LazyFrame",
+    "section": "Joins",
+    "text": "Joins\njoin() takes on, or leftOn and rightOn, and how: inner, left, right, full, semi, anti, or cross. suffix names clashing right-hand columns, coalesce merges key columns, nullsEqual lets null keys match, and maintainOrder (none, left, right, left_right, right_left) fixes the row order.\n$sales = read_csv('sales.csv')-&gt;select('id', 'store', 'units')-&gt;head(6);\n$stores = read_csv('stores.csv')-&gt;filter(col('store')-&gt;ne('S2'));\n\necho $sales-&gt;join($stores, on: 'store', how: 'left', maintainOrder: 'left'), \"\\n\";\necho $sales-&gt;join($stores, on: 'store', how: 'anti'), \"\\n\";\necho $stores-&gt;rename(['store' =&gt; 'shop'])-&gt;join($sales, leftOn: 'shop', rightOn: 'store', how: 'inner')-&gt;height(), \" matched rows\\n\";\nshape: (6, 5)\n┌─────┬───────┬───────┬──────────┬────────┐\n│ id  ┆ store ┆ units ┆ city     ┆ region │\n│ --- ┆ ---   ┆ ---   ┆ ---      ┆ ---    │\n│ i64 ┆ str   ┆ i64   ┆ str      ┆ str    │\n╞═════╪═══════╪═══════╪══════════╪════════╡\n│ 1   ┆ S4    ┆ 10    ┆ Portland ┆ West   │\n│ 2   ┆ S4    ┆ 0     ┆ Portland ┆ West   │\n│ 3   ┆ S2    ┆ 2     ┆ null     ┆ null   │\n│ 4   ┆ S3    ┆ 12    ┆ Atlanta  ┆ East   │\n│ 5   ┆ S4    ┆ 1     ┆ Portland ┆ West   │\n│ 6   ┆ S2    ┆ 6     ┆ null     ┆ null   │\n└─────┴───────┴───────┴──────────┴────────┘\nshape: (2, 3)\n┌─────┬───────┬───────┐\n│ id  ┆ store ┆ units │\n│ --- ┆ ---   ┆ ---   │\n│ i64 ┆ str   ┆ i64   │\n╞═════╪═══════╪═══════╡\n│ 3   ┆ S2    ┆ 2     │\n│ 6   ┆ S2    ┆ 6     │\n└─────┴───────┴───────┘\n4 matched rows",
+    "crumbs": [
+      "Reference",
+      "DataFrame and LazyFrame"
+    ]
+  },
+  {
+    "objectID": "reference/dataframe.html#reshaping",
+    "href": "reference/dataframe.html#reshaping",
+    "title": "DataFrame and LazyFrame",
+    "section": "Reshaping",
+    "text": "Reshaping\n$wide = new DataFrame(['id' =&gt; [1, 2], 'q1' =&gt; [10, 20], 'q2' =&gt; [11, 21]]);\n\n$long = $wide-&gt;unpivot(index: 'id', variableName: 'quarter', valueName: 'sales');\necho $long, \"\\n\";\necho $long-&gt;pivot('quarter', index: 'id', values: 'sales'), \"\\n\";\necho concat([$wide, new DataFrame(['id' =&gt; [3], 'q1' =&gt; [30], 'q2' =&gt; [31]])]), \"\\n\";\necho $wide-&gt;describe();\nshape: (4, 3)\n┌─────┬─────────┬───────┐\n│ id  ┆ quarter ┆ sales │\n│ --- ┆ ---     ┆ ---   │\n│ i64 ┆ str     ┆ i64   │\n╞═════╪═════════╪═══════╡\n│ 1   ┆ q1      ┆ 10    │\n│ 2   ┆ q1      ┆ 20    │\n│ 1   ┆ q2      ┆ 11    │\n│ 2   ┆ q2      ┆ 21    │\n└─────┴─────────┴───────┘\nshape: (2, 3)\n┌─────┬─────┬─────┐\n│ id  ┆ q1  ┆ q2  │\n│ --- ┆ --- ┆ --- │\n│ i64 ┆ i64 ┆ i64 │\n╞═════╪═════╪═════╡\n│ 1   ┆ 10  ┆ 11  │\n│ 2   ┆ 20  ┆ 21  │\n└─────┴─────┴─────┘\nshape: (3, 3)\n┌─────┬─────┬─────┐\n│ id  ┆ q1  ┆ q2  │\n│ --- ┆ --- ┆ --- │\n│ i64 ┆ i64 ┆ i64 │\n╞═════╪═════╪═════╡\n│ 1   ┆ 10  ┆ 11  │\n│ 2   ┆ 20  ┆ 21  │\n│ 3   ┆ 30  ┆ 31  │\n└─────┴─────┴─────┘\nshape: (9, 4)\n┌────────────┬──────────┬──────────┬──────────┐\n│ statistic  ┆ id       ┆ q1       ┆ q2       │\n│ ---        ┆ ---      ┆ ---      ┆ ---      │\n│ str        ┆ f64      ┆ f64      ┆ f64      │\n╞════════════╪══════════╪══════════╪══════════╡\n│ count      ┆ 2.0      ┆ 2.0      ┆ 2.0      │\n│ null_count ┆ 0.0      ┆ 0.0      ┆ 0.0      │\n│ mean       ┆ 1.5      ┆ 15.0     ┆ 16.0     │\n│ std        ┆ 0.707107 ┆ 7.071068 ┆ 7.071068 │\n│ min        ┆ 1.0      ┆ 10.0     ┆ 11.0     │\n│ 25%        ┆ 1.0      ┆ 10.0     ┆ 11.0     │\n│ 50%        ┆ 2.0      ┆ 20.0     ┆ 21.0     │\n│ 75%        ┆ 2.0      ┆ 20.0     ┆ 21.0     │\n│ max        ┆ 2.0      ┆ 20.0     ┆ 21.0     │\n└────────────┴──────────┴──────────┴──────────┘",
+    "crumbs": [
+      "Reference",
+      "DataFrame and LazyFrame"
+    ]
+  },
+  {
+    "objectID": "reference/dataframe.html#getting-values-out",
+    "href": "reference/dataframe.html#getting-values-out",
+    "title": "DataFrame and LazyFrame",
+    "section": "Getting values out",
+    "text": "Getting values out\n\n\n\n\n\n\n\nMethod\nReturns\n\n\n\n\ntoDicts()\nlist of rows, each ['column' =&gt; value]\n\n\nrows()\nlist of rows, each a list of values\n\n\nrow($i, named: true)\none row\n\n\ntoDict()\n['column' =&gt; Series]; toDict(asSeries: false) gives lists\n\n\ngetColumn('a')\na Series\n\n\nitem(), item($row, $column)\none value\n\n\nschema(), dtypes(), columns(), shape()\nstructure",
+    "crumbs": [
+      "Reference",
+      "DataFrame and LazyFrame"
+    ]
+  },
+  {
+    "objectID": "reference/dataframe.html#methods",
+    "href": "reference/dataframe.html#methods",
+    "title": "DataFrame and LazyFrame",
+    "section": "Methods",
+    "text": "Methods\n\nPhpolars\\DataFrame\n__toString(): string\ncast(mixed $dtypes, ?bool $strict = null): Phpolars\\DataFrame\nclone(): Phpolars\\DataFrame\ncollectSchema(): array\ncolumns(): array\ncount(): Phpolars\\DataFrame\ndescribe(?array $percentiles = null): Phpolars\\DataFrame\ndrop(mixed ...$columns): Phpolars\\DataFrame\ndropNulls(mixed $subset = null): Phpolars\\DataFrame\ndtypes(): array\nequals(Phpolars\\DataFrame $other, ?bool $nullEqual = null): bool\nestimatedSize(): int\nexplode(mixed ...$columns): Phpolars\\DataFrame\nfillNan(mixed $value): Phpolars\\DataFrame\nfillNull(mixed $value = null, ?string $strategy = null, ?int $limit = null): Phpolars\\DataFrame\nfilter(mixed ...$predicates): Phpolars\\DataFrame\nfirst(): Phpolars\\DataFrame\ngetColumn(string $name): Phpolars\\Series\ngetColumns(): array\ngroupBy(mixed $by, ?bool $maintainOrder = null): Phpolars\\GroupBy\nhead(?int $n = null): Phpolars\\DataFrame\nheight(): int\nhstack(mixed $columns): Phpolars\\DataFrame\nisEmpty(): bool\nitem(?int $row = null, mixed $column = null): mixed\njoin(mixed $other, mixed $on = null, ?string $how = null, mixed $leftOn = null, mixed $rightOn = null, ?string $suffix = null, ?bool $coalesce = null, ?string $maintainOrder = null, ?bool $nullsEqual = null): Phpolars\\DataFrame\nlast(): Phpolars\\DataFrame\nlazy(): Phpolars\\LazyFrame\nlimit(?int $n = null): Phpolars\\DataFrame\nmax(): Phpolars\\DataFrame\nmean(): Phpolars\\DataFrame\nmedian(): Phpolars\\DataFrame\nmin(): Phpolars\\DataFrame\nnUnique(): Phpolars\\DataFrame\nnullCount(): Phpolars\\DataFrame\npivot(mixed $on, mixed $index = null, mixed $values = null, mixed $aggregateFunction = null, ?bool $sortColumns = null, ?string $separator = null, ?bool $maintainOrder = null): Phpolars\\DataFrame\nrename(array $mapping, ?bool $strict = null): Phpolars\\DataFrame\nreverse(): Phpolars\\DataFrame\nrow(int $index, ?bool $named = null): mixed\nrows(?bool $named = null): array\nsample(?int $n = null, ?float $fraction = null, ?bool $withReplacement = null, ?bool $shuffle = null, ?int $seed = null): Phpolars\\DataFrame\nschema(): array\nselect(mixed ...$exprs): Phpolars\\DataFrame\nshape(): array\nslice(int $offset, ?int $length = null): Phpolars\\DataFrame\nsort(mixed $by, mixed $descending = null, mixed $nullsLast = null, ?bool $maintainOrder = null): Phpolars\\DataFrame\nstatic fromDict(array $data, ?array $schema = null): Phpolars\\DataFrame\nstatic fromDicts(array $data, ?array $schema = null): Phpolars\\DataFrame\nstatic fromPhibble(mixed $table): Phpolars\\DataFrame\nstatic fromRows(array $data, ?array $schema = null): Phpolars\\DataFrame\nstd(?int $ddof = null): Phpolars\\DataFrame\nsum(): Phpolars\\DataFrame\ntail(?int $n = null): Phpolars\\DataFrame\ntoColumns(): array\ntoDict(?bool $asSeries = null): array\ntoDicts(): array\ntoPhibble(): mixed\ntoSeries(?int $index = null): Phpolars\\Series\ntranspose(?bool $includeHeader = null, ?string $headerName = null, mixed $columnNames = null): Phpolars\\DataFrame\nunique(mixed $subset = null, ?string $keep = null, ?bool $maintainOrder = null): Phpolars\\DataFrame\nunnest(mixed ...$columns): Phpolars\\DataFrame\nunpivot(mixed $on = null, mixed $index = null, ?string $variableName = null, ?string $valueName = null): Phpolars\\DataFrame\nvar(?int $ddof = null): Phpolars\\DataFrame\nvstack(Phpolars\\DataFrame $other): Phpolars\\DataFrame\nwidth(): int\nwithColumns(mixed ...$exprs): Phpolars\\DataFrame\nwithRowIndex(?string $name = null, ?int $offset = null): Phpolars\\DataFrame\nwriteCsv(string $file, ?bool $includeHeader = null, ?string $separator = null, ?string $nullValue = null): void\nwriteIpc(string $file): void\nwriteJson(string $file): void\nwriteNdjson(string $file): void\nwriteParquet(string $file): void\n\n\nPhpolars\\LazyFrame\n__toString(): string\ncache(): Phpolars\\LazyFrame\ncast(mixed $dtypes, ?bool $strict = null): Phpolars\\LazyFrame\ncollect(): Phpolars\\DataFrame\ncollectSchema(): array\ncolumns(): array\ncount(): Phpolars\\LazyFrame\ndrop(mixed ...$columns): Phpolars\\LazyFrame\ndropNulls(mixed $subset = null): Phpolars\\LazyFrame\nexplain(?bool $optimized = null): string\nexplode(mixed ...$columns): Phpolars\\LazyFrame\nfetch(?int $n = null): Phpolars\\DataFrame\nfillNan(mixed $value): Phpolars\\LazyFrame\nfillNull(mixed $value = null, ?string $strategy = null, ?int $limit = null): Phpolars\\LazyFrame\nfilter(mixed ...$predicates): Phpolars\\LazyFrame\nfirst(): Phpolars\\LazyFrame\ngroupBy(mixed $by, ?bool $maintainOrder = null): Phpolars\\LazyGroupBy\nhead(?int $n = null): Phpolars\\LazyFrame\njoin(mixed $other, mixed $on = null, ?string $how = null, mixed $leftOn = null, mixed $rightOn = null, ?string $suffix = null, ?bool $coalesce = null, ?string $maintainOrder = null, ?bool $nullsEqual = null): Phpolars\\LazyFrame\nlast(): Phpolars\\LazyFrame\nlimit(?int $n = null): Phpolars\\LazyFrame\nmax(): Phpolars\\LazyFrame\nmean(): Phpolars\\LazyFrame\nmedian(): Phpolars\\LazyFrame\nmin(): Phpolars\\LazyFrame\nnUnique(): Phpolars\\LazyFrame\nnullCount(): Phpolars\\LazyFrame\nrename(array $mapping, ?bool $strict = null): Phpolars\\LazyFrame\nreverse(): Phpolars\\LazyFrame\nselect(mixed ...$exprs): Phpolars\\LazyFrame\nsinkCsv(string $file, ?bool $includeHeader = null, ?string $separator = null, ?string $nullValue = null): void\nsinkIpc(string $file): void\nsinkNdjson(string $file): void\nsinkParquet(string $file): void\nslice(int $offset, ?int $length = null): Phpolars\\LazyFrame\nsort(mixed $by, mixed $descending = null, mixed $nullsLast = null, ?bool $maintainOrder = null): Phpolars\\LazyFrame\nstd(?int $ddof = null): Phpolars\\LazyFrame\nsum(): Phpolars\\LazyFrame\ntail(?int $n = null): Phpolars\\LazyFrame\nunique(mixed $subset = null, ?string $keep = null, ?bool $maintainOrder = null): Phpolars\\LazyFrame\nunnest(mixed ...$columns): Phpolars\\LazyFrame\nunpivot(mixed $on = null, mixed $index = null, ?string $variableName = null, ?string $valueName = null): Phpolars\\LazyFrame\nvar(?int $ddof = null): Phpolars\\LazyFrame\nwithColumns(mixed ...$exprs): Phpolars\\LazyFrame\nwithRowIndex(?string $name = null, ?int $offset = null): Phpolars\\LazyFrame\n\n\nPhpolars\\GroupBy\nagg(mixed ...$aggs): Phpolars\\DataFrame\nall(): Phpolars\\DataFrame\ncount(): Phpolars\\DataFrame\nfirst(): Phpolars\\DataFrame\nhead(?int $n = null): Phpolars\\DataFrame\nlast(): Phpolars\\DataFrame\nlen(?string $name = null): Phpolars\\DataFrame\nmax(): Phpolars\\DataFrame\nmean(): Phpolars\\DataFrame\nmedian(): Phpolars\\DataFrame\nmin(): Phpolars\\DataFrame\nnUnique(): Phpolars\\DataFrame\nsum(): Phpolars\\DataFrame\ntail(?int $n = null): Phpolars\\DataFrame\n\n\nPhpolars\\LazyGroupBy\nagg(mixed ...$aggs): Phpolars\\LazyFrame\nall(): Phpolars\\LazyFrame\ncount(): Phpolars\\LazyFrame\nfirst(): Phpolars\\LazyFrame\nhead(?int $n = null): Phpolars\\LazyFrame\nlast(): Phpolars\\LazyFrame\nlen(?string $name = null): Phpolars\\LazyFrame\nmax(): Phpolars\\LazyFrame\nmean(): Phpolars\\LazyFrame\nmedian(): Phpolars\\LazyFrame\nmin(): Phpolars\\LazyFrame\nnUnique(): Phpolars\\LazyFrame\nsum(): Phpolars\\LazyFrame\ntail(?int $n = null): Phpolars\\LazyFrame",
+    "crumbs": [
+      "Reference",
+      "DataFrame and LazyFrame"
+    ]
+  },
+  {
+    "objectID": "performance.html",
+    "href": "performance.html",
+    "title": "Performance",
+    "section": "",
+    "text": "All timings are on an Apple M5 Ultra with Homebrew PHP 8.5.10 and Polars limited to its default 2 threads, unless noted.",
+    "crumbs": [
+      "Performance"
+    ]
+  },
+  {
+    "objectID": "performance.html#a-csv-pipeline",
+    "href": "performance.html#a-csv-pipeline",
+    "title": "Performance",
+    "section": "A CSV pipeline",
+    "text": "A CSV pipeline\nbench/pipeline.php reads a 1M-row, 16 MB CSV, filters it, groups and aggregates it, and returns PHP arrays. Each implementation runs five times and the fastest run is reported. All produce the same result.\n\n\n\nImplementation\nTime\n\n\n\n\nphpolars, 1 thread\n49 ms\n\n\nphpolars, 2 threads (default)\n27 ms\n\n\nphpolars, 4 threads\n17 ms\n\n\nplain PHP arrays (fgetcsv loop)\n342 ms",
+    "crumbs": [
+      "Performance"
+    ]
+  },
+  {
+    "objectID": "performance.html#phplyr-pipelines-on-three-backends",
+    "href": "performance.html#phplyr-pipelines-on-three-backends",
+    "title": "Performance",
+    "section": "phplyr pipelines on three backends",
+    "text": "phplyr pipelines on three backends\nbench/phplyr.php runs phplyr pipelines on phibble’s in-memory Frame, PolarsTable, and phibble’s SqlTable over SQLite. The data is a sales table (store, product, day, units with 2% NA and 5% zeros, price) and a 100-row store lookup. Loading is not timed; each pipeline is timed through collect(), best of three. The results of all backends are compared.\n\nA: filter, left join, grouped summary, then a ranked window within regions.\nB: per-store windows over every row: lag(order_by: day), cumsum, and a share of the group sum.\nC: pipeline A with a PHP closure in filter().\n\n\n\n\nPipeline\nRows\nFrame\nPolarsTable\nSqlTable\n\n\n\n\nA\n100k\n0.166 s\n0.009 s\n0.044 s\n\n\nB\n100k\n0.212 s\n0.048 s\n0.279 s\n\n\nC\n100k\n0.180 s\n0.088 s\n0.291 s\n\n\nA\n1M\n1.517 s\n0.062 s\n0.456 s\n\n\nB\n1M\n2.677 s\n0.438 s\n3.571 s\n\n\nC\n1M\n1.670 s\n0.909 s\n2.875 s\n\n\n\nThese runs used phibble at dbd8b1e. SqlTable’s pipeline B results differed from the other backends then; phibble fixed this in ccafa98.",
+    "crumbs": [
+      "Performance"
+    ]
+  },
+  {
+    "objectID": "performance.html#where-the-time-goes",
+    "href": "performance.html#where-the-time-goes",
+    "title": "Performance",
+    "section": "Where the time goes",
+    "text": "Where the time goes\nPolars runs the verbs themselves 10 to 100 times faster than the in-memory frame. Returning rows to PHP is the cost that remains. Collecting 1M rows into PHP takes about 0.2 s for plain columns, plus about 0.5 s per datetime column, because each DateTimeImmutable is a PHP object.\nPolarsTable is the faster backend when a pipeline reduces the data (summaries, filters, joins followed by summaries) or chains several verbs before collecting. Reading files with Phpolars\\read_csv() or read_parquet() and wrapping the result with PolarsTable::fromPolars() also avoids parsing the file in PHP.\nA verb given a PHP closure converts the table to a phibble Frame and back, about 1 s per million rows with a datetime column. On large data, use expressions, or use the in-memory Frame for closure-heavy pipelines.",
+    "crumbs": [
+      "Performance"
+    ]
+  },
+  {
+    "objectID": "performance.html#binary-size",
+    "href": "performance.html#binary-size",
+    "title": "Performance",
+    "section": "Binary size",
+    "text": "Binary size\n\n\n\nBuild\nopt-level\nSize\nBenchmark, 1 / 4 threads\n\n\n\n\nall features, release profile (no LTO)\n3\n117 MB\n\n\n\nall features\n3\n57.3 MB\n44 / 23 ms\n\n\nall features (dist default)\ns\n40.2 MB\n45 / 21 ms\n\n\nall features\nz\n23.9 MB\n86 / 33 ms\n\n\nwithout fmt\n3\n57.2 MB\n\n\n\nwithout json\n3\n56.8 MB\n\n\n\nwithout ipc\n3\n56.9 MB\n\n\n\nwithout parquet and ipc\n3\n52.4 MB\n\n\n\nCSV only (no optional features)\n3\n51.8 MB\n\n\n\nCSV only (no optional features)\ns\n35.9 MB\n\n\n\n\nThe optional features cost little: all of them together add about 5 MB. Most of the size is the Polars query engine, expression set, and data types that the core API needs. The dist profile uses opt-level = \"s\", which is 30% smaller than opt-level = 3 and as fast on the benchmark above (the read_csv → filter → groupBy pipeline on 1M rows). opt-level = \"z\" halves the size again but doubles single-threaded time. A clean dist build takes 4–5 minutes on an Apple M5 Ultra.",
+    "crumbs": [
+      "Performance"
+    ]
+  },
+  {
+    "objectID": "getting-started.html",
+    "href": "getting-started.html",
+    "title": "Getting started",
+    "section": "",
+    "text": "phpolars needs PHP 8.5 (non-thread-safe), Linux or macOS, a stable Rust toolchain, and libclang. Install it with PIE:\npie install erikwestlund/phpolars\nPIE runs Cargo, so the first install takes several minutes. Prebuilt Linux binaries are attached to releases; see Deployment.\nFrom a checkout:\nPHP=$(which php) PHP_CONFIG=$(which php-config) cargo build --profile dist\nphp -d extension=$PWD/target/dist/libphp_polars.so script.php   # .dylib on macOS\nOn macOS with Homebrew, also set LIBCLANG_PATH=$(brew --prefix llvm)/lib. When several PHP versions are installed, point PHP and PHP_CONFIG at PHP 8.5, because the build uses that PHP’s headers.",
+    "crumbs": [
+      "Getting started"
+    ]
+  },
+  {
+    "objectID": "getting-started.html#installing",
+    "href": "getting-started.html#installing",
+    "title": "Getting started",
+    "section": "",
+    "text": "phpolars needs PHP 8.5 (non-thread-safe), Linux or macOS, a stable Rust toolchain, and libclang. Install it with PIE:\npie install erikwestlund/phpolars\nPIE runs Cargo, so the first install takes several minutes. Prebuilt Linux binaries are attached to releases; see Deployment.\nFrom a checkout:\nPHP=$(which php) PHP_CONFIG=$(which php-config) cargo build --profile dist\nphp -d extension=$PWD/target/dist/libphp_polars.so script.php   # .dylib on macOS\nOn macOS with Homebrew, also set LIBCLANG_PATH=$(brew --prefix llvm)/lib. When several PHP versions are installed, point PHP and PHP_CONFIG at PHP 8.5, because the build uses that PHP’s headers.",
+    "crumbs": [
+      "Getting started"
+    ]
+  },
+  {
+    "objectID": "getting-started.html#imports",
+    "href": "getting-started.html#imports",
+    "title": "Getting started",
+    "section": "Imports",
+    "text": "Imports\nClasses live in Phpolars and functions are namespaced, so import them:\nuse Phpolars\\{DataFrame, Series};\nuse function Phpolars\\{col, lit, when, read_csv};",
+    "crumbs": [
+      "Getting started"
+    ]
+  },
+  {
+    "objectID": "getting-started.html#a-first-query",
+    "href": "getting-started.html#a-first-query",
+    "title": "Getting started",
+    "section": "A first query",
+    "text": "A first query\n$sales = read_csv('sales.csv');\n\necho $sales\n    -&gt;select(\n        'id',\n        'product',\n        col('units')-&gt;fillNull(0),\n        ['revenue' =&gt; col('units')-&gt;mul(col('price'))-&gt;round(2)],\n        when(col('price')-&gt;ge(5))-&gt;then(lit('premium'))-&gt;otherwise(lit('standard'))-&gt;alias('tier'),\n    )\n    -&gt;head(5);\nshape: (5, 5)\n┌─────┬─────────┬───────┬─────────┬──────────┐\n│ id  ┆ product ┆ units ┆ revenue ┆ tier     │\n│ --- ┆ ---     ┆ ---   ┆ ---     ┆ ---      │\n│ i64 ┆ str     ┆ i64   ┆ f64     ┆ str      │\n╞═════╪═════════╪═══════╪═════════╪══════════╡\n│ 1   ┆ banana  ┆ 10    ┆ 70.3    ┆ premium  │\n│ 2   ┆ cherry  ┆ 0     ┆ 0.0     ┆ standard │\n│ 3   ┆ apple   ┆ 2     ┆ 7.68    ┆ standard │\n│ 4   ┆ apple   ┆ 12    ┆ 88.08   ┆ premium  │\n│ 5   ┆ apple   ┆ 1     ┆ 6.05    ┆ premium  │\n└─────┴─────────┴───────┴─────────┴──────────┘\nStrings passed where py-polars expects an expression input, such as select(), name columns. Use lit() for a string value there. In comparisons and arithmetic, strings are literals: col('store')-&gt;ne('S1').",
+    "crumbs": [
+      "Getting started"
+    ]
+  },
+  {
+    "objectID": "getting-started.html#filtering",
+    "href": "getting-started.html#filtering",
+    "title": "Getting started",
+    "section": "Filtering",
+    "text": "Filtering\n$sales = read_csv('sales.csv');\n\n// Several predicates are combined with and; null counts as false.\necho $sales-&gt;filter(\n    col('product')-&gt;isIn(['apple', 'cherry']),\n    col('units')-&gt;isBetween(5, 8),\n    col('store')-&gt;ne('S1'),\n)-&gt;head(5);\nshape: (5, 6)\n┌─────┬────────────┬───────┬─────────┬───────┬───────┐\n│ id  ┆ date       ┆ store ┆ product ┆ units ┆ price │\n│ --- ┆ ---        ┆ ---   ┆ ---     ┆ ---   ┆ ---   │\n│ i64 ┆ str        ┆ str   ┆ str     ┆ i64   ┆ f64   │\n╞═════╪════════════╪═══════╪═════════╪═══════╪═══════╡\n│ 12  ┆ 2024-03-17 ┆ S2    ┆ apple   ┆ 8     ┆ 3.85  │\n│ 16  ┆ 2024-02-24 ┆ S3    ┆ apple   ┆ 8     ┆ 5.07  │\n│ 20  ┆ 2024-03-26 ┆ S4    ┆ cherry  ┆ 7     ┆ 5.72  │\n│ 22  ┆ 2024-03-05 ┆ S2    ┆ apple   ┆ 5     ┆ 8.23  │\n│ 24  ┆ 2024-03-26 ┆ S3    ┆ cherry  ┆ 6     ┆ 2.2   │\n└─────┴────────────┴───────┴─────────┴───────┴───────┘",
+    "crumbs": [
+      "Getting started"
+    ]
+  },
+  {
+    "objectID": "getting-started.html#grouping",
+    "href": "getting-started.html#grouping",
+    "title": "Getting started",
+    "section": "Grouping",
+    "text": "Grouping\n$sales = read_csv('sales.csv');\n\necho $sales-&gt;groupBy(['store', 'product'], maintainOrder: true)\n    -&gt;agg(\n        len()-&gt;alias('rows'),\n        col('units')-&gt;sum(),\n        col('units')-&gt;nullCount()-&gt;alias('missing_units'),\n        col('price')-&gt;max()-&gt;alias('top_price'),\n    )\n    -&gt;sort(['store', 'product'])\n    -&gt;head(6), \"\\n\";\n\n// Shorthands aggregate every non-key column.\necho $sales-&gt;select('store', 'units', 'price')-&gt;groupBy('store')-&gt;mean()-&gt;sort('store');\nshape: (6, 6)\n┌───────┬─────────┬──────┬───────┬───────────────┬───────────┐\n│ store ┆ product ┆ rows ┆ units ┆ missing_units ┆ top_price │\n│ ---   ┆ ---     ┆ ---  ┆ ---   ┆ ---           ┆ ---       │\n│ str   ┆ str     ┆ u32  ┆ i64   ┆ u32           ┆ f64       │\n╞═══════╪═════════╪══════╪═══════╪═══════════════╪═══════════╡\n│ S1    ┆ apple   ┆ 17   ┆ 98    ┆ 0             ┆ 7.23      │\n│ S1    ┆ banana  ┆ 15   ┆ 81    ┆ 0             ┆ 8.98      │\n│ S1    ┆ cherry  ┆ 12   ┆ 90    ┆ 0             ┆ 8.07      │\n│ S1    ┆ date    ┆ 13   ┆ 109   ┆ 0             ┆ 8.57      │\n│ S2    ┆ apple   ┆ 11   ┆ 47    ┆ 0             ┆ 8.23      │\n│ S2    ┆ banana  ┆ 14   ┆ 69    ┆ 1             ┆ 6.92      │\n└───────┴─────────┴──────┴───────┴───────────────┴───────────┘\nshape: (4, 3)\n┌───────┬──────────┬──────────┐\n│ store ┆ units    ┆ price    │\n│ ---   ┆ ---      ┆ ---      │\n│ str   ┆ f64      ┆ f64      │\n╞═══════╪══════════╪══════════╡\n│ S1    ┆ 6.631579 ┆ 4.010702 │\n│ S2    ┆ 5.282609 ┆ 4.237843 │\n│ S3    ┆ 6.282609 ┆ 4.877347 │\n│ S4    ┆ 4.883721 ┆ 4.074186 │\n└───────┴──────────┴──────────┘\ngroupBy() follows py-polars and does not keep group order unless maintainOrder: true is passed.",
+    "crumbs": [
+      "Getting started"
+    ]
+  },
+  {
+    "objectID": "getting-started.html#lazy-queries",
+    "href": "getting-started.html#lazy-queries",
+    "title": "Getting started",
+    "section": "Lazy queries",
+    "text": "Lazy queries\nA LazyFrame records operations and optimizes them before running. scan_csv() starts one from a file, and collect() runs it:\n$query = scan_csv('sales.csv')\n    -&gt;filter(col('units')-&gt;gt(5))\n    -&gt;groupBy('store')\n    -&gt;agg(col('units')-&gt;sum())\n    -&gt;sort('store');\n\necho $query-&gt;explain(), \"\\n\\n\";\necho $query-&gt;collect();\nSORT BY [col(\"store\")]\n  AGGREGATE[maintain_order: false]\n    [col(\"units\").sum()] BY [col(\"store\")]\n    FROM\n    Csv SCAN [sales.csv]\n    PROJECT 2/6 COLUMNS\n    SELECTION: col(\"units\") &gt; 5\n    ESTIMATED ROWS: 201\n\nshape: (4, 2)\n┌───────┬───────┐\n│ store ┆ units │\n│ ---   ┆ ---   │\n│ str   ┆ i64   │\n╞═══════╪═══════╡\n│ S1    ┆ 335   │\n│ S2    ┆ 199   │\n│ S3    ┆ 230   │\n│ S4    ┆ 136   │\n└───────┴───────┘",
+    "crumbs": [
+      "Getting started"
+    ]
+  },
+  {
+    "objectID": "deployment.html",
+    "href": "deployment.html",
+    "title": "Deployment",
+    "section": "",
+    "text": "pie install erikwestlund/phpolars\nPIE builds the extension with Cargo’s dist profile (fat LTO, opt-level = \"s\", stripped) and enables it. A build needs a stable Rust toolchain and libclang, and takes several minutes. The extension supports PHP 8.5, non-thread-safe builds, on Linux and macOS.",
+    "crumbs": [
+      "Deployment"
+    ]
+  },
+  {
+    "objectID": "deployment.html#installing-with-pie",
+    "href": "deployment.html#installing-with-pie",
+    "title": "Deployment",
+    "section": "",
+    "text": "pie install erikwestlund/phpolars\nPIE builds the extension with Cargo’s dist profile (fat LTO, opt-level = \"s\", stripped) and enables it. A build needs a stable Rust toolchain and libclang, and takes several minutes. The extension supports PHP 8.5, non-thread-safe builds, on Linux and macOS.",
+    "crumbs": [
+      "Deployment"
+    ]
+  },
+  {
+    "objectID": "deployment.html#prebuilt-binaries",
+    "href": "deployment.html#prebuilt-binaries",
+    "title": "Deployment",
+    "section": "Prebuilt binaries",
+    "text": "Prebuilt binaries\nThe packaging workflow builds the extension inside the official php:8.5-fpm-bookworm image, installs it with PIE, runs the release checks, and sends real requests through PHP-FPM. It then packages the tested php_polars.so for amd64 and arm64 with:\n\nmanifest.json: PHP version and API number, architecture, glibc, the Rust version, the Cargo.lock hash, and the extension’s SHA-256.\nTHIRD_PARTY_NOTICES.txt: the licenses of every Rust dependency compiled into the binary.\nINSTALL.txt: copy the file to php-config --extension-dir, add extension=php_polars.so, and set php_polars.max_threads.\n\nRelease builds attach these archives to the GitHub release. They target Debian Bookworm’s glibc and are not portable to Alpine (musl). Other platforms build from source with PIE.",
+    "crumbs": [
+      "Deployment"
+    ]
+  },
+  {
+    "objectID": "deployment.html#threads-under-php-fpm",
+    "href": "deployment.html#threads-under-php-fpm",
+    "title": "Deployment",
+    "section": "Threads under PHP-FPM",
+    "text": "Threads under PHP-FPM\nPolars runs queries on a thread pool. FPM workers are separate processes, so each worker that uses phpolars starts its own pool. The INI setting caps the pool per process:\n; php.ini\nextension=php_polars.so\nphp_polars.max_threads = 2\nThe setting defaults to 2 and is PHP_INI_SYSTEM, because the pool starts once per process and cannot be resized. An explicit POLARS_MAX_THREADS environment variable takes precedence. Phpolars\\thread_pool_size() reports the size in effect. Size it so that pm.max_children × max_threads fits the machine’s cores.\nPHP closures never run on Polars threads. Every phpolars operation is built from expressions that Polars evaluates natively.",
+    "crumbs": [
+      "Deployment"
+    ]
+  },
+  {
+    "objectID": "deployment.html#memory",
+    "href": "deployment.html#memory",
+    "title": "Deployment",
+    "section": "Memory",
+    "text": "Memory\nPolars allocates with its own allocator, outside PHP’s memory manager, so its memory does not count against memory_limit. Reading a 1M-row CSV raises a process’s resident memory to about 83 MB while memory_get_peak_usage() reports 2 MB. Size FPM pools by process memory, and limit request data with the application’s own checks.",
+    "crumbs": [
+      "Deployment"
+    ]
+  },
+  {
+    "objectID": "deployment.html#checking-an-installation",
+    "href": "deployment.html#checking-an-installation",
+    "title": "Deployment",
+    "section": "Checking an installation",
+    "text": "Checking an installation\ntests/deployment.php runs the same assertions through the CLI and, in scripts/check-fpm and scripts/check-container, through a real FastCGI request:\nphp tests/deployment.php\ndocker build --target checks -f docker/Dockerfile -t php-polars-checks .\ndocker build -f docker/Dockerfile -t php-polars-runtime .\nscripts/check-container php-polars-runtime php-polars-checks",
+    "crumbs": [
+      "Deployment"
+    ]
+  },
+  {
+    "objectID": "coming-from-python.html",
+    "href": "coming-from-python.html",
+    "title": "Coming from py-polars",
+    "section": "",
+    "text": "phpolars keeps py-polars’ names and semantics. The differences come from PHP’s syntax.",
+    "crumbs": [
+      "Coming from py-polars"
+    ]
+  },
+  {
+    "objectID": "coming-from-python.html#naming",
+    "href": "coming-from-python.html#naming",
+    "title": "Coming from py-polars",
+    "section": "Naming",
+    "text": "Naming\n\n\n\n\n\n\n\npy-polars\nphpolars\n\n\n\n\npl.col(\"x\")\ncol('x')\n\n\npl.lit(1)\nlit(1)\n\n\npl.when(c).then(a).otherwise(b)\nwhen($c)-&gt;then($a)-&gt;otherwise($b)\n\n\ndf.with_columns(...)\n$df-&gt;withColumns(...)\n\n\ndf.group_by(\"g\").agg(...)\n$df-&gt;groupBy('g')-&gt;agg(...)\n\n\ndf.to_dicts()\n$df-&gt;toDicts()\n\n\npl.read_csv(path)\nread_csv($path)\n\n\ndf.join(o, left_on=\"a\", right_on=\"b\")\n$df-&gt;join($o, leftOn: 'a', rightOn: 'b')\n\n\npl.col(\"s\").str.contains(\"x\")\ncol('s')-&gt;str()-&gt;contains('x')\n\n\npl.col(\"t\").dt.year()\ncol('t')-&gt;dt()-&gt;year()\n\n\nexpr.mod(2), expr % 2\n$expr-&gt;mod(2)\n\n\na + b, a &gt; b\n$a-&gt;add($b), $a-&gt;gt($b)\n\n\npl.Int64\n'Int64' or DataType::Int64\n\n\n\nMethods are camelCase. Functions are snake_case in the Phpolars namespace. Named parameters are camelCase. PHP has no operator overloading, so arithmetic and comparison are methods: add, sub, mul, truediv, floordiv, mod, pow, eq, ne, gt, ge, lt, le, and, or, not.",
+    "crumbs": [
+      "Coming from py-polars"
+    ]
+  },
+  {
+    "objectID": "coming-from-python.html#variadic-arguments-and-named",
+    "href": "coming-from-python.html#variadic-arguments-and-named",
+    "title": "Coming from py-polars",
+    "section": "Variadic arguments and **named",
+    "text": "Variadic arguments and **named\nWhere py-polars takes *exprs, the method is variadic. An associative array stands in for **named_exprs:\n$df-&gt;select('a', col('b')-&gt;mul(2), ['c' =&gt; col('x')-&gt;sum()]);\n$df-&gt;groupBy('g')-&gt;agg(col('x')-&gt;mean(), ['n' =&gt; len()]);\nPHP does not allow parameters after a variadic one. Methods that need both take a single argument that accepts a name, an Expr, or a list:\n$df-&gt;groupBy(['store', 'product'], maintainOrder: true);\ncol('x')-&gt;sum()-&gt;over(['g', 'h'], orderBy: 'day');\n$df-&gt;drop('a', 'b');",
+    "crumbs": [
+      "Coming from py-polars"
+    ]
+  },
+  {
+    "objectID": "coming-from-python.html#values",
+    "href": "coming-from-python.html#values",
+    "title": "Coming from py-polars",
+    "section": "Values",
+    "text": "Values\nResults come back as PHP values: int, float, bool, string, null, DateTimeImmutable for dates and datetimes, lists for List columns, and associative arrays for Struct columns. See Types and values.",
+    "crumbs": [
+      "Coming from py-polars"
+    ]
+  },
+  {
+    "objectID": "coming-from-python.html#small-differences",
+    "href": "coming-from-python.html#small-differences",
+    "title": "Coming from py-polars",
+    "section": "Small differences",
+    "text": "Small differences\n\nSeries::count() keeps py’s meaning (non-null values). Series does not implement Countable; use len().\n__toString() gives Polars’ table layout, so echo $df prints like print(df).\nDataFrame::toColumns() is a phpolars addition: toDict(asSeries: false).",
+    "crumbs": [
+      "Coming from py-polars"
+    ]
+  },
+  {
+    "objectID": "development.html",
+    "href": "development.html",
+    "title": "Development",
+    "section": "",
+    "text": "scripts/test        # build and run tests/dataframe.php, expr.php, io.php, and pyfixtures.php\nscripts/check       # release gate: rustfmt, clippy, the suites, and a stub freshness check\nPHIBBLE=phibble/vendor/autoload.php scripts/test   # also the phibble round-trip\nSet PHP and PHP_CONFIG to a PHP 8.5 installation. On macOS, also set LIBCLANG_PATH=$(brew --prefix llvm)/lib.",
+    "crumbs": [
+      "Development"
+    ]
+  },
+  {
+    "objectID": "development.html#building-and-testing",
+    "href": "development.html#building-and-testing",
+    "title": "Development",
+    "section": "",
+    "text": "scripts/test        # build and run tests/dataframe.php, expr.php, io.php, and pyfixtures.php\nscripts/check       # release gate: rustfmt, clippy, the suites, and a stub freshness check\nPHIBBLE=phibble/vendor/autoload.php scripts/test   # also the phibble round-trip\nSet PHP and PHP_CONFIG to a PHP 8.5 installation. On macOS, also set LIBCLANG_PATH=$(brew --prefix llvm)/lib.",
+    "crumbs": [
+      "Development"
+    ]
+  },
+  {
+    "objectID": "development.html#comparing-with-py-polars",
+    "href": "development.html#comparing-with-py-polars",
+    "title": "Development",
+    "section": "Comparing with py-polars",
+    "text": "Comparing with py-polars\nscripts/pyfixtures.py builds 169 cases with py-polars and writes tests/fixtures/py/expected.json. tests/pyfixtures.php builds the same cases with phpolars and compares column names, data types, and values. Regenerate the fixtures with:\nuv run --with 'polars==1.43.2' python scripts/pyfixtures.py\npy-polars 1.43.2 is the release whose Rust core is closest to the pinned Polars 0.55.2.",
+    "crumbs": [
+      "Development"
+    ]
+  },
+  {
+    "objectID": "development.html#the-phibble-adapter",
+    "href": "development.html#the-phibble-adapter",
+    "title": "Development",
+    "section": "The phibble adapter",
+    "text": "The phibble adapter\ncd phibble\ncomposer install\nphp -d extension=../target/release/libphp_polars.so vendor/bin/pest",
+    "crumbs": [
+      "Development"
+    ]
+  },
+  {
+    "objectID": "development.html#documentation",
+    "href": "development.html#documentation",
+    "title": "Development",
+    "section": "Documentation",
+    "text": "Documentation\nscripts/render-docs\nThis runs every docs/examples/*.php against the release build and embeds its output, regenerates the reference signatures from the extension (scripts/docs-reference.php), renders the site with Quarto, and copies it into docs/ for GitHub Pages.",
+    "crumbs": [
+      "Development"
+    ]
+  },
+  {
+    "objectID": "development.html#stubs",
+    "href": "development.html#stubs",
+    "title": "Development",
+    "section": "Stubs",
+    "text": "Stubs\nstubs/phpolars.php holds signatures for IDEs and static analysis. Regenerate it after changing the API:\nphp -d extension=target/release/libphp_polars.so scripts/stubs.php &gt; stubs/phpolars.php",
+    "crumbs": [
+      "Development"
+    ]
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "phpolars",
+    "section": "",
+    "text": "phpolars brings Polars to PHP as a native extension written in Rust. It follows the py-polars API: the same classes, methods, and semantics, with camelCase method names and snake_case functions. A test suite compares 169 cases against py-polars 1.43.2, and all of them match.",
+    "crumbs": [
+      "phpolars"
+    ]
+  },
+  {
+    "objectID": "index.html#what-it-includes",
+    "href": "index.html#what-it-includes",
+    "title": "phpolars",
+    "section": "What it includes",
+    "text": "What it includes\n\nDataFrame and LazyFrame with py-polars’ verbs: select, withColumns, filter, sort, groupBy/agg, join, unique, pivot, unpivot, explode, describe, and more.\nExpressions with arithmetic, three-valued logic, aggregations, window functions (over), when/then/otherwise, and the str, dt, list, struct, and name namespaces.\nSeries, with the same expression methods.\nCSV, Parquet, JSON, NDJSON, and Arrow IPC reading and writing, with lazy scans and streaming sinks.\nA thread-pool cap for PHP-FPM (php_polars.max_threads).\nAn adapter, Phpolars\\Phibble\\PolarsTable, that runs phibble and phplyr pipelines in Polars.",
+    "crumbs": [
+      "phpolars"
+    ]
+  },
+  {
+    "objectID": "index.html#the-family",
+    "href": "index.html#the-family",
+    "title": "phpolars",
+    "section": "The family",
+    "text": "The family\nphpolars is one of a set of PHP 8.5 packages for data work. phibble is a pure-PHP data frame and the shared table contract. phplyr adds dplyr verbs on top of it. php-stats fits regression and mixed models. phpolars is the optional fast backend: install it when the data is large or the pipeline is heavy, and keep using phplyr’s verbs.",
+    "crumbs": [
+      "phpolars"
+    ]
+  },
+  {
+    "objectID": "phibble.html",
+    "href": "phibble.html",
+    "title": "phibble and phplyr",
+    "section": "",
+    "text": "The erikwestlund/phpolars-phibble package provides Phpolars\\Phibble\\PolarsTable, an implementation of phibble’s table contract backed by a Polars DataFrame. phplyr’s verbs work on any table that implements the contract, so a phplyr pipeline runs in Polars when it starts from a PolarsTable.",
+    "crumbs": [
+      "phibble and phplyr"
+    ]
+  },
+  {
+    "objectID": "phibble.html#what-runs-in-polars",
+    "href": "phibble.html#what-runs-in-polars",
+    "title": "phibble and phplyr",
+    "section": "What runs in Polars",
+    "text": "What runs in Polars\nVerbs given column names or phibble expressions (Phibble\\Expr, which phplyr’s helpers such as col(), mean(), and n() build) run in Polars. The translation follows dplyr’s semantics, the same ones phibble’s in-memory Frame uses:\n\nNA propagates, logic is three-valued, and aggregates default to na_rm = FALSE.\nIn a grouped mutate() or filter(), aggregates and window functions run per group.\nGroups are visited and summarised in sorted key order, with factors in level order and NA last.\nJoins follow dplyr 1.2, including join_by() inequality and rolling joins.\nround() follows R 4, and quantile() over NA without na_rm raises R’s error.\n\nThe adapter’s tests run phibble’s own dplyr reference fixtures (69 expression cases, the contract cases, and 14 join_by() cases) against PolarsTable, and assert that they run without falling back.",
+    "crumbs": [
+      "phibble and phplyr"
+    ]
+  },
+  {
+    "objectID": "phibble.html#closures",
+    "href": "phibble.html#closures",
+    "title": "phibble and phplyr",
+    "section": "Closures",
+    "text": "Closures\nPHP closures cannot run on Polars threads. A verb given a closure, such as filter(fn ($r) =&gt; $r-&gt;units &gt; 0), converts the table to a phibble Frame, runs there, and converts the result back. PolarsTable::$fallbacks counts these conversions. Converting 1M rows costs roughly a second when the table has a datetime column, so pipelines on large data should use expressions. See Performance.",
+    "crumbs": [
+      "phibble and phplyr"
+    ]
+  },
+  {
+    "objectID": "reference/expressions.html",
+    "href": "reference/expressions.html",
+    "title": "Expressions",
+    "section": "",
+    "text": "An Expr describes a computation on columns. Expressions are built with col(), lit(), when(), and the other functions below, and are evaluated by frame verbs such as select(), withColumns(), filter(), and agg(). They never hold PHP closures, so Polars runs them on its own threads.\nOperands of comparison and arithmetic methods may be an Expr or a PHP value. PHP strings there are string literals.",
+    "crumbs": [
+      "Reference",
+      "Expressions"
+    ]
+  },
+  {
+    "objectID": "reference/expressions.html#windows-and-order",
+    "href": "reference/expressions.html#windows-and-order",
+    "title": "Expressions",
+    "section": "Windows and order",
+    "text": "Windows and order\nover() evaluates an expression within groups and maps the result back to every row. orderBy sets the order for order-dependent expressions such as cumSum() and shift().\n$sales = read_csv('sales.csv', tryParseDates: true)-&gt;filter(col('store')-&gt;eq('S1'))-&gt;head(8);\n\necho $sales-&gt;select(\n    'date',\n    'product',\n    'units',\n    col('units')-&gt;sum()-&gt;over('product')-&gt;alias('product_total'),\n    col('units')-&gt;cumSum()-&gt;over('product', orderBy: 'date')-&gt;alias('running'),\n    col('units')-&gt;shift()-&gt;over('product', orderBy: 'date')-&gt;alias('previous'),\n    col('units')-&gt;rank('dense', descending: true)-&gt;alias('rank'),\n);\nshape: (8, 7)\n┌────────────┬─────────┬───────┬───────────────┬─────────┬──────────┬──────┐\n│ date       ┆ product ┆ units ┆ product_total ┆ running ┆ previous ┆ rank │\n│ ---        ┆ ---     ┆ ---   ┆ ---           ┆ ---     ┆ ---      ┆ ---  │\n│ date       ┆ str     ┆ i64   ┆ i64           ┆ i64     ┆ i64      ┆ u32  │\n╞════════════╪═════════╪═══════╪═══════════════╪═════════╪══════════╪══════╡\n│ 2024-01-04 ┆ banana  ┆ 10    ┆ 23            ┆ 11      ┆ 1        ┆ 3    │\n│ 2024-02-02 ┆ banana  ┆ 6     ┆ 23            ┆ 17      ┆ 10       ┆ 5    │\n│ 2024-01-22 ┆ apple   ┆ 5     ┆ 16            ┆ 5       ┆ null     ┆ 6    │\n│ 2024-01-23 ┆ apple   ┆ 11    ┆ 16            ┆ 16      ┆ 5        ┆ 2    │\n│ 2024-01-03 ┆ banana  ┆ 1     ┆ 23            ┆ 1       ┆ null     ┆ 7    │\n│ 2024-03-05 ┆ date    ┆ 7     ┆ 19            ┆ 19      ┆ 12       ┆ 4    │\n│ 2024-03-22 ┆ banana  ┆ 6     ┆ 23            ┆ 23      ┆ 6        ┆ 5    │\n│ 2024-02-03 ┆ date    ┆ 12    ┆ 19            ┆ 12      ┆ null     ┆ 1    │\n└────────────┴─────────┴───────┴───────────────┴─────────┴──────────┴──────┘",
+    "crumbs": [
+      "Reference",
+      "Expressions"
+    ]
+  },
+  {
+    "objectID": "reference/expressions.html#strings",
+    "href": "reference/expressions.html#strings",
+    "title": "Expressions",
+    "section": "Strings",
+    "text": "Strings\n$people = new DataFrame(['name' =&gt; ['  Ada Lovelace', 'grace hopper ', null, 'Alan Turing'], 'email' =&gt; ['ada@x.org', 'grace@navy.mil', 'n/a', 'alan@cam.ac.uk']]);\n\necho $people-&gt;select(\n    col('name')-&gt;str()-&gt;stripChars()-&gt;str()-&gt;toUppercase()-&gt;alias('upper'),\n    col('name')-&gt;str()-&gt;stripChars()-&gt;str()-&gt;split(' ')-&gt;list()-&gt;first()-&gt;alias('first'),\n    col('email')-&gt;str()-&gt;extract('@(.+)$')-&gt;alias('domain'),\n    col('email')-&gt;str()-&gt;contains('.org', literal: true)-&gt;alias('org'),\n    col('email')-&gt;str()-&gt;lenChars()-&gt;alias('len'),\n);\nshape: (4, 5)\n┌──────────────┬───────┬───────────┬───────┬─────┐\n│ upper        ┆ first ┆ domain    ┆ org   ┆ len │\n│ ---          ┆ ---   ┆ ---       ┆ ---   ┆ --- │\n│ str          ┆ str   ┆ str       ┆ bool  ┆ u32 │\n╞══════════════╪═══════╪═══════════╪═══════╪═════╡\n│ ADA LOVELACE ┆ Ada   ┆ x.org     ┆ true  ┆ 9   │\n│ GRACE HOPPER ┆ grace ┆ navy.mil  ┆ false ┆ 14  │\n│ null         ┆ null  ┆ null      ┆ false ┆ 3   │\n│ ALAN TURING  ┆ Alan  ┆ cam.ac.uk ┆ false ┆ 14  │\n└──────────────┴───────┴───────────┴───────┴─────┘",
+    "crumbs": [
+      "Reference",
+      "Expressions"
+    ]
+  },
+  {
+    "objectID": "reference/expressions.html#dates-and-times",
+    "href": "reference/expressions.html#dates-and-times",
+    "title": "Expressions",
+    "section": "Dates and times",
+    "text": "Dates and times\n$sales = read_csv('sales.csv', tryParseDates: true)-&gt;select('date')-&gt;head(4);\n\necho $sales-&gt;withColumns(\n    col('date')-&gt;dt()-&gt;year()-&gt;alias('year'),\n    col('date')-&gt;dt()-&gt;month()-&gt;alias('month'),\n    col('date')-&gt;dt()-&gt;weekday()-&gt;alias('weekday'),\n    col('date')-&gt;dt()-&gt;strftime('%b %d')-&gt;alias('label'),\n    col('date')-&gt;dt()-&gt;truncate('1mo')-&gt;alias('month_start'),\n), \"\\n\";\n\n// Date and Datetime values come back as DateTimeImmutable.\n$first = $sales-&gt;item(0, 'date');\necho get_class($first), ' ', $first-&gt;format('Y-m-d'), \"\\n\";\nshape: (4, 6)\n┌────────────┬──────┬───────┬─────────┬────────┬─────────────┐\n│ date       ┆ year ┆ month ┆ weekday ┆ label  ┆ month_start │\n│ ---        ┆ ---  ┆ ---   ┆ ---     ┆ ---    ┆ ---         │\n│ date       ┆ i32  ┆ i8    ┆ i8      ┆ str    ┆ date        │\n╞════════════╪══════╪═══════╪═════════╪════════╪═════════════╡\n│ 2024-03-22 ┆ 2024 ┆ 3     ┆ 5       ┆ Mar 22 ┆ 2024-03-01  │\n│ 2024-02-11 ┆ 2024 ┆ 2     ┆ 7       ┆ Feb 11 ┆ 2024-02-01  │\n│ 2024-01-06 ┆ 2024 ┆ 1     ┆ 6       ┆ Jan 06 ┆ 2024-01-01  │\n│ 2024-03-29 ┆ 2024 ┆ 3     ┆ 5       ┆ Mar 29 ┆ 2024-03-01  │\n└────────────┴──────┴───────┴─────────┴────────┴─────────────┘\nDateTimeImmutable 2024-03-22",
+    "crumbs": [
+      "Reference",
+      "Expressions"
+    ]
+  },
+  {
+    "objectID": "reference/expressions.html#lists-and-structs",
+    "href": "reference/expressions.html#lists-and-structs",
+    "title": "Expressions",
+    "section": "Lists and structs",
+    "text": "Lists and structs\n$orders = new DataFrame([\n    'order' =&gt; [1, 2, 3],\n    'items' =&gt; [['apple', 'banana'], ['cherry'], []],\n    'ship' =&gt; [['city' =&gt; 'Baltimore', 'days' =&gt; 2], ['city' =&gt; 'Denver', 'days' =&gt; 5], null],\n]);\n\necho $orders, \"\\n\";\necho $orders-&gt;select(\n    'order',\n    col('items')-&gt;list()-&gt;len()-&gt;alias('n_items'),\n    col('items')-&gt;list()-&gt;join(', ')-&gt;alias('items'),\n    col('ship')-&gt;struct()-&gt;field('city'),\n), \"\\n\";\necho $orders-&gt;explode('items'), \"\\n\";\nprint_r($orders-&gt;row(0, named: true));\nshape: (3, 3)\n┌───────┬─────────────────────┬─────────────────┐\n│ order ┆ items               ┆ ship            │\n│ ---   ┆ ---                 ┆ ---             │\n│ i64   ┆ list[str]           ┆ struct[2]       │\n╞═══════╪═════════════════════╪═════════════════╡\n│ 1     ┆ [\"apple\", \"banana\"] ┆ {\"Baltimore\",2} │\n│ 2     ┆ [\"cherry\"]          ┆ {\"Denver\",5}    │\n│ 3     ┆ []                  ┆ null            │\n└───────┴─────────────────────┴─────────────────┘\nshape: (3, 4)\n┌───────┬─────────┬───────────────┬───────────┐\n│ order ┆ n_items ┆ items         ┆ city      │\n│ ---   ┆ ---     ┆ ---           ┆ ---       │\n│ i64   ┆ u32     ┆ str           ┆ str       │\n╞═══════╪═════════╪═══════════════╪═══════════╡\n│ 1     ┆ 2       ┆ apple, banana ┆ Baltimore │\n│ 2     ┆ 1       ┆ cherry        ┆ Denver    │\n│ 3     ┆ 0       ┆               ┆ null      │\n└───────┴─────────┴───────────────┴───────────┘\nshape: (4, 3)\n┌───────┬────────┬─────────────────┐\n│ order ┆ items  ┆ ship            │\n│ ---   ┆ ---    ┆ ---             │\n│ i64   ┆ str    ┆ struct[2]       │\n╞═══════╪════════╪═════════════════╡\n│ 1     ┆ apple  ┆ {\"Baltimore\",2} │\n│ 1     ┆ banana ┆ {\"Baltimore\",2} │\n│ 2     ┆ cherry ┆ {\"Denver\",5}    │\n│ 3     ┆ null   ┆ null            │\n└───────┴────────┴─────────────────┘\nArray\n(\n    [order] =&gt; 1\n    [items] =&gt; Array\n        (\n            [0] =&gt; apple\n            [1] =&gt; banana\n        )\n\n    [ship] =&gt; Array\n        (\n            [city] =&gt; Baltimore\n            [days] =&gt; 2\n        )\n\n)",
+    "crumbs": [
+      "Reference",
+      "Expressions"
+    ]
+  },
+  {
+    "objectID": "reference/expressions.html#functions",
+    "href": "reference/expressions.html#functions",
+    "title": "Expressions",
+    "section": "Functions",
+    "text": "Functions\nall(): Phpolars\\Expr\nall_horizontal(mixed ...$exprs): Phpolars\\Expr\nany_horizontal(mixed ...$exprs): Phpolars\\Expr\ncoalesce(mixed ...$exprs): Phpolars\\Expr\ncol(mixed ...$names): Phpolars\\Expr\nconcat(array $items, ?string $how = null): mixed\nconcat_list(mixed ...$exprs): Phpolars\\Expr\nconcat_str(mixed $exprs, ?string $separator = null, ?bool $ignoreNulls = null): Phpolars\\Expr\ncount(mixed ...$names): Phpolars\\Expr\nelement(): Phpolars\\Expr\nexclude(mixed ...$names): Phpolars\\Expr\nfirst(mixed ...$names): Phpolars\\Expr\nint_range(mixed $start, mixed $end = null, ?int $step = null): Phpolars\\Expr\nlast(mixed ...$names): Phpolars\\Expr\nlen(): Phpolars\\Expr\nlit(mixed $value, ?string $dtype = null): Phpolars\\Expr\nmax(mixed ...$names): Phpolars\\Expr\nmax_horizontal(mixed ...$exprs): Phpolars\\Expr\nmean(mixed ...$names): Phpolars\\Expr\nmean_horizontal(mixed ...$exprs): Phpolars\\Expr\nmedian(mixed ...$names): Phpolars\\Expr\nmin(mixed ...$names): Phpolars\\Expr\nmin_horizontal(mixed ...$exprs): Phpolars\\Expr\nn_unique(mixed ...$names): Phpolars\\Expr\nstruct_(mixed ...$exprs): Phpolars\\Expr\nsum(mixed ...$names): Phpolars\\Expr\nsum_horizontal(mixed ...$exprs): Phpolars\\Expr\nthread_pool_size(): int\nversion(): string\nwhen(mixed ...$conditions): Phpolars\\When",
+    "crumbs": [
+      "Reference",
+      "Expressions"
+    ]
+  },
+  {
+    "objectID": "reference/expressions.html#methods",
+    "href": "reference/expressions.html#methods",
+    "title": "Expressions",
+    "section": "Methods",
+    "text": "Methods\n\nPhpolars\\Expr\n__toString(): string\nabs(): Phpolars\\Expr\nadd(mixed $other): Phpolars\\Expr\nalias(string $name): Phpolars\\Expr\nall(?bool $ignoreNulls = null): Phpolars\\Expr\nand(mixed $other): Phpolars\\Expr\nany(?bool $ignoreNulls = null): Phpolars\\Expr\nappend(mixed $other, ?bool $upcast = null): Phpolars\\Expr\napproxNUnique(): Phpolars\\Expr\narccos(): Phpolars\\Expr\narcsin(): Phpolars\\Expr\narctan(): Phpolars\\Expr\nargMax(): Phpolars\\Expr\nargMin(): Phpolars\\Expr\nargSort(?bool $descending = null, ?bool $nullsLast = null): Phpolars\\Expr\nbackwardFill(?int $limit = null): Phpolars\\Expr\nbottomK(?int $k = null): Phpolars\\Expr\ncast(string $dtype, ?bool $strict = null): Phpolars\\Expr\ncbrt(): Phpolars\\Expr\nceil(): Phpolars\\Expr\nclip(mixed $lowerBound = null, mixed $upperBound = null): Phpolars\\Expr\ncos(): Phpolars\\Expr\ncount(): Phpolars\\Expr\ncumCount(?bool $reverse = null): Phpolars\\Expr\ncumMax(?bool $reverse = null): Phpolars\\Expr\ncumMin(?bool $reverse = null): Phpolars\\Expr\ncumProd(?bool $reverse = null): Phpolars\\Expr\ncumSum(?bool $reverse = null): Phpolars\\Expr\ndiff(?int $n = null, ?string $nullBehavior = null): Phpolars\\Expr\ndiv(mixed $other): Phpolars\\Expr\ndot(mixed $other): Phpolars\\Expr\ndropNans(): Phpolars\\Expr\ndropNulls(): Phpolars\\Expr\ndt(): Phpolars\\DtNameSpace\neq(mixed $other): Phpolars\\Expr\neqMissing(mixed $other): Phpolars\\Expr\nexp(): Phpolars\\Expr\nexplode(): Phpolars\\Expr\nfillNan(mixed $value): Phpolars\\Expr\nfillNull(mixed $value = null, ?string $strategy = null, ?int $limit = null): Phpolars\\Expr\nfilter(mixed $predicate): Phpolars\\Expr\nfirst(): Phpolars\\Expr\nfloor(): Phpolars\\Expr\nfloordiv(mixed $other): Phpolars\\Expr\nforwardFill(?int $limit = null): Phpolars\\Expr\ngather(mixed $indices): Phpolars\\Expr\ngatherEvery(int $n, ?int $offset = null): Phpolars\\Expr\nge(mixed $other): Phpolars\\Expr\nget(mixed $index, ?bool $nullOnOob = null): Phpolars\\Expr\ngt(mixed $other): Phpolars\\Expr\nhasNulls(): Phpolars\\Expr\nhead(?int $n = null): Phpolars\\Expr\nimplode(): Phpolars\\Expr\ninterpolate(?string $method = null): Phpolars\\Expr\nisBetween(mixed $lower, mixed $upper, ?string $closed = null): Phpolars\\Expr\nisDuplicated(): Phpolars\\Expr\nisFinite(): Phpolars\\Expr\nisFirstDistinct(): Phpolars\\Expr\nisIn(mixed $other, ?bool $nullsEqual = null): Phpolars\\Expr\nisInfinite(): Phpolars\\Expr\nisLastDistinct(): Phpolars\\Expr\nisNan(): Phpolars\\Expr\nisNotNan(): Phpolars\\Expr\nisNotNull(): Phpolars\\Expr\nisNull(): Phpolars\\Expr\nisUnique(): Phpolars\\Expr\nkurtosis(?bool $fisher = null, ?bool $bias = null): Phpolars\\Expr\nlast(): Phpolars\\Expr\nle(mixed $other): Phpolars\\Expr\nlen(): Phpolars\\Expr\nlist(): Phpolars\\ListNameSpace\nlog(?float $base = null): Phpolars\\Expr\nlog10(): Phpolars\\Expr\nlog1P(): Phpolars\\Expr\nlt(mixed $other): Phpolars\\Expr\nmax(): Phpolars\\Expr\nmean(): Phpolars\\Expr\nmedian(): Phpolars\\Expr\nmin(): Phpolars\\Expr\nmod(mixed $other): Phpolars\\Expr\nmode(): Phpolars\\Expr\nmul(mixed $other): Phpolars\\Expr\nnUnique(): Phpolars\\Expr\nname(): Phpolars\\NameNameSpace\nnanMax(): Phpolars\\Expr\nnanMin(): Phpolars\\Expr\nne(mixed $other): Phpolars\\Expr\nneMissing(mixed $other): Phpolars\\Expr\nneg(): Phpolars\\Expr\nnot(): Phpolars\\Expr\nnullCount(): Phpolars\\Expr\nor(mixed $other): Phpolars\\Expr\nover(mixed $partitionBy, mixed $orderBy = null, ?bool $descending = null, ?bool $nullsLast = null, ?string $mappingStrategy = null): Phpolars\\Expr\npctChange(?int $n = null): Phpolars\\Expr\npow(mixed $exponent): Phpolars\\Expr\nproduct(): Phpolars\\Expr\nquantile(mixed $quantile, ?string $interpolation = null): Phpolars\\Expr\nrank(?string $method = null, ?bool $descending = null, ?int $seed = null): Phpolars\\Expr\nrepeatBy(mixed $by): Phpolars\\Expr\nreplace(mixed $old, mixed $new = null): Phpolars\\Expr\nreplaceStrict(mixed $old, mixed $new = null, mixed $default = null, ?string $returnDtype = null): Phpolars\\Expr\nreverse(): Phpolars\\Expr\nrollingMax(int $windowSize, ?int $minPeriods = null, ?bool $center = null): Phpolars\\Expr\nrollingMean(int $windowSize, ?int $minPeriods = null, ?bool $center = null): Phpolars\\Expr\nrollingMedian(int $windowSize, ?int $minPeriods = null, ?bool $center = null): Phpolars\\Expr\nrollingMin(int $windowSize, ?int $minPeriods = null, ?bool $center = null): Phpolars\\Expr\nrollingStd(int $windowSize, ?int $minPeriods = null, ?bool $center = null): Phpolars\\Expr\nrollingSum(int $windowSize, ?int $minPeriods = null, ?bool $center = null): Phpolars\\Expr\nrollingVar(int $windowSize, ?int $minPeriods = null, ?bool $center = null): Phpolars\\Expr\nround(?int $decimals = null, ?string $mode = null): Phpolars\\Expr\nroundSigFigs(int $digits): Phpolars\\Expr\nsample(?int $n = null, ?float $fraction = null, ?bool $withReplacement = null, ?bool $shuffle = null, ?int $seed = null): Phpolars\\Expr\nshift(?int $n = null, mixed $fillValue = null): Phpolars\\Expr\nshuffle(?int $seed = null): Phpolars\\Expr\nsign(): Phpolars\\Expr\nsin(): Phpolars\\Expr\nskew(?bool $bias = null): Phpolars\\Expr\nslice(int $offset, ?int $length = null): Phpolars\\Expr\nsort(?bool $descending = null, ?bool $nullsLast = null): Phpolars\\Expr\nsortBy(mixed $by, mixed $descending = null, mixed $nullsLast = null): Phpolars\\Expr\nsqrt(): Phpolars\\Expr\nstd(?int $ddof = null): Phpolars\\Expr\nstr(): Phpolars\\StrNameSpace\nstruct(): Phpolars\\StructNameSpace\nsub(mixed $other): Phpolars\\Expr\nsum(): Phpolars\\Expr\ntail(?int $n = null): Phpolars\\Expr\ntan(): Phpolars\\Expr\ntopK(?int $k = null): Phpolars\\Expr\ntruediv(mixed $other): Phpolars\\Expr\nunique(?bool $maintainOrder = null): Phpolars\\Expr\nuniqueCounts(): Phpolars\\Expr\nvalueCounts(?bool $sort = null, ?string $name = null, ?bool $normalize = null): Phpolars\\Expr\nvar(?int $ddof = null): Phpolars\\Expr\nxor(mixed $other): Phpolars\\Expr\n\n\nPhpolars\\When\nthen(mixed $value): Phpolars\\Then\n\n\nPhpolars\\Then\nalias(string $name): Phpolars\\Expr\notherwise(mixed $value): Phpolars\\Expr\nwhen(mixed ...$condition): Phpolars\\When\n\n\nPhpolars\\StrNameSpace\ncontains(mixed $pattern, ?bool $literal = null, ?bool $strict = null): mixed\ncountMatches(mixed $pattern, ?bool $literal = null): mixed\nendsWith(mixed $suffix): mixed\nextract(mixed $pattern, ?int $groupIndex = null): mixed\nextractAll(mixed $pattern): mixed\nfind(mixed $pattern, ?bool $literal = null, ?bool $strict = null): mixed\nhead(int $n): mixed\njoin(?string $delimiter = null, ?bool $ignoreNulls = null): mixed\nlenBytes(): mixed\nlenChars(): mixed\npadEnd(int $length, ?string $fillChar = null): mixed\npadStart(int $length, ?string $fillChar = null): mixed\nreplace(mixed $pattern, mixed $value, ?bool $literal = null, ?int $n = null): mixed\nreplaceAll(mixed $pattern, mixed $value, ?bool $literal = null): mixed\nreverse(): mixed\nslice(mixed $offset, mixed $length = null): mixed\nsplit(mixed $by, ?bool $inclusive = null): mixed\nsplitn(mixed $by, int $n): mixed\nstartsWith(mixed $prefix): mixed\nstripChars(?string $characters = null): mixed\nstripCharsEnd(?string $characters = null): mixed\nstripCharsStart(?string $characters = null): mixed\nstripPrefix(mixed $prefix): mixed\nstripSuffix(mixed $suffix): mixed\nstrptime(string $dtype, ?string $format = null, ?bool $strict = null, ?bool $exact = null): mixed\ntail(int $n): mixed\ntoDate(?string $format = null, ?bool $strict = null, ?bool $exact = null): mixed\ntoDatetime(?string $format = null, ?string $timeUnit = null, ?string $timeZone = null, ?bool $strict = null, ?bool $exact = null): mixed\ntoInteger(?int $base = null, ?string $dtype = null, ?bool $strict = null): mixed\ntoLowercase(): mixed\ntoTime(?string $format = null, ?bool $strict = null): mixed\ntoUppercase(): mixed\nzfill(int $length): mixed\n\n\nPhpolars\\DtNameSpace\ncastTimeUnit(string $timeUnit): mixed\nconvertTimeZone(string $timeZone): mixed\ndate(): mixed\nday(): mixed\nepoch(?string $timeUnit = null): mixed\nhour(): mixed\nisLeapYear(): mixed\nisoYear(): mixed\nmicrosecond(): mixed\nmillisecond(): mixed\nminute(): mixed\nmonth(): mixed\nmonthEnd(): mixed\nmonthStart(): mixed\nnanosecond(): mixed\noffsetBy(string $by): mixed\nordinalDay(): mixed\nquarter(): mixed\nreplaceTimeZone(?string $timeZone = null): mixed\nround(string $every): mixed\nsecond(): mixed\nstrftime(string $format): mixed\ntime(): mixed\ntimestamp(?string $timeUnit = null): mixed\ntoString(?string $format = null): mixed\ntotalDays(?bool $fractional = null): mixed\ntotalHours(?bool $fractional = null): mixed\ntotalMicroseconds(?bool $fractional = null): mixed\ntotalMilliseconds(?bool $fractional = null): mixed\ntotalMinutes(?bool $fractional = null): mixed\ntotalSeconds(?bool $fractional = null): mixed\ntruncate(string $every): mixed\nweek(): mixed\nweekday(): mixed\nyear(): mixed\n\n\nPhpolars\\ListNameSpace\nargMax(): mixed\nargMin(): mixed\nconcat(mixed $other): mixed\ncontains(mixed $item, ?bool $nullsEqual = null): mixed\ncountMatches(mixed $element): mixed\ndiff(?int $n = null): mixed\ndropNulls(): mixed\neval(mixed $expr): mixed\nexplode(): mixed\nfirst(): mixed\ngather(mixed $indices, ?bool $nullOnOob = null): mixed\nget(mixed $index, ?bool $nullOnOob = null): mixed\nhead(?int $n = null): mixed\njoin(mixed $separator, ?bool $ignoreNulls = null): mixed\nlast(): mixed\nlen(): mixed\nmax(): mixed\nmean(): mixed\nmedian(): mixed\nmin(): mixed\nnUnique(): mixed\nreverse(): mixed\nsetDifference(mixed $other): mixed\nsetIntersection(mixed $other): mixed\nsetSymmetricDifference(mixed $other): mixed\nsetUnion(mixed $other): mixed\nshift(?int $n = null): mixed\nslice(int $offset, ?int $length = null): mixed\nsort(?bool $descending = null, ?bool $nullsLast = null): mixed\nstd(?int $ddof = null): mixed\nsum(): mixed\ntail(?int $n = null): mixed\ntoStruct(mixed $fields = null): mixed\nunique(?bool $maintainOrder = null): mixed\nvar(?int $ddof = null): mixed\n\n\nPhpolars\\StructNameSpace\nfield(string $name): mixed\njsonEncode(): mixed\nrenameFields(mixed $names): mixed\n\n\nPhpolars\\NameNameSpace\nkeep(): Phpolars\\Expr\nprefix(string $prefix): Phpolars\\Expr\nreplace(string $pattern, string $value, ?bool $literal = null): Phpolars\\Expr\nsuffix(string $suffix): Phpolars\\Expr\ntoLowercase(): Phpolars\\Expr\ntoUppercase(): Phpolars\\Expr",
+    "crumbs": [
+      "Reference",
+      "Expressions"
+    ]
+  },
+  {
+    "objectID": "reference/series.html",
+    "href": "reference/series.html",
+    "title": "Series",
+    "section": "",
+    "text": "A Series is one named column. Aggregations return PHP values; element-wise methods return a new Series. The str(), dt(), list(), and struct() namespaces work on a Series and return a Series.",
+    "crumbs": [
+      "Reference",
+      "Series"
+    ]
+  },
+  {
+    "objectID": "reference/series.html#methods",
+    "href": "reference/series.html#methods",
+    "title": "Series",
+    "section": "Methods",
+    "text": "Methods\n\nPhpolars\\Series\n__toString(): string\nabs(): Phpolars\\Series\nadd(mixed $other): Phpolars\\Series\nalias(string $name): Phpolars\\Series\nall(?bool $ignoreNulls = null): mixed\nand(mixed $other): Phpolars\\Series\nany(?bool $ignoreNulls = null): mixed\nappend(Phpolars\\Series $other): Phpolars\\Series\nargMax(): mixed\nargMin(): mixed\nargSort(?bool $descending = null, ?bool $nullsLast = null): Phpolars\\Series\ncast(string $dtype, ?bool $strict = null): Phpolars\\Series\nclip(mixed $lowerBound = null, mixed $upperBound = null): Phpolars\\Series\ncount(): int\ncumMax(?bool $reverse = null): Phpolars\\Series\ncumMin(?bool $reverse = null): Phpolars\\Series\ncumProd(?bool $reverse = null): Phpolars\\Series\ncumSum(?bool $reverse = null): Phpolars\\Series\ndiff(?int $n = null): Phpolars\\Series\ndiv(mixed $other): Phpolars\\Series\ndropNulls(): Phpolars\\Series\ndt(): Phpolars\\DtNameSpace\ndtype(): string\neq(mixed $other): Phpolars\\Series\nequals(Phpolars\\Series $other): bool\nexp(): Phpolars\\Series\nfillNan(mixed $value): Phpolars\\Series\nfillNull(mixed $value = null, ?string $strategy = null, ?int $limit = null): Phpolars\\Series\nfilter(mixed $predicate): Phpolars\\Series\nfirst(): mixed\nfloordiv(mixed $other): Phpolars\\Series\ngather(mixed $indices): Phpolars\\Series\nge(mixed $other): Phpolars\\Series\nget(int $index): mixed\ngt(mixed $other): Phpolars\\Series\nhasNulls(): bool\nhead(?int $n = null): Phpolars\\Series\nisBetween(mixed $lower, mixed $upper, ?string $closed = null): Phpolars\\Series\nisDuplicated(): Phpolars\\Series\nisEmpty(): bool\nisIn(mixed $other, ?bool $nullsEqual = null): Phpolars\\Series\nisNan(): Phpolars\\Series\nisNotNull(): Phpolars\\Series\nisNull(): Phpolars\\Series\nisUnique(): Phpolars\\Series\nitem(): mixed\nlast(): mixed\nle(mixed $other): Phpolars\\Series\nlen(): int\nlist(): Phpolars\\ListNameSpace\nlog(?float $base = null): Phpolars\\Series\nlt(mixed $other): Phpolars\\Series\nmax(): mixed\nmean(): mixed\nmedian(): mixed\nmin(): mixed\nmod(mixed $other): Phpolars\\Series\nmul(mixed $other): Phpolars\\Series\nnUnique(): mixed\nname(): string\nne(mixed $other): Phpolars\\Series\nnot(): Phpolars\\Series\nnullCount(): int\nor(mixed $other): Phpolars\\Series\npctChange(?int $n = null): Phpolars\\Series\npow(mixed $exponent): Phpolars\\Series\nproduct(): mixed\nquantile(float $quantile, ?string $interpolation = null): mixed\nrank(?string $method = null, ?bool $descending = null, ?int $seed = null): Phpolars\\Series\nrename(string $name): Phpolars\\Series\nreverse(): Phpolars\\Series\nround(?int $decimals = null): Phpolars\\Series\nsample(?int $n = null, ?float $fraction = null, ?bool $withReplacement = null, ?bool $shuffle = null, ?int $seed = null): Phpolars\\Series\nshift(?int $n = null): Phpolars\\Series\nslice(int $offset, ?int $length = null): Phpolars\\Series\nsort(?bool $descending = null, ?bool $nullsLast = null): Phpolars\\Series\nsqrt(): Phpolars\\Series\nstd(?int $ddof = null): mixed\nstr(): Phpolars\\StrNameSpace\nstruct(): Phpolars\\StructNameSpace\nsub(mixed $other): Phpolars\\Series\nsum(): mixed\ntail(?int $n = null): Phpolars\\Series\ntoFrame(?string $name = null): Phpolars\\DataFrame\ntoList(): array\ntruediv(mixed $other): Phpolars\\Series\nunique(?bool $maintainOrder = null): Phpolars\\Series\nvalueCounts(?bool $sort = null, ?string $name = null, ?bool $normalize = null): Phpolars\\DataFrame\nvar(?int $ddof = null): mixed",
+    "crumbs": [
+      "Reference",
+      "Series"
+    ]
+  }
+]

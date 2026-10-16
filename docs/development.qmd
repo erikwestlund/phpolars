@@ -1,0 +1,47 @@
+---
+title: "Development"
+---
+
+## Building and testing
+
+```sh
+scripts/test        # build and run tests/dataframe.php, expr.php, io.php, and pyfixtures.php
+scripts/check       # release gate: rustfmt, clippy, the suites, and a stub freshness check
+PHIBBLE=phibble/vendor/autoload.php scripts/test   # also the phibble round-trip
+```
+
+Set `PHP` and `PHP_CONFIG` to a PHP 8.5 installation. On macOS, also set `LIBCLANG_PATH=$(brew --prefix llvm)/lib`.
+
+## Comparing with py-polars
+
+`scripts/pyfixtures.py` builds 169 cases with py-polars and writes `tests/fixtures/py/expected.json`. `tests/pyfixtures.php` builds the same cases with phpolars and compares column names, data types, and values. Regenerate the fixtures with:
+
+```sh
+uv run --with 'polars==1.43.2' python scripts/pyfixtures.py
+```
+
+py-polars 1.43.2 is the release whose Rust core is closest to the pinned Polars 0.55.2.
+
+## The phibble adapter
+
+```sh
+cd phibble
+composer install
+php -d extension=../target/release/libphp_polars.so vendor/bin/pest
+```
+
+## Documentation
+
+```sh
+scripts/render-docs
+```
+
+This runs every `docs/examples/*.php` against the release build and embeds its output, regenerates the reference signatures from the extension (`scripts/docs-reference.php`), renders the site with Quarto, and copies it into `docs/` for GitHub Pages.
+
+## Stubs
+
+`stubs/phpolars.php` holds signatures for IDEs and static analysis. Regenerate it after changing the API:
+
+```sh
+php -d extension=target/release/libphp_polars.so scripts/stubs.php > stubs/phpolars.php
+```

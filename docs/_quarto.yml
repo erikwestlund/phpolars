@@ -1,0 +1,38 @@
+project:
+  type: website
+  output-dir: _site
+  render:
+    - "*.qmd"
+    - "reference/*.qmd"
+  resources:
+    - data/*.csv
+
+website:
+  site-url: "https://erikwestlund.github.io/phpolars/"
+  title: "phpolars"
+  repo-url: "https://github.com/erikwestlund/phpolars"
+  sidebar:
+    style: docked
+    search: true
+    contents:
+      - index.qmd
+      - getting-started.qmd
+      - coming-from-python.qmd
+      - section: "Reference"
+        contents:
+          - reference/dataframe.qmd
+          - reference/expressions.qmd
+          - reference/series.qmd
+          - reference/io.qmd
+          - reference/types.qmd
+      - phibble.qmd
+      - deployment.qmd
+      - performance.qmd
+      - development.qmd
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    code-copy: true
+    highlight-style: github

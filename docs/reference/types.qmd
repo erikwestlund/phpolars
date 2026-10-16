@@ -1,0 +1,32 @@
+---
+title: "Types and values"
+---
+
+## Data types
+
+Data types are written as py-polars names: `'Int8'` … `'Int64'`, `'UInt8'` … `'UInt64'`, `'Float32'`, `'Float64'`, `'Boolean'`, `'String'`, `'Binary'`, `'Date'`, `'Datetime'` (microseconds), `'Datetime(ms, UTC)'`, `'Duration(us)'`, `'Time'`, `'Categorical'`, `'Null'`, `'Decimal(10, 2)'`, and `'List(Int64)'`. `Phpolars\DataType` has the same names as constants (`DataType::Int64`), and `DataType::datetime('ms', 'UTC')` builds the parameterized names.
+
+## Values
+
+{{< include ../examples/_values.md >}}
+
+| Polars | PHP |
+| --- | --- |
+| integer types | `int` (UInt64 values beyond `PHP_INT_MAX` become `float`) |
+| Float32, Float64 | `float` |
+| Boolean | `bool` |
+| String, Categorical | `string` |
+| Date, Datetime | `DateTimeImmutable` (naive values in UTC, zoned values in their zone) |
+| Time | `string`, `"HH:MM:SS.ffffff"` |
+| Duration | `int` in the column's time unit |
+| Decimal | `string` |
+| List, Array | list |
+| Struct | associative array |
+
+From PHP, each column gets one inferred type. Integers widen to floats, nulls fit any type, `DateTimeInterface` values become `Datetime(us)` on their wall-clock time, lists become `List`, and associative arrays become `Struct`. Any other mix raises `SchemaError`; pass a `schema` to set types.
+
+## Errors
+
+Polars errors are thrown as subclasses of `Phpolars\PolarsError`, named after the py-polars exceptions: `ColumnNotFoundError`, `ComputeError`, `DuplicateError`, `InvalidOperationError`, `NoDataError`, `OutOfBoundsError`, `SchemaError`, `SchemaFieldNotFoundError`, `ShapeError`, and `StructFieldNotFoundError`, all in `Phpolars\Exception`. Invalid arguments raise PHP's `ValueError`.
+
+{{< include ../examples/_errors.md >}}

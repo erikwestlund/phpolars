@@ -460,9 +460,9 @@ namespace Phpolars {
         public function hstack(mixed $columns): Phpolars\DataFrame {}
         public function vstack(Phpolars\DataFrame $other): Phpolars\DataFrame {}
         public function __toString(): string {}
-        public function select(mixed ...$exprs_): Phpolars\DataFrame {}
-        public function withColumns(mixed ...$exprs_): Phpolars\DataFrame {}
-        public function filter(mixed ...$predicates_): Phpolars\DataFrame {}
+        public function select(mixed ...$exprs): Phpolars\DataFrame {}
+        public function withColumns(mixed ...$exprs): Phpolars\DataFrame {}
+        public function filter(mixed ...$predicates): Phpolars\DataFrame {}
         public function sort(mixed $by, mixed $descending = null, mixed $nullsLast = null, ?bool $maintainOrder = null): Phpolars\DataFrame {}
         public function head(?int $n = null): Phpolars\DataFrame {}
         public function limit(?int $n = null): Phpolars\DataFrame {}
@@ -510,9 +510,9 @@ namespace Phpolars {
         public function cache(): Phpolars\LazyFrame {}
         public function fetch(?int $n = null): Phpolars\DataFrame {}
         public function __toString(): string {}
-        public function select(mixed ...$exprs_): Phpolars\LazyFrame {}
-        public function withColumns(mixed ...$exprs_): Phpolars\LazyFrame {}
-        public function filter(mixed ...$predicates_): Phpolars\LazyFrame {}
+        public function select(mixed ...$exprs): Phpolars\LazyFrame {}
+        public function withColumns(mixed ...$exprs): Phpolars\LazyFrame {}
+        public function filter(mixed ...$predicates): Phpolars\LazyFrame {}
         public function sort(mixed $by, mixed $descending = null, mixed $nullsLast = null, ?bool $maintainOrder = null): Phpolars\LazyFrame {}
         public function head(?int $n = null): Phpolars\LazyFrame {}
         public function limit(?int $n = null): Phpolars\LazyFrame {}

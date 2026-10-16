@@ -110,7 +110,7 @@ fn sort_options(
 }
 
 /// py filter(*predicates): Exprs, column names of booleans, or boolean lists.
-fn predicates(args: &[&Zval]) -> PhpResult<Expr> {
+fn all_of(args: &[&Zval]) -> PhpResult<Expr> {
     let mut all: Option<Expr> = None;
     for e in exprs(args)? {
         all = Some(match all {
@@ -138,17 +138,17 @@ macro_rules! frame_verbs {
             $($extra)*
 
             /// select('a', col('b')->mul(2), ['c' => col('x')])
-            pub fn select(&self, exprs_: &[&Zval]) -> PhpResult<Self> {
-                Self::out(self.lf().select(exprs(exprs_)?))
+            pub fn select(&self, exprs: &[&Zval]) -> PhpResult<Self> {
+                Self::out(self.lf().select(crate::input::exprs(exprs)?))
             }
 
-            pub fn withColumns(&self, exprs_: &[&Zval]) -> PhpResult<Self> {
-                Self::out(self.lf().with_columns(exprs(exprs_)?))
+            pub fn withColumns(&self, exprs: &[&Zval]) -> PhpResult<Self> {
+                Self::out(self.lf().with_columns(crate::input::exprs(exprs)?))
             }
 
             /// Keep rows where every predicate is true; null counts as false.
-            pub fn filter(&self, predicates_: &[&Zval]) -> PhpResult<Self> {
-                Self::out(self.lf().filter(predicates(predicates_)?))
+            pub fn filter(&self, predicates: &[&Zval]) -> PhpResult<Self> {
+                Self::out(self.lf().filter(all_of(predicates)?))
             }
 
             /// sort('a', ['b', 'c'], descending: [false, true], nullsLast: true)

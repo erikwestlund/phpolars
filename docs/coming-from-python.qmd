@@ -1,0 +1,52 @@
+---
+title: "Coming from py-polars"
+---
+
+phpolars keeps py-polars' names and semantics. The differences come from PHP's syntax.
+
+## Naming
+
+| py-polars | phpolars |
+| --- | --- |
+| `pl.col("x")` | `col('x')` |
+| `pl.lit(1)` | `lit(1)` |
+| `pl.when(c).then(a).otherwise(b)` | `when($c)->then($a)->otherwise($b)` |
+| `df.with_columns(...)` | `$df->withColumns(...)` |
+| `df.group_by("g").agg(...)` | `$df->groupBy('g')->agg(...)` |
+| `df.to_dicts()` | `$df->toDicts()` |
+| `pl.read_csv(path)` | `read_csv($path)` |
+| `df.join(o, left_on="a", right_on="b")` | `$df->join($o, leftOn: 'a', rightOn: 'b')` |
+| `pl.col("s").str.contains("x")` | `col('s')->str()->contains('x')` |
+| `pl.col("t").dt.year()` | `col('t')->dt()->year()` |
+| `expr.mod(2)`, `expr % 2` | `$expr->mod(2)` |
+| `a + b`, `a > b` | `$a->add($b)`, `$a->gt($b)` |
+| `pl.Int64` | `'Int64'` or `DataType::Int64` |
+
+Methods are camelCase. Functions are snake_case in the `Phpolars` namespace. Named parameters are camelCase. PHP has no operator overloading, so arithmetic and comparison are methods: `add`, `sub`, `mul`, `truediv`, `floordiv`, `mod`, `pow`, `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `and`, `or`, `not`.
+
+## Variadic arguments and `**named`
+
+Where py-polars takes `*exprs`, the method is variadic. An associative array stands in for `**named_exprs`:
+
+```php
+$df->select('a', col('b')->mul(2), ['c' => col('x')->sum()]);
+$df->groupBy('g')->agg(col('x')->mean(), ['n' => len()]);
+```
+
+PHP does not allow parameters after a variadic one. Methods that need both take a single argument that accepts a name, an `Expr`, or a list:
+
+```php
+$df->groupBy(['store', 'product'], maintainOrder: true);
+col('x')->sum()->over(['g', 'h'], orderBy: 'day');
+$df->drop('a', 'b');
+```
+
+## Values
+
+Results come back as PHP values: `int`, `float`, `bool`, `string`, `null`, `DateTimeImmutable` for dates and datetimes, lists for List columns, and associative arrays for Struct columns. See [Types and values](reference/types.qmd).
+
+## Small differences
+
+- `Series::count()` keeps py's meaning (non-null values). `Series` does not implement `Countable`; use `len()`.
+- `__toString()` gives Polars' table layout, so `echo $df` prints like `print(df)`.
+- `DataFrame::toColumns()` is a phpolars addition: `toDict(asSeries: false)`.

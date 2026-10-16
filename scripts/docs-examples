@@ -1,0 +1,58 @@
+#!/usr/bin/env php
+<?php
+
+/*
+ * Run every docs/examples/*.php and write docs/examples/_<name>.md holding the
+ * example's code and its actual output, for Quarto to include. Examples run
+ * in docs/data, after a hidden prelude that imports the phpolars classes and
+ * functions. The extension is the release build unless PHPOLARS_EXT is set.
+ *
+ * Usage: scripts/docs-examples [name ...]
+ */
+
+declare(strict_types=1);
+
+$root = dirname(__DIR__);
+$php = getenv('PHP') ?: PHP_BINARY;
+$ext = getenv('PHPOLARS_EXT') ?: $root.'/target/release/libphp_polars.'.(PHP_OS_FAMILY === 'Darwin' ? 'dylib' : 'so');
+if (! is_file($ext)) {
+    fwrite(STDERR, "Build the extension first: cargo build --release\n");
+    exit(1);
+}
+$prelude = <<<'PHP'
+use Phpolars\{DataFrame, LazyFrame, Series, DataType};
+use function Phpolars\{col, lit, when, all, exclude, len, element, concat, concat_str, coalesce, struct_, int_range,
+    sum_horizontal, mean_horizontal, min_horizontal, max_horizontal, all_horizontal, any_horizontal,
+    read_csv, scan_csv, read_parquet, scan_parquet, read_ipc, read_ndjson, read_json};
+
+PHP;
+
+$only = array_slice($argv, 1);
+$failed = 0;
+foreach (glob($root.'/docs/examples/*.php') as $file) {
+    $name = basename($file, '.php');
+    if ($only !== [] && ! in_array($name, $only, true)) {
+        continue;
+    }
+    $code = trim((string) preg_replace('/^<\?php\s*(declare\(strict_types=1\);\s*)?/', '', file_get_contents($file)));
+    $script = tempnam(sys_get_temp_dir(), 'phpolars-doc').'.php';
+    file_put_contents($script, "<?php\n\ndeclare(strict_types=1);\n\n".$prelude."\n".$code."\n");
+    $proc = proc_open([$php, '-n', '-d', 'extension='.$ext, $script], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, $root.'/docs/data');
+    $out = stream_get_contents($pipes[1]);
+    $err = stream_get_contents($pipes[2]);
+    $status = proc_close($proc);
+    unlink($script);
+    if ($status !== 0) {
+        fwrite(STDERR, "{$name}: failed\n{$out}{$err}\n");
+        $failed++;
+
+        continue;
+    }
+    $md = "```php\n{$code}\n```\n";
+    if (trim($out) !== '') {
+        $md .= "\n```{.text .output}\n".rtrim($out)."\n```\n";
+    }
+    file_put_contents(dirname($file).'/_'.$name.'.md', $md);
+    echo "{$name}: ok\n";
+}
+exit($failed === 0 ? 0 : 1);

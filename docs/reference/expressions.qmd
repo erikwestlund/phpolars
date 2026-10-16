@@ -1,0 +1,33 @@
+---
+title: "Expressions"
+---
+
+An `Expr` describes a computation on columns. Expressions are built with `col()`, `lit()`, `when()`, and the other functions below, and are evaluated by frame verbs such as `select()`, `withColumns()`, `filter()`, and `agg()`. They never hold PHP closures, so Polars runs them on its own threads.
+
+Operands of comparison and arithmetic methods may be an `Expr` or a PHP value. PHP strings there are string literals.
+
+## Windows and order
+
+`over()` evaluates an expression within groups and maps the result back to every row. `orderBy` sets the order for order-dependent expressions such as `cumSum()` and `shift()`.
+
+{{< include ../examples/_windows.md >}}
+
+## Strings
+
+{{< include ../examples/_strings.md >}}
+
+## Dates and times
+
+{{< include ../examples/_dates.md >}}
+
+## Lists and structs
+
+{{< include ../examples/_nested.md >}}
+
+## Functions
+
+{{< include _api-functions.md >}}
+
+## Methods
+
+{{< include _api-expressions.md >}}
