@@ -539,6 +539,44 @@ impl PhpSeries {
         self.apply(crate::expr::clip(me(), lowerBound, upperBound)?)
     }
 
+    /// Whether the values are sorted in the given order.
+    pub fn isSorted(&self, descending: Option<bool>, nullsLast: Option<bool>) -> PhpResult<bool> {
+        use polars::prelude::SeriesMethods;
+        self.inner
+            .is_sorted(
+                SortOptions::default()
+                    .with_order_descending(descending.unwrap_or(false))
+                    .with_nulls_last(nullsLast.unwrap_or(false)),
+            )
+            .php()
+    }
+
+    /// The positions of the true values.
+    pub fn argTrue(&self) -> PhpResult<Self> {
+        self.apply(arg_where(me()))
+    }
+
+    /// Take this Series where mask is true and other where it is false.
+    pub fn zipWith(&self, mask: &PhpSeries, other: &PhpSeries) -> PhpResult<Self> {
+        let m = mask.inner.bool().php()?;
+        self.inner.zip_with(m, &other.inner).php().map(wrap)
+    }
+
+    /// An empty Series of the same type, or n nulls.
+    pub fn clear(&self, n: Option<i64>) -> PhpResult<Self> {
+        let n = crate::input::count(n.unwrap_or(0), "n")?;
+        Ok(wrap(Series::full_null(
+            self.inner.name().clone(),
+            n,
+            self.inner.dtype(),
+        )))
+    }
+
+    /// The values of this Series followed by other's, as py's extend().
+    pub fn extend(&self, other: &PhpSeries) -> PhpResult<Self> {
+        self.append(other)
+    }
+
     pub fn append(&self, other: &PhpSeries) -> PhpResult<Self> {
         let mut s = self.inner.clone();
         s.append(&other.inner).php()?;

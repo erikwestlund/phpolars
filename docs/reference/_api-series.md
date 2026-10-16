@@ -13,10 +13,12 @@ append(Phpolars\Series $other): Phpolars\Series
 argMax(): mixed
 argMin(): mixed
 argSort(?bool $descending = null, ?bool $nullsLast = null): Phpolars\Series
+argTrue(): Phpolars\Series
 arr(): Phpolars\ArrayNameSpace
 bin(): Phpolars\BinaryNameSpace
 cast(string $dtype, ?bool $strict = null): Phpolars\Series
 cat(): Phpolars\CatNameSpace
+clear(?int $n = null): Phpolars\Series
 clip(mixed $lowerBound = null, mixed $upperBound = null): Phpolars\Series
 count(): int
 cumMax(?bool $reverse = null): Phpolars\Series
@@ -31,6 +33,7 @@ dtype(): string
 eq(mixed $other): Phpolars\Series
 equals(Phpolars\Series $other): bool
 exp(): Phpolars\Series
+extend(Phpolars\Series $other): Phpolars\Series
 fillNan(mixed $value): Phpolars\Series
 fillNull(mixed $value = null, ?string $strategy = null, ?int $limit = null): Phpolars\Series
 filter(mixed $predicate): Phpolars\Series
@@ -49,6 +52,7 @@ isIn(mixed $other, ?bool $nullsEqual = null): Phpolars\Series
 isNan(): Phpolars\Series
 isNotNull(): Phpolars\Series
 isNull(): Phpolars\Series
+isSorted(?bool $descending = null, ?bool $nullsLast = null): bool
 isUnique(): Phpolars\Series
 item(): mixed
 last(): mixed
@@ -95,5 +99,6 @@ truediv(mixed $other): Phpolars\Series
 unique(?bool $maintainOrder = null): Phpolars\Series
 valueCounts(?bool $sort = null, ?string $name = null, ?bool $normalize = null): Phpolars\DataFrame
 var(?int $ddof = null): mixed
+zipWith(Phpolars\Series $mask, Phpolars\Series $other): Phpolars\Series
 ```
 

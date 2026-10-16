@@ -1485,6 +1485,19 @@ frame_verbs!(PhpLazyFrame, PhpLazyGroupBy, {
         crate::io::sink_ndjson(self.lf(), &file)
     }
 
+    pub fn width(&self) -> PhpResult<i64> {
+        Ok(self.schema_ref()?.len() as i64)
+    }
+
+    /// ['column' => 'Int64', ...], resolving the plan's schema.
+    pub fn schema(&self) -> PhpResult<Vec<(String, String)>> {
+        Ok(dtype::schema_array(self.schema_ref()?.as_ref()))
+    }
+
+    pub fn dtypes(&self) -> PhpResult<Vec<String>> {
+        Ok(self.schema_ref()?.iter_values().map(dtype::name).collect())
+    }
+
     pub fn cache(&self) -> Self {
         Self::wrap(self.inner.clone().cache())
     }
@@ -1522,6 +1535,7 @@ macro_rules! group_by {
     ($ty:ident, $php:literal, $frame:ident) => {
         #[php_class]
         #[php(name = $php)]
+        #[php(implements(ce = ext_php_rs::zend::ce::aggregate, stub = "\\IteratorAggregate"))]
         pub struct $ty {
             lf: LazyFrame,
             keys: Vec<Expr>,
@@ -1629,6 +1643,12 @@ macro_rules! group_by {
                 )
             }
 
+            /// foreach ($df->groupBy('g') as $key => $group): $key lists the
+            /// group's key values (py's tuple) and $group is a DataFrame.
+            pub fn getIterator(&self) -> PhpResult<GroupIterator> {
+                group_iterator(&self.lf, &self.keys, self.maintain_order, &self.window)
+            }
+
             pub fn tail(&self, n: Option<i64>) -> PhpResult<$frame> {
                 $frame::out(
                     self.grouped()
@@ -1637,6 +1657,87 @@ macro_rules! group_by {
             }
         }
     };
+}
+
+/// The groups of a GroupBy, for foreach.
+#[php_class]
+#[php(name = "Phpolars\\GroupIterator")]
+#[php(implements(ce = ext_php_rs::zend::ce::iterator, stub = "\\Iterator"))]
+pub struct GroupIterator {
+    keys: DataFrame,
+    groups: Vec<DataFrame>,
+    pos: usize,
+}
+
+#[php_impl]
+impl GroupIterator {
+    pub fn current(&self) -> Option<PhpDataFrame> {
+        self.groups.get(self.pos).cloned().map(PhpDataFrame::wrap)
+    }
+
+    /// The key values of the current group, as a list.
+    pub fn key(&self) -> PhpResult<Zval> {
+        if self.pos >= self.groups.len() {
+            return Ok(Zval::new());
+        }
+        let row = convert::to_tuples(&self.keys.slice(self.pos as i64, 1))?;
+        Ok(row
+            .get_index(0)
+            .map(|z| z.shallow_clone())
+            .unwrap_or_default())
+    }
+
+    pub fn next(&mut self) {
+        self.pos += 1;
+    }
+
+    pub fn rewind(&mut self) {
+        self.pos = 0;
+    }
+
+    pub fn valid(&self) -> bool {
+        self.pos < self.groups.len()
+    }
+}
+
+const GROUP_ROWS: &str = "__phpolars_group_rows";
+
+/// Collect each group's rows, as py's GroupBy.__iter__ does: number the
+/// rows, aggregate the numbers per group, and gather each group's rows.
+fn group_iterator(
+    lf: &LazyFrame,
+    keys: &[Expr],
+    maintain_order: bool,
+    window: &Window,
+) -> PhpResult<GroupIterator> {
+    if !matches!(window, Window::None) {
+        return Err(value_error(
+            "iterate groupBy() groups; for time windows, aggregate with agg()",
+        ));
+    }
+    init_threads();
+    let df = lf.clone().collect().php()?;
+    let numbered = df.clone().lazy().with_row_index(GROUP_ROWS, None);
+    let grouped = if maintain_order {
+        numbered.group_by_stable(keys)
+    } else {
+        numbered.group_by(keys)
+    };
+    let mut out = grouped.agg([col(GROUP_ROWS)]).collect().php()?;
+    let rows = out.drop_in_place(GROUP_ROWS).php()?;
+    let rows = rows.as_materialized_series().list().php()?.clone();
+    let mut groups = Vec::with_capacity(rows.len());
+    for i in 0..rows.len() {
+        let idx = rows
+            .get_as_series(i)
+            .ok_or_else(|| value_error("group without rows"))?;
+        groups.push(df.take(idx.idx().php()?).php()?);
+    }
+    Ok(GroupIterator {
+        keys: out,
+        groups,
+        pos: 0,
+    })
 }
 
 /// Row position (0-based) and row count as Int64, for negative head/tail.

@@ -126,6 +126,7 @@ describe(?array $percentiles = null): Phpolars\DataFrame
 drop(mixed ...$columns): Phpolars\LazyFrame
 dropNans(mixed $subset = null): Phpolars\LazyFrame
 dropNulls(mixed $subset = null): Phpolars\LazyFrame
+dtypes(): array
 explain(?bool $optimized = null): string
 explode(mixed ...$columns): Phpolars\LazyFrame
 fetch(?int $n = null): Phpolars\DataFrame
@@ -154,6 +155,7 @@ quantile(float $quantile, ?string $interpolation = null): Phpolars\LazyFrame
 rename(array $mapping, ?bool $strict = null): Phpolars\LazyFrame
 reverse(): Phpolars\LazyFrame
 rolling(mixed $indexColumn, string $period, ?string $offset = null, ?string $closed = null, mixed $groupBy = null): Phpolars\LazyGroupBy
+schema(): array
 select(mixed ...$exprs): Phpolars\LazyFrame
 selectSeq(mixed ...$exprs): Phpolars\LazyFrame
 shift(?int $n = null, mixed $fillValue = null): Phpolars\LazyFrame
@@ -172,6 +174,7 @@ unique(mixed $subset = null, ?string $keep = null, ?bool $maintainOrder = null):
 unnest(mixed ...$columns): Phpolars\LazyFrame
 unpivot(mixed $on = null, mixed $index = null, ?string $variableName = null, ?string $valueName = null): Phpolars\LazyFrame
 var(?int $ddof = null): Phpolars\LazyFrame
+width(): int
 withColumns(mixed ...$exprs): Phpolars\LazyFrame
 withColumnsSeq(mixed ...$exprs): Phpolars\LazyFrame
 withRowIndex(?string $name = null, ?int $offset = null): Phpolars\LazyFrame
@@ -184,6 +187,7 @@ agg(mixed ...$aggs): Phpolars\DataFrame
 all(): Phpolars\DataFrame
 count(): Phpolars\DataFrame
 first(): Phpolars\DataFrame
+getIterator(): Phpolars\GroupIterator
 head(?int $n = null): Phpolars\DataFrame
 last(): Phpolars\DataFrame
 len(?string $name = null): Phpolars\DataFrame
@@ -204,6 +208,7 @@ agg(mixed ...$aggs): Phpolars\LazyFrame
 all(): Phpolars\LazyFrame
 count(): Phpolars\LazyFrame
 first(): Phpolars\LazyFrame
+getIterator(): Phpolars\GroupIterator
 head(?int $n = null): Phpolars\LazyFrame
 last(): Phpolars\LazyFrame
 len(?string $name = null): Phpolars\LazyFrame

@@ -156,3 +156,17 @@ same('glimpse line', explode("\n", $g)[3], '$ k  <String> "a", "b", "a", "b"');
 same('extend', $w->extend($w)->height(), 8);
 same('rechunk keeps data', $w->extend($w)->rechunk()->equals($w->vstack($w)), true);
 throws('getColumnIndex unknown', fn () => $w->getColumnIndex('nope'), Phpolars\Exception\ColumnNotFoundError::class);
+
+// collect_all, from_*, LazyFrame schema, Series extras
+[$a, $b] = Phpolars\collect_all([$w->lazy()->head(1), $w->lazy()->select('k')]);
+same('collect_all', [$a->height(), $b->columns()], [1, ['k']]);
+same('from_dict', Phpolars\from_dict(['a' => [1]])->columns(), ['a']);
+same('from_dicts', Phpolars\from_dicts([['a' => 1], ['a' => 2]])->height(), 2);
+same('LazyFrame schema', $w->lazy()->select('id')->schema(), ['id' => 'Int64']);
+same('LazyFrame width', $w->lazy()->width(), 3);
+$sv = new Series('s', [1, 2, 3]);
+same('isSorted', [$sv->isSorted(), $sv->isSorted(descending: true)], [true, false]);
+same('argTrue', (new Series('b', [false, true, true]))->argTrue()->toList(), [1, 2]);
+same('zipWith', $sv->zipWith(new Series('m', [true, false, true]), new Series('o', [9, 9, 9]))->toList(), [1, 9, 3]);
+same('Series clear', $sv->clear(2)->toList(), [null, null]);
+same('Series extend', $sv->extend($sv)->len(), 6);

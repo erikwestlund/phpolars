@@ -11,10 +11,13 @@
 - Selectors in `Phpolars\cs`, as py's `polars.selectors`: by type (`numeric`, `integer`, `float`, `string`, `temporal`, `datetime`, `list_`, `array_`, and more), by name and position (`by_name`, `by_index`, `first`, `last`), and by pattern (`starts_with`, `ends_with`, `contains`, `matches`). `or()`, `and()`, `xor()`, `sub()`, and `not()` combine selectors as sets.
 - SQL: `SQLContext` (with `register`, `registerMany`, `unregister`, `tables`, and `execute`), `DataFrame::sql()` and `LazyFrame::sql()` over a frame named `self`, and `Phpolars\sql()` for a one-off query. SQL is the `sql` Cargo feature, on by default.
 - More methods: `DataFrame::toDummies`, `sumHorizontal`, `meanHorizontal`, `minHorizontal`, `maxHorizontal`, `getColumnIndex`, `replaceColumn`, `extend`, `rechunk`, and `glimpse`; `clear` on both frames; `GroupBy::quantile`; `Series::toDummies`; `Expr::minBy`, `maxBy`, `item`, `cumulativeEval`, and the bitwise methods; `first()` and `last()` take `ignoreNulls`; `struct()->withFields()` with `field()`. Functions add `business_day_count`, `format`, `arg_sort_by`, and `concat_arr`. `new DataFrame([$series, ...])` builds a frame from a list of Series.
+- `foreach` over a `GroupBy` yields each group's key values and rows, as py's `for key, df in df.group_by(...)`.
+- `read_database()` reads a query's result from a PDO connection, with bound `params` and `schemaOverrides`.
+- `collect_all()`, `from_dict()`, `from_dicts()`, and `from_records()`; `LazyFrame::schema()`, `dtypes()`, and `width()`; `Series::isSorted()`, `argTrue()`, `zipWith()`, `clear()`, and `extend()`.
 - IO options: `read_csv` and `scan_csv` add `schema`, `commentPrefix`, `quoteChar`, `eolChar`, `encoding`, `ignoreErrors`, `missingUtf8IsEmptyString`, `truncateRaggedLines`, `decimalComma`, `rowIndexName`, `rowIndexOffset`, `skipRowsAfterHeader`, `newColumns`, `raiseIfEmpty`, and `glob`. Parquet reads add `rowIndexName`, `parallel`, `useStatistics`, `hivePartitioning`, `glob`, `allowMissingColumns`, and `includeFilePaths`. IPC reads add `columns` and a row index. NDJSON and JSON reads take a `schema` and `schemaOverrides`. `writeCsv` and `sinkCsv` add `quoteChar`, `dateFormat`, `datetimeFormat`, `timeFormat`, `floatScientific`, `floatPrecision`, `decimalComma`, `lineTerminator`, `quoteStyle`, and `includeBom`. `writeParquet` and `sinkParquet` add `compression`, `compressionLevel`, `statistics`, and `rowGroupSize`.
 - Data type strings accept `Array(Int64, 3)`, `Struct(a: Int64, b: String)`, `Int128`, and `UInt128`.
 - Lists of dates and datetimes convert to PHP `DateTimeImmutable` values; some list results had come back as raw integers.
-- 271 cases are compared against py-polars 1.43.2, and all match.
+- 272 cases are compared against py-polars 1.43.2, and all match.
 
 ## 0.1.0
 

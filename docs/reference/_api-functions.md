@@ -8,6 +8,7 @@ arg_where(mixed $condition): Phpolars\Expr
 business_day_count(mixed $start, mixed $end, ?array $weekMask = null, mixed $holidays = null): Phpolars\Expr
 coalesce(mixed ...$exprs): Phpolars\Expr
 col(mixed ...$names): Phpolars\Expr
+collect_all(array $lazyFrames): array
 concat(array $items, ?string $how = null): mixed
 concat_arr(mixed ...$exprs): Phpolars\Expr
 concat_list(mixed ...$exprs): Phpolars\Expr
@@ -27,7 +28,10 @@ exclude(mixed ...$names): Phpolars\Expr
 field(mixed $name): Phpolars\Expr
 first(mixed ...$names): Phpolars\Expr
 format(string $fString, mixed ...$args): Phpolars\Expr
+from_dict(array $data, ?array $schema = null): Phpolars\DataFrame
+from_dicts(array $data, ?array $schema = null): Phpolars\DataFrame
 from_epoch(mixed $column, ?string $timeUnit = null): Phpolars\Expr
+from_records(array $data, ?array $schema = null): Phpolars\DataFrame
 implode(mixed ...$names): Phpolars\Expr
 int_range(mixed $start, mixed $end = null, ?int $step = null): Phpolars\Expr
 int_ranges(mixed $start, mixed $end = null, mixed $step = null): Phpolars\Expr

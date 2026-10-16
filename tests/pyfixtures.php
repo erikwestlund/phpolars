@@ -749,6 +749,13 @@ $cases = [
     'fn_format' => fn () => $S(format('{} has {}', 'g', col('x'))->alias('f')),
     'fn_arg_sort_by' => fn () => $S(arg_sort_by(['k', 'id'], descending: [true, false], nullsLast: true)),
     'fn_concat_arr' => fn () => $S(concat_arr('id', 'k')->alias('a'))->select(col('a')->arr()->sum()),
+    'group_by_iter' => function () use ($base) {
+        $rows = [];
+        foreach ($base->groupBy(['g', col('x')->gt(2)], maintainOrder: true) as $key => $group) {
+            $rows[] = ['key' => $key[0], 'k2' => $key[1], 'n' => $group->height(), 'ids' => $group->getColumn('id')->toList()];
+        }
+        return new DataFrame($rows);
+    },
 ];
 
 // ---------------------------------------------------------------------------

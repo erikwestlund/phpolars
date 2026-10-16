@@ -11,6 +11,9 @@ title: "Reading and writing"
 | Arrow IPC | `read_ipc` | `scan_ipc` | `writeIpc` | `sinkIpc` |
 | NDJSON | `read_ndjson` | `scan_ndjson` | `writeNdjson` | `sinkNdjson` |
 | JSON (array of rows) | `read_json` | | `writeJson` | |
+| PDO query | `read_database` | | | |
+
+`read_database($query, $pdo)` reads a query's result from any PDO connection. `params` binds placeholders through `prepare()` and `execute()`, and `schemaOverrides` casts columns afterwards, which helps with drivers that return numbers as strings.
 
 Parquet, IPC, and JSON support are Cargo features. An extension built without one raises a `ComputeError` from that format's functions.
 

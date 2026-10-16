@@ -807,6 +807,9 @@ simple("fn_format", lambda: base.select(pl.format("{} has {}", "g", col("x")).al
 simple("fn_arg_sort_by", lambda: base.select(pl.arg_sort_by(["k", "id"], descending=[True, False], nulls_last=True)))
 simple("fn_concat_arr", lambda: base.select(pl.concat_arr("id", "k").alias("a")).select(col("a").arr.sum()))
 
+simple("group_by_iter", lambda: pl.DataFrame(
+    [{"key": k[0], "k2": k[1], "n": g.height, "ids": g["id"].to_list()} for k, g in base.group_by("g", col("x") > 2, maintain_order=True)]))
+
 
 
 # ---------------------------------------------------------------------------

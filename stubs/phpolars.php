@@ -572,6 +572,11 @@ namespace Phpolars {
         public function pctChange(?int $n = null): Phpolars\Series {}
         public function rank(?string $method = null, ?bool $descending = null, ?int $seed = null): Phpolars\Series {}
         public function clip(mixed $lowerBound = null, mixed $upperBound = null): Phpolars\Series {}
+        public function isSorted(?bool $descending = null, ?bool $nullsLast = null): bool {}
+        public function argTrue(): Phpolars\Series {}
+        public function zipWith(Phpolars\Series $mask, Phpolars\Series $other): Phpolars\Series {}
+        public function clear(?int $n = null): Phpolars\Series {}
+        public function extend(Phpolars\Series $other): Phpolars\Series {}
         public function append(Phpolars\Series $other): Phpolars\Series {}
         public function sample(?int $n = null, ?float $fraction = null, ?bool $withReplacement = null, ?bool $shuffle = null, ?int $seed = null): Phpolars\Series {}
         public function str(): Phpolars\StrNameSpace {}
@@ -708,6 +713,9 @@ namespace Phpolars {
         public function sinkParquet(string $file, ?string $compression = null, ?int $compressionLevel = null, ?bool $statistics = null, ?int $rowGroupSize = null): void {}
         public function sinkIpc(string $file): void {}
         public function sinkNdjson(string $file): void {}
+        public function width(): int {}
+        public function schema(): array {}
+        public function dtypes(): array {}
         public function cache(): Phpolars\LazyFrame {}
         public function fetch(?int $n = null): Phpolars\DataFrame {}
         public function describe(?array $percentiles = null): Phpolars\DataFrame {}
@@ -767,6 +775,16 @@ namespace Phpolars {
         public function __construct() {}
     }
 
+    class GroupIterator
+    {
+        public function current(): ?Phpolars\DataFrame {}
+        public function key(): mixed {}
+        public function next(): void {}
+        public function rewind(): void {}
+        public function valid(): bool {}
+        public function __construct() {}
+    }
+
     class GroupBy
     {
         public function agg(mixed ...$aggs): Phpolars\DataFrame {}
@@ -783,6 +801,7 @@ namespace Phpolars {
         public function quantile(float $quantile, ?string $interpolation = null): Phpolars\DataFrame {}
         public function all(): Phpolars\DataFrame {}
         public function head(?int $n = null): Phpolars\DataFrame {}
+        public function getIterator(): Phpolars\GroupIterator {}
         public function tail(?int $n = null): Phpolars\DataFrame {}
         public function __construct() {}
     }
@@ -803,6 +822,7 @@ namespace Phpolars {
         public function quantile(float $quantile, ?string $interpolation = null): Phpolars\LazyFrame {}
         public function all(): Phpolars\LazyFrame {}
         public function head(?int $n = null): Phpolars\LazyFrame {}
+        public function getIterator(): Phpolars\GroupIterator {}
         public function tail(?int $n = null): Phpolars\LazyFrame {}
         public function __construct() {}
     }
@@ -890,6 +910,16 @@ namespace Phpolars {
     function concat_arr(mixed ...$exprs): Phpolars\Expr {}
 
     function field(mixed $name): Phpolars\Expr {}
+
+    function collect_all(array $lazyFrames): array {}
+
+    function from_dict(array $data, ?array $schema = null): Phpolars\DataFrame {}
+
+    function from_dicts(array $data, ?array $schema = null): Phpolars\DataFrame {}
+
+    function from_records(array $data, ?array $schema = null): Phpolars\DataFrame {}
+
+    function read_database(string $query, mixed $connection, ?array $params = null, ?array $schemaOverrides = null): Phpolars\DataFrame {}
 
     function date_range(mixed $start = null, mixed $end = null, ?string $interval = null, ?int $numSamples = null, ?string $closed = null): Phpolars\Expr {}
 

@@ -87,6 +87,19 @@ same('read_ndjson schemaOverrides', read_ndjson("$dir/out.ndjson", schemaOverrid
 same('read_ndjson columns', read_ndjson("$dir/out.ndjson", columns: ['ok'])->columns(), ['ok']);
 same('read_json schema', read_json("$dir/out.json", schema: ['id' => 'Int16', 'name' => 'String', 'score' => 'Float64', 'ok' => 'Boolean'])->dtypes()[0], 'Int16');
 
+// Databases through PDO
+if (extension_loaded('pdo_sqlite')) {
+    $pdo = new PDO('sqlite::memory:', options: [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+    $pdo->exec('CREATE TABLE t (id INTEGER, name TEXT, score REAL)');
+    $pdo->exec("INSERT INTO t VALUES (1, 'a', 1.5), (2, NULL, 2.5)");
+    $db = Phpolars\read_database('SELECT * FROM t ORDER BY id', $pdo);
+    same('read_database', $db->toDicts(), [['id' => 1, 'name' => 'a', 'score' => 1.5], ['id' => 2, 'name' => null, 'score' => 2.5]]);
+    same('read_database params', Phpolars\read_database('SELECT name FROM t WHERE id = ?', $pdo, params: [1])->item(), 'a');
+    same('read_database empty keeps columns', Phpolars\read_database('SELECT * FROM t WHERE id > 9', $pdo)->columns(), ['id', 'name', 'score']);
+    same('read_database schemaOverrides', Phpolars\read_database('SELECT id FROM t', $pdo, schemaOverrides: ['id' => 'Int8'])->dtypes(), ['Int8']);
+    throws('read_database bad query', fn () => Phpolars\read_database('SELECT nope FROM t', $pdo), PDOException::class);
+}
+
 array_map('unlink', glob("$dir/parts/*"));
 rmdir("$dir/parts");
 array_map('unlink', glob("$dir/*"));

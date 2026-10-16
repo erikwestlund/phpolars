@@ -684,6 +684,123 @@ pub fn field(name: &Zval) -> PhpResult<PhpExpr> {
     Ok(wrap(polars::prelude::Expr::Field(names.into())))
 }
 
+/// Collect several LazyFrames at once, sharing work between their plans.
+#[php_function]
+#[php(name = "Phpolars\\collect_all")]
+pub fn collect_all(lazyFrames: &ZendHashTable) -> PhpResult<Vec<frame::PhpDataFrame>> {
+    use error::OrPhp;
+    let mut plans = Vec::new();
+    for v in lazyFrames.values() {
+        let lf = v
+            .extract::<&frame::PhpLazyFrame>()
+            .ok_or_else(|| error::value_error("collect_all() takes a list of LazyFrames"))?;
+        plans.push(lf.inner.clone().logical_plan);
+    }
+    init_threads();
+    polars::prelude::LazyFrame::collect_all_with_engine(
+        plans,
+        polars::prelude::Engine::Auto,
+        polars::prelude::OptFlags::default(),
+    )
+    .php()
+    .map(|dfs| dfs.into_iter().map(frame::PhpDataFrame::wrap).collect())
+}
+
+/// py's from_dict, from_dicts, and from_records; the same as the DataFrame constructors.
+#[php_function]
+#[php(name = "Phpolars\\from_dict")]
+pub fn from_dict(
+    data: &ZendHashTable,
+    schema: Option<&ZendHashTable>,
+) -> PhpResult<frame::PhpDataFrame> {
+    convert::from_columns(data, schema).map(frame::PhpDataFrame::wrap)
+}
+
+#[php_function]
+#[php(name = "Phpolars\\from_dicts")]
+pub fn from_dicts(
+    data: &ZendHashTable,
+    schema: Option<&ZendHashTable>,
+) -> PhpResult<frame::PhpDataFrame> {
+    convert::from_rows(data, schema).map(frame::PhpDataFrame::wrap)
+}
+
+#[php_function]
+#[php(name = "Phpolars\\from_records")]
+pub fn from_records(
+    data: &ZendHashTable,
+    schema: Option<&ZendHashTable>,
+) -> PhpResult<frame::PhpDataFrame> {
+    convert::from_rows(data, schema).map(frame::PhpDataFrame::wrap)
+}
+
+/// Run a query on a PDO connection and read the result: read_database('SELECT ...', $pdo).
+/// params binds placeholders through prepare() and execute(); schemaOverrides casts
+/// columns afterwards, for drivers that return numbers as strings.
+#[php_function]
+#[php(name = "Phpolars\\read_database")]
+pub fn read_database(
+    query: String,
+    connection: &Zval,
+    params: Option<&ZendHashTable>,
+    schemaOverrides: Option<&ZendHashTable>,
+) -> PhpResult<frame::PhpDataFrame> {
+    use error::OrPhp;
+    use ext_php_rs::convert::IntoZval;
+    let statement = match params {
+        Some(p) => {
+            let stmt = connection.try_call_method("prepare", vec![&query])?;
+            stmt.try_call_method("execute", vec![&p.to_owned().into_zval(false)?])?;
+            stmt
+        }
+        None => connection.try_call_method("query", vec![&query])?,
+    };
+    if statement.is_false() {
+        return Err(error::value_error(
+            "the query failed; enable PDO::ERRMODE_EXCEPTION for the driver's message",
+        ));
+    }
+    // PDO::FETCH_ASSOC
+    let rows = statement.try_call_method("fetchAll", vec![&2i64])?;
+    let rows = rows
+        .array()
+        .ok_or_else(|| error::value_error("fetchAll() did not return an array"))?;
+    let mut df = if rows.is_empty() {
+        // No rows: take the column names from the statement's metadata.
+        let n = statement
+            .try_call_method("columnCount", vec![])?
+            .long()
+            .unwrap_or(0);
+        let mut columns = Vec::new();
+        for i in 0..n {
+            let meta = statement.try_call_method("getColumnMeta", vec![&i])?;
+            let name = meta
+                .array()
+                .and_then(|m| m.get("name"))
+                .and_then(|v| v.str())
+                .unwrap_or("")
+                .to_string();
+            columns.push(polars::prelude::Column::full_null(
+                name.into(),
+                0,
+                &polars::prelude::DataType::Null,
+            ));
+        }
+        polars::prelude::DataFrame::new_infer_height(columns).php()?
+    } else {
+        convert::from_rows(rows, None)?
+    };
+    if let Some(o) = schemaOverrides {
+        use polars::prelude::IntoLazy;
+        let casts = convert::schema_overrides(Some(o))?;
+        let map: polars::prelude::PlHashMap<&str, polars::prelude::DataType> =
+            casts.iter().map(|(k, v)| (k.as_str(), v.clone())).collect();
+        init_threads();
+        df = df.lazy().cast(map, true).collect().php()?;
+    }
+    Ok(frame::PhpDataFrame::wrap(df))
+}
+
 /// count('a') counts non-null values; count() alone counts rows.
 #[php_function]
 #[php(name = "Phpolars\\count")]
@@ -759,6 +876,7 @@ pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
     .class::<series::PhpSeries>()
     .class::<frame::PhpDataFrame>()
     .class::<frame::PhpLazyFrame>()
+    .class::<frame::GroupIterator>()
     .class::<frame::PhpGroupBy>()
     .class::<frame::PhpLazyGroupBy>();
     module
@@ -795,6 +913,11 @@ pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
         .function(wrap_function!(arg_sort_by))
         .function(wrap_function!(concat_arr))
         .function(wrap_function!(field))
+        .function(wrap_function!(collect_all))
+        .function(wrap_function!(from_dict))
+        .function(wrap_function!(from_dicts))
+        .function(wrap_function!(from_records))
+        .function(wrap_function!(read_database))
         .function(wrap_function!(date_range))
         .function(wrap_function!(date_ranges))
         .function(wrap_function!(datetime_range))
