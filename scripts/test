@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Build the extension and run every test file against it.
+# PHIBBLE=path/to/phibble/vendor/autoload.php also runs the phibble round-trip.
+set -euo pipefail
+root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
+php="${PHP:-/opt/homebrew/bin/php}"
+export PHP="$php" PHP_CONFIG="${PHP_CONFIG:-$(dirname "$php")/php-config}"
+if [[ -z "${LIBCLANG_PATH:-}" ]] && command -v brew >/dev/null; then
+    export LIBCLANG_PATH="$(brew --prefix llvm)/lib"
+fi
+cargo build --release --manifest-path "$root/Cargo.toml" --quiet
+ext="$root/target/release/libphp_polars.$([[ "$(uname)" == Darwin ]] && echo dylib || echo so)"
+for t in "$root"/tests/dataframe.php "$root"/tests/expr.php "$root"/tests/io.php; do
+    [[ -f "$t" ]] && "$php" -n -d extension="$ext" "$t"
+done
+if [[ -n "${PHIBBLE:-}" ]]; then
+    "$php" -n -d extension="$ext" "$root/tests/phibble.php" "$PHIBBLE"
+fi
