@@ -116,3 +116,5 @@ $d = $w->select('id', 'v')->describe();
 same('describe stats', $d->getColumn('statistic')->toList(), ['count', 'null_count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max']);
 same('describe numeric', $d->getColumn('v')->toList(), [3.0, 1.0, 20.0, 10.0, 10.0, 20.0, 20.0, 30.0, 30.0]);
 same('describe keeps numeric columns float', $w->describe()->dtypes(), ['String', 'Float64', 'String', 'Float64']);
+preg_match('/^polars = \{ version = "=([^"]+)"/m', file_get_contents(__DIR__.'/../Cargo.toml'), $pin);
+same('polars_version matches the Cargo pin', Phpolars\polars_version(), $pin[1] ?? null);

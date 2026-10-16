@@ -165,13 +165,13 @@ head(int $n): mixed
 join(?string $delimiter = null, ?bool $ignoreNulls = null): mixed
 lenBytes(): mixed
 lenChars(): mixed
-padEnd(int $length, ?string $fillChar = null): mixed
-padStart(int $length, ?string $fillChar = null): mixed
+padEnd(mixed $length, ?string $fillChar = null): mixed
+padStart(mixed $length, ?string $fillChar = null): mixed
 replace(mixed $pattern, mixed $value, ?bool $literal = null, ?int $n = null): mixed
 replaceAll(mixed $pattern, mixed $value, ?bool $literal = null): mixed
 reverse(): mixed
 slice(mixed $offset, mixed $length = null): mixed
-split(mixed $by, ?bool $inclusive = null): mixed
+split(mixed $by, ?bool $inclusive = null, ?bool $literal = null): mixed
 splitn(mixed $by, int $n): mixed
 startsWith(mixed $prefix): mixed
 stripChars(?string $characters = null): mixed
@@ -211,7 +211,7 @@ nanosecond(): mixed
 offsetBy(string $by): mixed
 ordinalDay(): mixed
 quarter(): mixed
-replaceTimeZone(?string $timeZone = null): mixed
+replaceTimeZone(?string $timeZone = null, ?string $ambiguous = null, ?string $nonExistent = null): mixed
 round(string $every): mixed
 second(): mixed
 strftime(string $format): mixed

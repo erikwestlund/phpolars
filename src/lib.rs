@@ -247,6 +247,14 @@ pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
 }
 
+/// The Polars crate version the extension is built on. Kept in step with
+/// the pin in Cargo.toml; tests/dataframe.php checks that they agree.
+#[php_function]
+#[php(name = "Phpolars\\polars_version")]
+pub fn polars_version() -> &'static str {
+    "0.55.2"
+}
+
 fn startup(_ty: i32, mod_num: i32) -> i32 {
     IniEntryDef::register(INI.as_slice(), mod_num);
     0
@@ -301,4 +309,5 @@ pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
         .function(wrap_function!(concat))
         .function(wrap_function!(thread_pool_size))
         .function(wrap_function!(version))
+        .function(wrap_function!(polars_version))
 }

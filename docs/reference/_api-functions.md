@@ -23,6 +23,7 @@ median(mixed ...$names): Phpolars\Expr
 min(mixed ...$names): Phpolars\Expr
 min_horizontal(mixed ...$exprs): Phpolars\Expr
 n_unique(mixed ...$names): Phpolars\Expr
+polars_version(): string
 struct_(mixed ...$exprs): Phpolars\Expr
 sum(mixed ...$names): Phpolars\Expr
 sum_horizontal(mixed ...$exprs): Phpolars\Expr

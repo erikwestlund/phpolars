@@ -337,6 +337,15 @@ final class PolarsTable implements Table
 
     public function filter(Closure|PhibbleExpr $predicate): static
     {
+        try {
+            return $this->filterNative($predicate);
+        } catch (Unsupported) {
+            return $this->viaFrame(fn (Frame $f) => $f->filter($predicate));
+        }
+    }
+
+    private function filterNative(Closure|PhibbleExpr $predicate): static
+    {
         if ($predicate instanceof Closure || $this->rowwise || $this->keepsEmptyGroups()) {
             return $this->viaFrame(fn (Frame $f) => $f->filter($predicate));
         }
@@ -354,6 +363,15 @@ final class PolarsTable implements Table
     }
 
     public function mutate(array $columns): static
+    {
+        try {
+            return $this->mutateNative($columns);
+        } catch (Unsupported) {
+            return $this->viaFrame(fn (Frame $f) => $f->mutate($columns));
+        }
+    }
+
+    private function mutateNative(array $columns): static
     {
         if ($this->rowwise || $this->keepsEmptyGroups() || array_any($columns, fn ($v) => $v instanceof Closure)) {
             return $this->viaFrame(fn (Frame $f) => $f->mutate($columns));
@@ -408,6 +426,15 @@ final class PolarsTable implements Table
     }
 
     public function arrange(array $keys): static
+    {
+        try {
+            return $this->arrangeNative($keys);
+        } catch (Unsupported) {
+            return $this->viaFrame(fn (Frame $f) => $f->arrange($keys));
+        }
+    }
+
+    private function arrangeNative(array $keys): static
     {
         if ($keys === []) {
             return $this;
@@ -508,6 +535,15 @@ final class PolarsTable implements Table
 
     /** @param ?string $groups dplyr's .groups: drop_last (default), drop, keep or rowwise. */
     public function summarise(array $aggregates, ?string $groups = null): static
+    {
+        try {
+            return $this->summariseNative($aggregates, $groups);
+        } catch (Unsupported) {
+            return $this->viaFrame(fn (Frame $f) => $f->summarise($aggregates, $groups));
+        }
+    }
+
+    private function summariseNative(array $aggregates, ?string $groups): static
     {
         if ($this->rowwise || $this->keepsEmptyGroups() || array_any($aggregates, fn ($v) => $v instanceof Closure)) {
             return $this->viaFrame(fn (Frame $f) => $f->summarise($aggregates, $groups));

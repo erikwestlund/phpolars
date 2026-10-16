@@ -13,9 +13,13 @@ use Phibble\Expr\Desc;
 use Phibble\Expr\Expr as PhibbleExpr;
 use Phibble\Expr\Functions;
 use Phibble\Expr\Lit;
+use Phibble\Expr\Clock;
+use Phibble\Expr\Pattern;
+use Phibble\Expr\Period;
+use Phibble\Expr\Temporal;
 use Phpolars\Expr;
 
-use function Phpolars\{coalesce, col, concat_str, int_range, len, lit, max_horizontal, min_horizontal, struct_, when, all_horizontal};
+use function Phpolars\{concat_list, coalesce, col, concat_str, int_range, len, lit, max_horizontal, min_horizontal, struct_, when, all_horizontal};
 
 /**
  * Translates Phibble\Expr trees into Polars expressions with dplyr's
@@ -123,8 +127,7 @@ final class Translator
         $args = fn () => array_map(fn (PhibbleExpr $x) => $this->node($x, $inGroup), $c->args);
 
         return match ($c->fn) {
-            '+' => $a(0)->add($a(1)),
-            '-' => $a(0)->sub($a(1)),
+            '+', '-' => $this->plusMinus($c, $inGroup),
             '*' => $a(0)->mul($a(1)),
             '/' => $a(0)->truediv($a(1)),
             '%%' => $a(0)->mod($a(1)),
@@ -173,15 +176,491 @@ final class Translator
                 default => $a(0)->str()->stripChars(),
             },
             'str_sub' => $this->strSub($a(0), $a(1), isset($c->args[2]) ? $a(2) : lit(-1)),
-            'str_detect' => $this->negate($c, $a(0)->str()->contains($a(1), literal: true)),
-            'str_starts' => $this->negate($c, $a(0)->str()->startsWith($a(1))),
-            'str_ends' => $this->negate($c, $a(0)->str()->endsWith($a(1))),
-            'str_replace' => $a(0)->str()->replace($a(1), $a(2), literal: true, n: 1),
-            'str_replace_all' => $a(0)->str()->replaceAll($a(1), $a(2), literal: true),
+            'str_detect', 'str_starts', 'str_ends' => $this->negate($c, $this->detect($a(0), $c->args[1], $c->fn)),
+            'str_replace', 'str_replace_all' => $this->replace($a(0), $c->args[1], $c->args[2], $c->fn === 'str_replace_all'),
+            'fixed', 'regex' => throw new Unsupported("{$c->fn}() is only supported as a pattern argument."),
+            'str_count' => $this->count($a(0), $c->args[1]),
+            'str_extract' => $this->extract($a(0), $c->args[1]),
+            'str_extract_all' => $this->listOrNa($a(0), $this->extractAll($a(0), $c->args[1])),
+            'str_split' => $this->listOrNa($a(0), $this->split($a(0), $c->args[1])),
+            'str_split_i' => $this->splitPiece($a(0), $c->args[1], $c->args[2]),
+            'str_pad' => $this->pad($c, $a(0)),
+            'str_trunc' => $this->truncate($c, $a(0)),
+            // stringr's title case follows ICU word breaks (no capital after an
+            // apostrophe); Polars has no title-casing that matches it.
+            'str_to_title' => throw new Unsupported('str_to_title() needs ICU word breaks.'),
+            'str_to_upper' => $a(0)->str()->toUppercase(),
+            'str_to_lower' => $a(0)->str()->toLowercase(),
+            'str_squish' => $a(0)->str()->stripChars()->str()->replaceAll('\\s+', ' '),
+            'ymd', 'dmy', 'mdy' => $this->parseDate($c, $a(0)),
+            'ymd_hms', 'dmy_hms', 'mdy_hms' => $this->parseDateTime($c, $a(0)),
+            'parse_date_time' => $this->parseOrders($c, $a(0)),
+            'year' => $a(0)->dt()->year()->cast('Int64'),
+            'month' => $a(0)->dt()->month()->cast('Int64'),
+            'day' => $a(0)->dt()->day()->cast('Int64'),
+            'yday' => $a(0)->dt()->ordinalDay()->cast('Int64'),
+            'quarter' => $a(0)->dt()->quarter()->cast('Int64'),
+            'hour' => $a(0)->dt()->hour()->cast('Int64'),
+            'minute' => $a(0)->dt()->minute()->cast('Int64'),
+            'second' => $a(0)->dt()->second()->cast('Float64')->add($a(0)->dt()->microsecond()->cast('Float64')->truediv(1e6)),
+            // R: ((w - week_start %% 7 + 7) %% 7) + 1, with w = 0 for Sunday.
+            'wday' => $a(0)->dt()->weekday()->cast('Int64')->mod(7)
+                ->sub((int) ($this->literal($c, 'week_start') ?? 7) % 7)->add(7)->mod(7)->add(1),
+            'floor_date', 'ceiling_date', 'round_date' => $this->roundDate($c, $a(0)),
+            'seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years' => throw new Unsupported('A period is only supported added to or subtracted from a date.'),
+            'difftime' => $this->difference($c->args[0], $c->args[1], (string) ($this->literal($c, 'units') ?? 'days'), $inGroup),
+            'with_tz' => $this->zoned($c->args[0], $a(0))->dt()->convertTimeZone((string) $this->scalarArg($c->args[1])),
+            'force_tz' => $this->naive($c->args[0], $a(0))->dt()->replaceTimeZone((string) $this->scalarArg($c->args[1]), ambiguous: 'earliest', nonExistent: 'null'),
+            'today' => $this->today($c),
+            'now' => $this->now($c),
             'paste0' => $this->paste($c->args, '', $inGroup),
             'paste' => $this->paste($c->args, (string) ($this->literal($c, 'sep') ?? ' '), $inGroup),
             default => throw new InvalidArgumentException("Unknown function '{$c->fn}'."),
         };
+    }
+
+    // Strings: patterns are regular expressions unless wrapped in fixed().
+
+    /**
+     * A pattern argument as [pattern, literal]. A plain string is a regex;
+     * fixed() is literal; regex(ignore_case: true) adds (?i).
+     *
+     * @return array{0: string, 1: bool}
+     */
+    private function pattern(PhibbleExpr $node): array
+    {
+        [$text, $fixed, $ignoreCase] = match (true) {
+            $node instanceof Lit && is_string($node->value) => [$node->value, false, false],
+            $node instanceof Call && $node->fn === 'fixed' => [(string) $this->scalarArg($node->args[0]), true, false],
+            $node instanceof Call && $node->fn === 'regex' => [(string) $this->scalarArg($node->args[0]), false, (bool) ($this->literal($node, 'ignore_case') ?? false)],
+            default => throw new Unsupported('Patterns must be literal strings, fixed() or regex().'),
+        };
+        // phibble's own check, so invalid patterns raise its error message.
+        (new Pattern($text, $fixed, $ignoreCase))->regex();
+        if ($fixed && ! $ignoreCase) {
+            return [$text, true];
+        }
+        $body = $fixed ? preg_quote($text) : $text;
+        // Rust's regex engine has no lookaround, backreferences, atomic groups
+        // or possessive quantifiers; PCRE patterns using them run on a Frame.
+        if (! $fixed && preg_match('/\(\?<?[=!]|\(\?>|\\[1-9]|\\[gkK]|[*+?}]\+/', $body)) {
+            throw new Unsupported("The pattern '{$text}' needs PCRE features Polars lacks.");
+        }
+
+        return [($ignoreCase ? '(?i)' : '').$body, false];
+    }
+
+    private function detect(Expr $s, PhibbleExpr $node, string $fn): Expr
+    {
+        [$p, $literal] = $this->pattern($node);
+        if ($literal) {
+            return match ($fn) {
+                'str_starts' => $s->str()->startsWith($p),
+                'str_ends' => $s->str()->endsWith($p),
+                default => $s->str()->contains($p, literal: true),
+            };
+        }
+
+        return $s->str()->contains(match ($fn) {
+            'str_starts' => "^(?:{$p})",
+            'str_ends' => "(?:{$p})\\z",
+            default => $p,
+        });
+    }
+
+    private function count(Expr $s, PhibbleExpr $node): Expr
+    {
+        [$p, $literal] = $this->pattern($node);
+
+        return $literal && $p === '' ? when($s->isNull())->then(lit(null))->otherwise(lit(0)) : $s->str()->countMatches($p, literal: $literal)->cast('Int64');
+    }
+
+    private function extract(Expr $s, PhibbleExpr $node): Expr
+    {
+        [$p, $literal] = $this->pattern($node);
+
+        return $s->str()->extract($literal ? preg_quote($p) : $p, 0);
+    }
+
+    private function extractAll(Expr $s, PhibbleExpr $node): Expr
+    {
+        [$p, $literal] = $this->pattern($node);
+
+        return $s->str()->extractAll($literal ? preg_quote($p) : $p);
+    }
+
+    private function split(Expr $s, PhibbleExpr $node): Expr
+    {
+        [$p, $literal] = $this->pattern($node);
+        if ($p === '') {
+            throw new Unsupported('Splitting into characters runs on a Frame.');
+        }
+
+        return $s->str()->split($p, literal: $literal);
+    }
+
+    /** stringr gives NA for an NA string as a one-element list: [NA]. */
+    private function listOrNa(Expr $s, Expr $list): Expr
+    {
+        return when($s->isNull())->then(concat_list(lit(null)->cast('String')))->otherwise($list);
+    }
+
+    private function splitPiece(Expr $s, PhibbleExpr $pattern, PhibbleExpr $index): Expr
+    {
+        $i = (int) $this->scalarArg($index);
+        if ($i === 0) {
+            return lit(null)->cast('String');
+        }
+
+        return $this->split($s, $pattern)->list()->get($i > 0 ? $i - 1 : $i, nullOnOob: true);
+    }
+
+    /** str_replace(): \1 refers to a group; a NA replacement makes matched strings NA. */
+    private function replace(Expr $s, PhibbleExpr $node, PhibbleExpr $with, bool $all): Expr
+    {
+        [$p, $literal] = $this->pattern($node);
+        if (! $with instanceof Lit) {
+            throw new Unsupported('Replacements must be literal strings.');
+        }
+        if ($with->value === null) {
+            return when($this->detect($s, $node, 'str_detect'))->then(lit(null)->cast('String'))->otherwise($s);
+        }
+        $r = (string) $with->value;
+        if ($literal && $p === '') {
+            return $s;
+        }
+        if (! $literal) {
+            // Polars expands $1; stringr expands \1 and keeps $ literal.
+            $r = (string) preg_replace_callback('/\\\\(\d)/', fn (array $m) => '${'.$m[1].'}', str_replace('$', '$$', $r));
+        }
+
+        return $all
+            ? $s->str()->replaceAll($p, $r, literal: $literal)
+            : $s->str()->replace($p, $r, literal: $literal, n: 1);
+    }
+
+    private function pad(Call $c, Expr $s): Expr
+    {
+        $width = (int) $this->scalarArg($c->args[1]);
+        $pad = (string) ($this->literal($c, 'pad') ?? ' ');
+        if (mb_strlen($pad) !== 1) {
+            throw new Unsupported('str_pad() with a multi-character pad runs on a Frame.');
+        }
+
+        return match ($this->literal($c, 'side') ?? 'left') {
+            'left' => $s->str()->padStart($width, $pad),
+            'right' => $s->str()->padEnd($width, $pad),
+            'both' => $s->str()->padStart(max_horizontal($s->str()->lenChars()->cast('Int64'), lit($width)->sub($s->str()->lenChars()->cast('Int64'))->floordiv(2)->add($s->str()->lenChars()->cast('Int64'))), $pad)
+                ->str()->padEnd($width, $pad),
+            default => throw new InvalidArgumentException('str_pad() side must be left, right or both.'),
+        };
+    }
+
+    private function truncate(Call $c, Expr $s): Expr
+    {
+        $width = (int) $this->scalarArg($c->args[1]);
+        $ellipsis = (string) ($this->literal($c, 'ellipsis') ?? '...');
+        $keep = max(0, $width - mb_strlen($ellipsis));
+        $n = $s->str()->lenChars()->cast('Int64');
+        $cut = match ($this->literal($c, 'side') ?? 'right') {
+            'right' => concat_str([$s->str()->slice(0, $keep), lit($ellipsis)]),
+            'left' => concat_str([lit($ellipsis), $s->str()->slice($n->sub($keep), $keep)]),
+            'center' => concat_str([$s->str()->slice(0, (int) ceil($keep / 2)), lit($ellipsis), $s->str()->slice($n->sub(intdiv($keep, 2)), intdiv($keep, 2))]),
+            default => throw new InvalidArgumentException('str_trunc() side must be right, left or center.'),
+        };
+
+        return when($n->le($width))->then($s)->otherwise($cut);
+    }
+
+    // Dates and times, with lubridate's semantics.
+
+    /** ymd(), dmy(), mdy(): digits run together or separated by non-digits. */
+    private function parseDate(Call $c, Expr $text): Expr
+    {
+        if ($this->literal($c, 'tz') !== null) {
+            throw new Unsupported('Parsing a date into a time zone runs on a Frame.');
+        }
+        [$regex, $letters] = self::dateRegex($c->fn);
+
+        return $this->assemble($text->str()->stripChars(), $regex, $letters, false);
+    }
+
+    private function parseDateTime(Call $c, Expr $text): Expr
+    {
+        if ($this->literal($c, 'tz') !== null) {
+            throw new Unsupported('Parsing a datetime into a time zone runs on a Frame.');
+        }
+        $order = substr($c->fn, 0, 3);
+        [$date, $letters] = self::dateRegex($order);
+        $clock = '(?:(\\d{2})(\\d{2})(\\d{2}(?:\\.\\d+)?)|(\\d{1,2})\\D+(\\d{1,2})\\D+(\\d{1,2}(?:\\.\\d+)?))';
+        // Date and clock are separated by non-digits unless the text is all digits.
+        $text = $text->str()->stripChars();
+        $digits = $this->assemble($text, '^'.substr($date, 1, -1).$clock.'$', [...$letters, 'H' => [7, 10], 'M' => [8, 11], 'S' => [9, 12]], true);
+        $spaced = $this->assemble($text, '^'.substr($date, 1, -1).'\\D+'.$clock.'$', [...$letters, 'H' => [7, 10], 'M' => [8, 11], 'S' => [9, 12]], true);
+
+        return when($text->str()->contains('^\\d+$'))->then($digits)->otherwise($spaced);
+    }
+
+    /** @return array{0: string, 1: array<string, list<int>>} */
+    private static function dateRegex(string $order): array
+    {
+        $regex = [
+            'ymd' => '^(?:(\\d{4})(\\d{2})(\\d{2})|(\\d{4})\\D+(\\d{1,2})\\D+(\\d{1,2}))$',
+            'dmy' => '^(?:(\\d{2})(\\d{2})(\\d{4})|(\\d{1,2})\\D+(\\d{1,2})\\D+(\\d{4}))$',
+            'mdy' => '^(?:(\\d{2})(\\d{2})(\\d{4})|(\\d{1,2})\\D+(\\d{1,2})\\D+(\\d{4}))$',
+        ][$order];
+        $letters = match ($order) {
+            'ymd' => ['Y' => [1, 4], 'm' => [2, 5], 'd' => [3, 6]],
+            'dmy' => ['d' => [1, 4], 'm' => [2, 5], 'Y' => [3, 6]],
+            'mdy' => ['m' => [1, 4], 'd' => [2, 5], 'Y' => [3, 6]],
+        };
+
+        return [$regex, $letters];
+    }
+
+    /** parse_date_time(x, orders): the first order that parses wins. */
+    private function parseOrders(Call $c, Expr $text): Expr
+    {
+        if ($this->literal($c, 'tz') !== null) {
+            throw new Unsupported('Parsing a datetime into a time zone runs on a Frame.');
+        }
+        $orders = (array) $this->scalarArg($c->args[1]);
+        $parsed = [];
+        foreach ($orders as $order) {
+            $letters = str_split(str_replace([' ', '-', '/', ':', '_'], '', (string) $order));
+            $regex = '';
+            $groups = [];
+            foreach ($letters as $i => $letter) {
+                $regex .= ($i === 0 ? '' : '\\D*').match ($letter) {
+                    'Y' => '(\\d{4})',
+                    'y' => '(\\d{2})',
+                    'm', 'd', 'H', 'M' => '(\\d{1,2})',
+                    'S' => '(\\d{1,2}(?:\\.\\d+)?)',
+                    default => throw new InvalidArgumentException("parse_date_time() does not support the order letter '{$letter}'."),
+                };
+                $groups[$letter] = [$i + 1];
+            }
+            $parsed[] = $this->assemble($text, '^\\s*'.$regex.'\\s*$', $groups, true);
+        }
+
+        return coalesce(...$parsed);
+    }
+
+    /**
+     * Build a Date or Datetime from regex groups. Each letter takes the first
+     * non-null of its groups; invalid calendar dates and clock values are NA.
+     *
+     * @param array<string, list<int>> $letters
+     */
+    private function assemble(Expr $text, string $regex, array $letters, bool $time): Expr
+    {
+        $part = function (string $letter, string $default) use ($text, $regex, $letters): Expr {
+            if (! isset($letters[$letter])) {
+                return lit($default);
+            }
+
+            return coalesce(...array_map(fn (int $g) => $text->str()->extract($regex, $g), $letters[$letter]));
+        };
+        $year = $part('Y', '0');
+        if (isset($letters['y'])) {
+            $yy = $part('y', '0')->cast('Int64', strict: false);
+            $year = when($yy->le(68))->then($yy->add(2000))->otherwise($yy->add(1900))->cast('String');
+        }
+        $two = fn (Expr $e) => $e->str()->zfill(2);
+        $pieces = [$year, lit('-'), $two($part('m', '1')), lit('-'), $two($part('d', '1'))];
+        if (! $time) {
+            return concat_str($pieces)->str()->toDate('%Y-%m-%d', strict: false);
+        }
+        // Seconds may carry a fraction; pad the whole part to two digits.
+        $seconds = $part('S', '0');
+        $seconds = when($seconds->str()->contains('^\\d(\\.|$)'))->then(concat_str([lit('0'), $seconds]))->otherwise($seconds);
+        $pieces = [...$pieces, lit(' '), $two($part('H', '0')), lit(':'), $two($part('M', '0')), lit(':'), $seconds];
+
+        return concat_str($pieces)->str()->toDatetime('%Y-%m-%d %H:%M:%S%.f', timeUnit: 'us', strict: false);
+    }
+
+    /** floor_date(), ceiling_date(), round_date() with lubridate's units. */
+    private function roundDate(Call $c, Expr $x): Expr
+    {
+        [$n, $unit] = self::timeUnit((string) $this->scalarArg($c->args[1]));
+        $isDate = $this->type($c->args[0]) === 'date';
+        $weekStart = (int) ($this->literal($c, 'week_start') ?? 7);
+        if ($n > 1 && ! (in_array($unit, ['second', 'minute'], true) && 60 % $n === 0) && ! ($unit === 'hour' && 24 % $n === 0)) {
+            throw new Unsupported("Rounding to {$n} {$unit}s runs on a Frame.");
+        }
+        if ($isDate && in_array($unit, ['second', 'minute', 'hour'], true)) {
+            throw new Unsupported('Rounding a date to a time of day runs on a Frame.');
+        }
+        $every = $n.['second' => 's', 'minute' => 'm', 'hour' => 'h', 'day' => 'd', 'week' => 'w', 'month' => 'mo', 'quarter' => 'q', 'year' => 'y'][$unit];
+        if ($unit === 'week') {
+            // Polars weeks start on Monday; shift so they start on week_start.
+            $shift = ($weekStart % 7 + 6) % 7;
+            $floor = $x->dt()->offsetBy("-{$shift}d")->dt()->truncate('1w')->dt()->offsetBy("{$shift}d");
+        } else {
+            $floor = $x->dt()->truncate($every);
+        }
+        if ($c->fn === 'floor_date') {
+            return $floor;
+        }
+        $next = $floor->dt()->offsetBy($every);
+        // Dates always move past a boundary (lubridate's change_on_boundary for Date).
+        $ceiling = $isDate ? $next : when($floor->eq($x))->then($floor)->otherwise($next);
+        if ($c->fn === 'ceiling_date') {
+            return $ceiling;
+        }
+
+        return when($ceiling->sub($x)->le($x->sub($floor)))->then($ceiling)->otherwise($floor);
+    }
+
+    /** @return array{0: int, 1: string} */
+    private static function timeUnit(string $unit): array
+    {
+        if (! preg_match('/^\s*(\d+)?\s*([a-z]+?)s?\s*$/i', $unit, $m)) {
+            throw new InvalidArgumentException("Unknown time unit '{$unit}'.");
+        }
+        $name = match (strtolower($m[2])) {
+            'sec' => 'second',
+            'min' => 'minute',
+            'bimonth' => 'month',
+            default => strtolower($m[2]),
+        };
+        if (! in_array($name, ['second', 'minute', 'hour', 'day', 'week', 'month', 'quarter', 'year'], true)) {
+            throw new InvalidArgumentException("Unknown time unit '{$unit}'.");
+        }
+        $n = $m[1] === '' ? 1 : (int) $m[1];
+
+        return [strtolower($m[2]) === 'bimonth' ? 2 * $n : max(1, $n), $name];
+    }
+
+    /** + and -: numbers, a date or datetime with a period, or the difference of two dates. */
+    private function plusMinus(Call $c, bool $inGroup): Expr
+    {
+        [$l, $r] = $c->args;
+        $period = self::period($r) ?? ($c->fn === '+' ? self::period($l) : null);
+        if ($period !== null) {
+            $base = self::period($r) !== null ? $l : $r;
+            [$amount, $unit] = $period;
+
+            return $this->shift($this->node($base, $inGroup), $base, $c->fn === '-' ? -$amount : $amount, $unit);
+        }
+        $lt = $this->type($l);
+        $rt = $this->type($r);
+        if ($c->fn === '-' && in_array($lt, ['date', 'datetime'], true) && in_array($rt, ['date', 'datetime'], true)) {
+            return $this->difference($l, $r, $lt === 'date' && $rt === 'date' ? 'days' : 'secs', $inGroup);
+        }
+        $a = $this->node($l, $inGroup);
+        $b = $this->node($r, $inGroup);
+
+        return $c->fn === '+' ? $a->add($b) : $a->sub($b);
+    }
+
+    /** @return array{0: int|float, 1: string}|null A literal period: days(3), 2 * months(1). */
+    private static function period(PhibbleExpr $e): ?array
+    {
+        if (! $e instanceof Call) {
+            return null;
+        }
+        if (in_array($e->fn, Period::UNITS, true)) {
+            if (! $e->args[0] instanceof Lit || ! is_numeric($e->args[0]->value)) {
+                throw new Unsupported('Periods with computed lengths run on a Frame.');
+            }
+
+            return [$e->args[0]->value + 0, $e->fn];
+        }
+        if ($e->fn === '*') {
+            foreach ([[0, 1], [1, 0]] as [$p, $k]) {
+                $inner = self::period($e->args[$p]);
+                if ($inner !== null && $e->args[$k] instanceof Lit && is_numeric($e->args[$k]->value)) {
+                    return [$inner[0] * ($e->args[$k]->value + 0), $inner[1]];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /** A date plus a period. Months and years that land on an invalid date are NA, as in lubridate. */
+    private function shift(Expr $x, PhibbleExpr $node, int|float $amount, string $unit): Expr
+    {
+        $isDate = $this->type($node) === 'date';
+        if (in_array($unit, ['months', 'years'], true)) {
+            $months = (int) $amount * ($unit === 'years' ? 12 : 1);
+            $moved = $x->dt()->offsetBy("{$months}mo");
+
+            return when($moved->dt()->day()->eq($x->dt()->day()))->then($moved)->otherwise(lit(null));
+        }
+        if ($unit === 'days' || $unit === 'weeks') {
+            $days = (int) $amount * ($unit === 'weeks' ? 7 : 1);
+
+            return $x->dt()->offsetBy("{$days}d");
+        }
+        if ($isDate) {
+            throw new Unsupported('Adding a clock period to a date runs on a Frame.');
+        }
+        $micros = (int) round($amount * ['hours' => 3_600_000_000, 'minutes' => 60_000_000, 'seconds' => 1_000_000][$unit]);
+
+        return $x->dt()->offsetBy("{$micros}us");
+    }
+
+    /** difftime() and date - date: a float in the given units. */
+    private function difference(PhibbleExpr $l, PhibbleExpr $r, string $units, bool $inGroup): Expr
+    {
+        $seconds = ['secs' => 1, 'mins' => 60, 'hours' => 3600, 'days' => 86400, 'weeks' => 604800][$units]
+            ?? throw new InvalidArgumentException("difftime() units must be secs, mins, hours, days or weeks, got '{$units}'.");
+        $asInstant = fn (PhibbleExpr $n) => $this->type($n) === 'date'
+            ? $this->node($n, $inGroup)->cast('Datetime(us)')
+            : $this->naiveUtc($n, $this->node($n, $inGroup));
+        $micros = $asInstant($l)->sub($asInstant($r))->dt()->totalMicroseconds();
+
+        return $micros->cast('Float64')->truediv($seconds * 1e6);
+    }
+
+    /** A datetime as a naive UTC instant, so differences ignore zones. */
+    private function naiveUtc(PhibbleExpr $node, Expr $x): Expr
+    {
+        return $this->zoneOf($node) === null ? $x : $x->dt()->convertTimeZone('UTC')->dt()->replaceTimeZone(null);
+    }
+
+    /** A datetime with a time zone attached (naive values are UTC). */
+    private function zoned(PhibbleExpr $node, Expr $x): Expr
+    {
+        return $this->zoneOf($node) === null ? $x->dt()->replaceTimeZone('UTC') : $x;
+    }
+
+    /** A datetime's wall clock without its zone. */
+    private function naive(PhibbleExpr $node, Expr $x): Expr
+    {
+        return $this->zoneOf($node) === null ? $x : $x->dt()->replaceTimeZone(null);
+    }
+
+    /** The column's time zone, or null for naive (UTC) datetimes and computed values. */
+    private function zoneOf(PhibbleExpr $node): ?string
+    {
+        if ($node instanceof Col && preg_match('/^Datetime\(\w+, (.+)\)$/', $this->schema[$node->name] ?? '', $m)) {
+            return $m[1];
+        }
+        if ($node instanceof Call && in_array($node->fn, ['with_tz', 'force_tz'], true)) {
+            return (string) $this->scalarArg($node->args[1]);
+        }
+
+        return null;
+    }
+
+    private function today(Call $c): Expr
+    {
+        $day = Temporal::today($this->literal($c, 'tz'));
+
+        return lit(intdiv($day->getTimestamp(), 86400))->cast('Date');
+    }
+
+    private function now(Call $c): Expr
+    {
+        $now = Clock::now();
+        $micros = $now->getTimestamp() * 1_000_000 + (int) $now->format('u');
+        $tz = $this->literal($c, 'tz');
+        $utc = lit($micros)->cast('Datetime(us)');
+
+        return $tz === null ? $utc : $utc->dt()->replaceTimeZone('UTC')->dt()->convertTimeZone((string) $tz);
     }
 
     // Aggregates: arguments are evaluated within the group.
@@ -496,8 +975,30 @@ final class Translator
             return 'int';
         };
 
+        if (in_array($e->fn, ['+', '-'], true)) {
+            $l = $this->type($args[0]);
+            $r = $this->type($args[1]);
+            if (in_array($l, ['date', 'datetime'], true) && $r === 'period') {
+                return $l;
+            }
+            if ($e->fn === '+' && in_array($r, ['date', 'datetime'], true) && $l === 'period') {
+                return $r;
+            }
+            if ($e->fn === '-' && in_array($l, ['date', 'datetime'], true) && in_array($r, ['date', 'datetime'], true)) {
+                return 'float';
+            }
+        }
+
         return match ($e->fn) {
-            '+', '-', '*', '%%' => $numeric(),
+            'seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years' => 'period',
+            '*' => in_array('period', array_map($this->type(...), $args), true) ? 'period' : $numeric(),
+            '+', '-', '%%' => $numeric(),
+            'ymd', 'dmy', 'mdy', 'today' => 'date',
+            'ymd_hms', 'dmy_hms', 'mdy_hms', 'parse_date_time', 'with_tz', 'force_tz', 'now' => 'datetime',
+            'floor_date', 'ceiling_date', 'round_date' => $first(),
+            'year', 'month', 'day', 'yday', 'quarter', 'hour', 'minute', 'wday', 'str_count' => 'int',
+            'second', 'difftime' => 'float',
+            'str_extract_all', 'str_split' => 'list',
             '/', '^', 'sqrt', 'exp', 'log', 'log10', 'floor', 'ceiling', 'mean', 'median', 'sd', 'var',
             'quantile', 'iqr', 'percent_rank', 'cume_dist', 'cummean', 'as_float' => 'float',
             'neg', 'abs', 'round', 'min', 'max', 'first', 'last', 'nth', 'lag', 'lead', 'cummin', 'cummax', 'coalesce', 'na_if' => $first(),

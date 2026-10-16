@@ -203,12 +203,20 @@ impl PhpStrNameSpace {
         self.finish(self.base().str().tail(lit(n)))
     }
 
-    pub fn split(&self, by: &Zval, inclusive: Option<bool>) -> PhpResult<Zval> {
+    /// Split on a literal separator, or on a regex with literal: false.
+    pub fn split(
+        &self,
+        by: &Zval,
+        inclusive: Option<bool>,
+        literal: Option<bool>,
+    ) -> PhpResult<Zval> {
         let by = operand(by)?;
-        self.finish(if inclusive.unwrap_or(false) {
-            self.base().str().split_inclusive(by)
-        } else {
-            self.base().str().split(by)
+        let inclusive = inclusive.unwrap_or(false);
+        self.finish(match (literal.unwrap_or(true), inclusive) {
+            (true, false) => self.base().str().split(by),
+            (true, true) => self.base().str().split_inclusive(by),
+            (false, false) => self.base().str().split_regex(by, true),
+            (false, true) => self.base().str().split_regex_inclusive(by, true),
         })
     }
 
@@ -216,20 +224,15 @@ impl PhpStrNameSpace {
         self.finish(self.base().str().splitn(operand(by)?, n as usize))
     }
 
-    pub fn padStart(&self, length: i64, fillChar: Option<String>) -> PhpResult<Zval> {
-        self.finish(
-            self.base()
-                .str()
-                .pad_start(lit(length as u64), fill_char(fillChar)?),
-        )
+    /// Pad to a length, which may be an int or an expression.
+    pub fn padStart(&self, length: &Zval, fillChar: Option<String>) -> PhpResult<Zval> {
+        let length = operand(length)?.cast(DataType::UInt64);
+        self.finish(self.base().str().pad_start(length, fill_char(fillChar)?))
     }
 
-    pub fn padEnd(&self, length: i64, fillChar: Option<String>) -> PhpResult<Zval> {
-        self.finish(
-            self.base()
-                .str()
-                .pad_end(lit(length as u64), fill_char(fillChar)?),
-        )
+    pub fn padEnd(&self, length: &Zval, fillChar: Option<String>) -> PhpResult<Zval> {
+        let length = operand(length)?.cast(DataType::UInt64);
+        self.finish(self.base().str().pad_end(length, fill_char(fillChar)?))
     }
 
     pub fn zfill(&self, length: i64) -> PhpResult<Zval> {
@@ -457,12 +460,28 @@ impl PhpDtNameSpace {
         self.finish(self.base().dt().convert_time_zone(tz))
     }
 
-    pub fn replaceTimeZone(&self, timeZone: Option<String>) -> PhpResult<Zval> {
+    /// ambiguous: raise, earliest, latest or null; nonExistent: raise or null.
+    pub fn replaceTimeZone(
+        &self,
+        timeZone: Option<String>,
+        ambiguous: Option<String>,
+        nonExistent: Option<String>,
+    ) -> PhpResult<Zval> {
         let tz = TimeZone::opt_try_new(timeZone).php()?;
+        let non_existent = match nonExistent.as_deref().unwrap_or("raise") {
+            "raise" => NonExistent::Raise,
+            "null" => NonExistent::Null,
+            other => {
+                return Err(value_error(format!(
+                    "nonExistent must be raise or null, not '{other}'"
+                )));
+            }
+        };
+        let ambiguous = ambiguous.unwrap_or_else(|| "raise".into());
         self.finish(
             self.base()
                 .dt()
-                .replace_time_zone(tz, lit("raise"), NonExistent::Raise),
+                .replace_time_zone(tz, lit(ambiguous), non_existent),
         )
     }
 

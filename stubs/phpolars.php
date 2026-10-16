@@ -211,10 +211,10 @@ namespace Phpolars {
         public function slice(mixed $offset, mixed $length = null): mixed {}
         public function head(int $n): mixed {}
         public function tail(int $n): mixed {}
-        public function split(mixed $by, ?bool $inclusive = null): mixed {}
+        public function split(mixed $by, ?bool $inclusive = null, ?bool $literal = null): mixed {}
         public function splitn(mixed $by, int $n): mixed {}
-        public function padStart(int $length, ?string $fillChar = null): mixed {}
-        public function padEnd(int $length, ?string $fillChar = null): mixed {}
+        public function padStart(mixed $length, ?string $fillChar = null): mixed {}
+        public function padEnd(mixed $length, ?string $fillChar = null): mixed {}
         public function zfill(int $length): mixed {}
         public function reverse(): mixed {}
         public function extract(mixed $pattern, ?int $groupIndex = null): mixed {}
@@ -258,7 +258,7 @@ namespace Phpolars {
         public function monthEnd(): mixed {}
         public function castTimeUnit(string $timeUnit): mixed {}
         public function convertTimeZone(string $timeZone): mixed {}
-        public function replaceTimeZone(?string $timeZone = null): mixed {}
+        public function replaceTimeZone(?string $timeZone = null, ?string $ambiguous = null, ?string $nonExistent = null): mixed {}
         public function totalDays(?bool $fractional = null): mixed {}
         public function totalHours(?bool $fractional = null): mixed {}
         public function totalMinutes(?bool $fractional = null): mixed {}
@@ -665,6 +665,8 @@ namespace Phpolars {
     function thread_pool_size(): int {}
 
     function version(): string {}
+
+    function polars_version(): string {}
 }
 
 namespace Phpolars\Exception {

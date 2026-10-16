@@ -27,6 +27,7 @@ hstack(mixed $columns): Phpolars\DataFrame
 isEmpty(): bool
 item(?int $row = null, mixed $column = null): mixed
 join(mixed $other, mixed $on = null, ?string $how = null, mixed $leftOn = null, mixed $rightOn = null, ?string $suffix = null, ?bool $coalesce = null, ?string $maintainOrder = null, ?bool $nullsEqual = null): Phpolars\DataFrame
+joinWhere(mixed $other, mixed ...$predicates): Phpolars\DataFrame
 last(): Phpolars\DataFrame
 lazy(): Phpolars\LazyFrame
 limit(?int $n = null): Phpolars\DataFrame
@@ -97,6 +98,7 @@ first(): Phpolars\LazyFrame
 groupBy(mixed $by, ?bool $maintainOrder = null): Phpolars\LazyGroupBy
 head(?int $n = null): Phpolars\LazyFrame
 join(mixed $other, mixed $on = null, ?string $how = null, mixed $leftOn = null, mixed $rightOn = null, ?string $suffix = null, ?bool $coalesce = null, ?string $maintainOrder = null, ?bool $nullsEqual = null): Phpolars\LazyFrame
+joinWhere(mixed $other, mixed ...$predicates): Phpolars\LazyFrame
 last(): Phpolars\LazyFrame
 limit(?int $n = null): Phpolars\LazyFrame
 max(): Phpolars\LazyFrame
