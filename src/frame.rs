@@ -979,12 +979,55 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
         includeHeader: Option<bool>,
         separator: Option<String>,
         nullValue: Option<String>,
+        quoteChar: Option<String>,
+        dateFormat: Option<String>,
+        datetimeFormat: Option<String>,
+        timeFormat: Option<String>,
+        floatScientific: Option<bool>,
+        floatPrecision: Option<i64>,
+        decimalComma: Option<bool>,
+        lineTerminator: Option<String>,
+        quoteStyle: Option<String>,
+        includeBom: Option<bool>,
     ) -> PhpResult<()> {
-        crate::io::sink_csv(self.lf(), &file, includeHeader, separator, nullValue)
+        crate::io::sink_csv(
+            self.lf(),
+            &file,
+            crate::io::CsvWriteArgs {
+                include_header: includeHeader,
+                separator,
+                null_value: nullValue,
+                quote_char: quoteChar,
+                date_format: dateFormat,
+                datetime_format: datetimeFormat,
+                time_format: timeFormat,
+                float_scientific: floatScientific,
+                float_precision: floatPrecision,
+                decimal_comma: decimalComma,
+                line_terminator: lineTerminator,
+                quote_style: quoteStyle,
+                include_bom: includeBom,
+            },
+        )
     }
 
-    pub fn writeParquet(&self, file: String) -> PhpResult<()> {
-        crate::io::sink_parquet(self.lf(), &file)
+    /// compression: zstd (default), snappy, gzip, brotli, lz4, or uncompressed.
+    pub fn writeParquet(
+        &self,
+        file: String,
+        compression: Option<String>,
+        compressionLevel: Option<i64>,
+        statistics: Option<bool>,
+        rowGroupSize: Option<i64>,
+    ) -> PhpResult<()> {
+        crate::io::sink_parquet(
+            self.lf(),
+            &file,
+            compression,
+            compressionLevel,
+            statistics,
+            rowGroupSize,
+        )
     }
 
     /// Arrow IPC (Feather v2).
@@ -1200,12 +1243,54 @@ frame_verbs!(PhpLazyFrame, PhpLazyGroupBy, {
         includeHeader: Option<bool>,
         separator: Option<String>,
         nullValue: Option<String>,
+        quoteChar: Option<String>,
+        dateFormat: Option<String>,
+        datetimeFormat: Option<String>,
+        timeFormat: Option<String>,
+        floatScientific: Option<bool>,
+        floatPrecision: Option<i64>,
+        decimalComma: Option<bool>,
+        lineTerminator: Option<String>,
+        quoteStyle: Option<String>,
+        includeBom: Option<bool>,
     ) -> PhpResult<()> {
-        crate::io::sink_csv(self.lf(), &file, includeHeader, separator, nullValue)
+        crate::io::sink_csv(
+            self.lf(),
+            &file,
+            crate::io::CsvWriteArgs {
+                include_header: includeHeader,
+                separator,
+                null_value: nullValue,
+                quote_char: quoteChar,
+                date_format: dateFormat,
+                datetime_format: datetimeFormat,
+                time_format: timeFormat,
+                float_scientific: floatScientific,
+                float_precision: floatPrecision,
+                decimal_comma: decimalComma,
+                line_terminator: lineTerminator,
+                quote_style: quoteStyle,
+                include_bom: includeBom,
+            },
+        )
     }
 
-    pub fn sinkParquet(&self, file: String) -> PhpResult<()> {
-        crate::io::sink_parquet(self.lf(), &file)
+    pub fn sinkParquet(
+        &self,
+        file: String,
+        compression: Option<String>,
+        compressionLevel: Option<i64>,
+        statistics: Option<bool>,
+        rowGroupSize: Option<i64>,
+    ) -> PhpResult<()> {
+        crate::io::sink_parquet(
+            self.lf(),
+            &file,
+            compression,
+            compressionLevel,
+            statistics,
+            rowGroupSize,
+        )
     }
 
     pub fn sinkIpc(&self, file: String) -> PhpResult<()> {

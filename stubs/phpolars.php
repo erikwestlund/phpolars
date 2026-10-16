@@ -592,8 +592,8 @@ namespace Phpolars {
         public function pivot(mixed $on, mixed $index = null, mixed $values = null, mixed $aggregateFunction = null, ?bool $sortColumns = null, ?string $separator = null, ?bool $maintainOrder = null): Phpolars\DataFrame {}
         public function transpose(?bool $includeHeader = null, ?string $headerName = null, mixed $columnNames = null): Phpolars\DataFrame {}
         public function sample(?int $n = null, ?float $fraction = null, ?bool $withReplacement = null, ?bool $shuffle = null, ?int $seed = null): Phpolars\DataFrame {}
-        public function writeCsv(string $file, ?bool $includeHeader = null, ?string $separator = null, ?string $nullValue = null): void {}
-        public function writeParquet(string $file): void {}
+        public function writeCsv(string $file, ?bool $includeHeader = null, ?string $separator = null, ?string $nullValue = null, ?string $quoteChar = null, ?string $dateFormat = null, ?string $datetimeFormat = null, ?string $timeFormat = null, ?bool $floatScientific = null, ?int $floatPrecision = null, ?bool $decimalComma = null, ?string $lineTerminator = null, ?string $quoteStyle = null, ?bool $includeBom = null): void {}
+        public function writeParquet(string $file, ?string $compression = null, ?int $compressionLevel = null, ?bool $statistics = null, ?int $rowGroupSize = null): void {}
         public function writeIpc(string $file): void {}
         public function writeNdjson(string $file): void {}
         public function writeJson(string $file): void {}
@@ -667,8 +667,8 @@ namespace Phpolars {
         public function collect(): Phpolars\DataFrame {}
         public function explain(?bool $optimized = null): string {}
         public function columns(): array {}
-        public function sinkCsv(string $file, ?bool $includeHeader = null, ?string $separator = null, ?string $nullValue = null): void {}
-        public function sinkParquet(string $file): void {}
+        public function sinkCsv(string $file, ?bool $includeHeader = null, ?string $separator = null, ?string $nullValue = null, ?string $quoteChar = null, ?string $dateFormat = null, ?string $datetimeFormat = null, ?string $timeFormat = null, ?bool $floatScientific = null, ?int $floatPrecision = null, ?bool $decimalComma = null, ?string $lineTerminator = null, ?string $quoteStyle = null, ?bool $includeBom = null): void {}
+        public function sinkParquet(string $file, ?string $compression = null, ?int $compressionLevel = null, ?bool $statistics = null, ?int $rowGroupSize = null): void {}
         public function sinkIpc(string $file): void {}
         public function sinkNdjson(string $file): void {}
         public function cache(): Phpolars\LazyFrame {}
@@ -766,23 +766,23 @@ namespace Phpolars {
         public function __construct() {}
     }
 
-    function read_csv(string $source, ?bool $hasHeader = null, ?string $separator = null, mixed $nullValues = null, ?array $schemaOverrides = null, ?int $nRows = null, ?int $skipRows = null, ?int $inferSchemaLength = null, ?bool $tryParseDates = null, mixed $columns = null): Phpolars\DataFrame {}
+    function read_csv(string $source, ?bool $hasHeader = null, ?string $separator = null, mixed $nullValues = null, ?array $schemaOverrides = null, ?int $nRows = null, ?int $skipRows = null, ?int $inferSchemaLength = null, ?bool $tryParseDates = null, mixed $columns = null, ?array $schema = null, ?string $commentPrefix = null, mixed $quoteChar = null, ?string $eolChar = null, ?string $encoding = null, ?bool $ignoreErrors = null, ?bool $missingUtf8IsEmptyString = null, ?bool $truncateRaggedLines = null, ?bool $decimalComma = null, ?string $rowIndexName = null, ?int $rowIndexOffset = null, ?int $skipRowsAfterHeader = null, ?array $newColumns = null, ?bool $raiseIfEmpty = null, ?bool $glob = null): Phpolars\DataFrame {}
 
-    function scan_csv(string $source, ?bool $hasHeader = null, ?string $separator = null, mixed $nullValues = null, ?array $schemaOverrides = null, ?int $nRows = null, ?int $skipRows = null, ?int $inferSchemaLength = null, ?bool $tryParseDates = null): Phpolars\LazyFrame {}
+    function scan_csv(string $source, ?bool $hasHeader = null, ?string $separator = null, mixed $nullValues = null, ?array $schemaOverrides = null, ?int $nRows = null, ?int $skipRows = null, ?int $inferSchemaLength = null, ?bool $tryParseDates = null, mixed $columns = null, ?array $schema = null, ?string $commentPrefix = null, mixed $quoteChar = null, ?string $eolChar = null, ?string $encoding = null, ?bool $ignoreErrors = null, ?bool $missingUtf8IsEmptyString = null, ?bool $truncateRaggedLines = null, ?bool $decimalComma = null, ?string $rowIndexName = null, ?int $rowIndexOffset = null, ?int $skipRowsAfterHeader = null, ?array $newColumns = null, ?bool $raiseIfEmpty = null, ?bool $glob = null): Phpolars\LazyFrame {}
 
-    function read_parquet(string $source, mixed $columns = null, ?int $nRows = null): Phpolars\DataFrame {}
+    function read_parquet(string $source, mixed $columns = null, ?int $nRows = null, ?string $rowIndexName = null, ?int $rowIndexOffset = null, ?string $parallel = null, ?bool $useStatistics = null, ?bool $hivePartitioning = null, ?bool $glob = null, ?bool $allowMissingColumns = null, ?string $includeFilePaths = null): Phpolars\DataFrame {}
 
-    function scan_parquet(string $source, ?int $nRows = null): Phpolars\LazyFrame {}
+    function scan_parquet(string $source, ?int $nRows = null, ?string $rowIndexName = null, ?int $rowIndexOffset = null, ?string $parallel = null, ?bool $useStatistics = null, ?bool $hivePartitioning = null, ?bool $glob = null, ?bool $allowMissingColumns = null, ?string $includeFilePaths = null): Phpolars\LazyFrame {}
 
-    function read_ipc(string $source, ?int $nRows = null): Phpolars\DataFrame {}
+    function read_ipc(string $source, mixed $columns = null, ?int $nRows = null, ?string $rowIndexName = null, ?int $rowIndexOffset = null): Phpolars\DataFrame {}
 
-    function scan_ipc(string $source, ?int $nRows = null): Phpolars\LazyFrame {}
+    function scan_ipc(string $source, ?int $nRows = null, ?string $rowIndexName = null, ?int $rowIndexOffset = null): Phpolars\LazyFrame {}
 
-    function read_ndjson(string $source, ?int $nRows = null, ?int $inferSchemaLength = null): Phpolars\DataFrame {}
+    function read_ndjson(string $source, ?int $nRows = null, ?int $inferSchemaLength = null, ?array $schema = null, ?array $schemaOverrides = null, ?bool $ignoreErrors = null, ?string $rowIndexName = null, ?int $rowIndexOffset = null, mixed $columns = null): Phpolars\DataFrame {}
 
-    function scan_ndjson(string $source, ?int $nRows = null, ?int $inferSchemaLength = null): Phpolars\LazyFrame {}
+    function scan_ndjson(string $source, ?int $nRows = null, ?int $inferSchemaLength = null, ?array $schema = null, ?array $schemaOverrides = null, ?bool $ignoreErrors = null, ?string $rowIndexName = null, ?int $rowIndexOffset = null): Phpolars\LazyFrame {}
 
-    function read_json(string $source): Phpolars\DataFrame {}
+    function read_json(string $source, ?array $schema = null, ?array $schemaOverrides = null, ?int $inferSchemaLength = null): Phpolars\DataFrame {}
 
     function col(mixed ...$names): Phpolars\Expr {}
 

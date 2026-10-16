@@ -90,11 +90,11 @@ width(): int
 withColumns(mixed ...$exprs): Phpolars\DataFrame
 withColumnsSeq(mixed ...$exprs): Phpolars\DataFrame
 withRowIndex(?string $name = null, ?int $offset = null): Phpolars\DataFrame
-writeCsv(string $file, ?bool $includeHeader = null, ?string $separator = null, ?string $nullValue = null): void
+writeCsv(string $file, ?bool $includeHeader = null, ?string $separator = null, ?string $nullValue = null, ?string $quoteChar = null, ?string $dateFormat = null, ?string $datetimeFormat = null, ?string $timeFormat = null, ?bool $floatScientific = null, ?int $floatPrecision = null, ?bool $decimalComma = null, ?string $lineTerminator = null, ?string $quoteStyle = null, ?bool $includeBom = null): void
 writeIpc(string $file): void
 writeJson(string $file): void
 writeNdjson(string $file): void
-writeParquet(string $file): void
+writeParquet(string $file, ?string $compression = null, ?int $compressionLevel = null, ?bool $statistics = null, ?int $rowGroupSize = null): void
 ```
 
 ### `Phpolars\LazyFrame`
@@ -144,10 +144,10 @@ rolling(mixed $indexColumn, string $period, ?string $offset = null, ?string $clo
 select(mixed ...$exprs): Phpolars\LazyFrame
 selectSeq(mixed ...$exprs): Phpolars\LazyFrame
 shift(?int $n = null, mixed $fillValue = null): Phpolars\LazyFrame
-sinkCsv(string $file, ?bool $includeHeader = null, ?string $separator = null, ?string $nullValue = null): void
+sinkCsv(string $file, ?bool $includeHeader = null, ?string $separator = null, ?string $nullValue = null, ?string $quoteChar = null, ?string $dateFormat = null, ?string $datetimeFormat = null, ?string $timeFormat = null, ?bool $floatScientific = null, ?int $floatPrecision = null, ?bool $decimalComma = null, ?string $lineTerminator = null, ?string $quoteStyle = null, ?bool $includeBom = null): void
 sinkIpc(string $file): void
 sinkNdjson(string $file): void
-sinkParquet(string $file): void
+sinkParquet(string $file, ?string $compression = null, ?int $compressionLevel = null, ?bool $statistics = null, ?int $rowGroupSize = null): void
 slice(int $offset, ?int $length = null): Phpolars\LazyFrame
 sort(mixed $by, mixed $descending = null, mixed $nullsLast = null, ?bool $maintainOrder = null): Phpolars\LazyFrame
 std(?int $ddof = null): Phpolars\LazyFrame
