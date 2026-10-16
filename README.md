@@ -122,19 +122,21 @@ Sizes of the stripped macOS arm64 library with fat LTO and one codegen unit:
 <!-- size-table -->
 | Build | opt-level | Size | Benchmark, 1 / 4 threads |
 | --- | --- | --- | --- |
-| all features, `release` profile (no LTO) | 3 | 117 MB | |
-| all features | 3 | 57.3 MB | 44 / 23 ms |
-| all features (`dist` default) | s | 40.2 MB | 45 / 21 ms |
-| all features | z | 23.9 MB | 86 / 33 ms |
-| without `fmt` | 3 | 57.2 MB | |
-| without `json` | 3 | 56.8 MB | |
-| without `ipc` | 3 | 56.9 MB | |
-| without `parquet` and `ipc` | 3 | 52.4 MB | |
-| CSV only (no optional features) | 3 | 51.8 MB | |
-| CSV only (no optional features) | s | 35.9 MB | |
+| all features (`dist` default) | s | 64.5 MB | 47 / 23 ms |
+| without `sql` | s | 60.4 MB | |
+| v0.1.0, all features, `release` profile (no LTO) | 3 | 117 MB | |
+| v0.1.0, all features | 3 | 57.3 MB | 44 / 23 ms |
+| v0.1.0, all features (`dist` default) | s | 40.2 MB | 45 / 21 ms |
+| v0.1.0, all features | z | 23.9 MB | 86 / 33 ms |
+| v0.1.0, without `fmt` | 3 | 57.2 MB | |
+| v0.1.0, without `json` | 3 | 56.8 MB | |
+| v0.1.0, without `ipc` | 3 | 56.9 MB | |
+| v0.1.0, without `parquet` and `ipc` | 3 | 52.4 MB | |
+| v0.1.0, CSV only (no optional features) | 3 | 51.8 MB | |
+| v0.1.0, CSV only (no optional features) | s | 35.9 MB | |
 <!-- /size-table -->
 
-The optional features cost little: all of them together add about 5 MB. Most of the size is the Polars query engine, expression set, and data types that the core API needs. The `dist` profile uses `opt-level = "s"`, which is 30% smaller than `opt-level = 3` and as fast on the benchmark above (the `read_csv` → `filter` → `groupBy` pipeline on 1M rows). `opt-level = "z"` halves the size again but doubles single-threaded time. A clean `dist` build takes 4–5 minutes on an Apple M5 Ultra.
+The rows marked v0.1.0 were measured before the py-polars API was filled in: time series windows and asof joins, the extra string, binary, and array kernels, and SQL. Those additions take the default build from 40.2 MB to 64.5 MB; SQL is 4.1 MB of that and can be left out with `--no-default-features --features parquet,json,ipc,fmt`. The other optional features cost little: at v0.1.0 they added about 5 MB together. Most of the size is the Polars query engine, expression set, and data types that the core API needs. The `dist` profile uses `opt-level = "s"`, which is 30% smaller than `opt-level = 3` and as fast on the benchmark above (the `read_csv` → `filter` → `groupBy` pipeline on 1M rows). `opt-level = "z"` halves the size again but doubles single-threaded time. A clean `dist` build takes 4–5 minutes on an Apple M5 Ultra.
 
 ## Development
 

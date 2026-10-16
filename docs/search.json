@@ -198,7 +198,7 @@
     "href": "performance.html#binary-size",
     "title": "Performance",
     "section": "Binary size",
-    "text": "Binary size\n\n\n\nBuild\nopt-level\nSize\nBenchmark, 1 / 4 threads\n\n\n\n\nall features (dist default)\ns\n64.5 MB\n47 / 23 ms\n\n\nwithout sql\ns\n59.9 MB\n\n\n\nv0.1.0, all features, release profile (no LTO)\n3\n117 MB\n\n\n\nv0.1.0, all features\n3\n57.3 MB\n44 / 23 ms\n\n\nv0.1.0, all features (dist default)\ns\n40.2 MB\n45 / 21 ms\n\n\nv0.1.0, all features\nz\n23.9 MB\n86 / 33 ms\n\n\nv0.1.0, without fmt\n3\n57.2 MB\n\n\n\nv0.1.0, without json\n3\n56.8 MB\n\n\n\nv0.1.0, without ipc\n3\n56.9 MB\n\n\n\nv0.1.0, without parquet and ipc\n3\n52.4 MB\n\n\n\nv0.1.0, CSV only (no optional features)\n3\n51.8 MB\n\n\n\nv0.1.0, CSV only (no optional features)\ns\n35.9 MB",
+    "text": "Binary size\n\n\n\nBuild\nopt-level\nSize\nBenchmark, 1 / 4 threads\n\n\n\n\nall features (dist default)\ns\n64.5 MB\n47 / 23 ms\n\n\nwithout sql\ns\n60.4 MB\n\n\n\nv0.1.0, all features, release profile (no LTO)\n3\n117 MB\n\n\n\nv0.1.0, all features\n3\n57.3 MB\n44 / 23 ms\n\n\nv0.1.0, all features (dist default)\ns\n40.2 MB\n45 / 21 ms\n\n\nv0.1.0, all features\nz\n23.9 MB\n86 / 33 ms\n\n\nv0.1.0, without fmt\n3\n57.2 MB\n\n\n\nv0.1.0, without json\n3\n56.8 MB\n\n\n\nv0.1.0, without ipc\n3\n56.9 MB\n\n\n\nv0.1.0, without parquet and ipc\n3\n52.4 MB\n\n\n\nv0.1.0, CSV only (no optional features)\n3\n51.8 MB\n\n\n\nv0.1.0, CSV only (no optional features)\ns\n35.9 MB",
     "crumbs": [
       "Performance"
     ]

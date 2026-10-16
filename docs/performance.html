@@ -348,68 +348,79 @@ ul.task-list li input[type="checkbox"] {
 </thead>
 <tbody>
 <tr class="odd">
-<td>all features, <code>release</code> profile (no LTO)</td>
+<td>all features (<code>dist</code> default)</td>
+<td>s</td>
+<td>64.5 MB</td>
+<td>47 / 23 ms</td>
+</tr>
+<tr class="even">
+<td>without <code>sql</code></td>
+<td>s</td>
+<td>60.4 MB</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>v0.1.0, all features, <code>release</code> profile (no LTO)</td>
 <td>3</td>
 <td>117 MB</td>
 <td></td>
 </tr>
 <tr class="even">
-<td>all features</td>
+<td>v0.1.0, all features</td>
 <td>3</td>
 <td>57.3 MB</td>
 <td>44 / 23 ms</td>
 </tr>
 <tr class="odd">
-<td>all features (<code>dist</code> default)</td>
+<td>v0.1.0, all features (<code>dist</code> default)</td>
 <td>s</td>
 <td>40.2 MB</td>
 <td>45 / 21 ms</td>
 </tr>
 <tr class="even">
-<td>all features</td>
+<td>v0.1.0, all features</td>
 <td>z</td>
 <td>23.9 MB</td>
 <td>86 / 33 ms</td>
 </tr>
 <tr class="odd">
-<td>without <code>fmt</code></td>
+<td>v0.1.0, without <code>fmt</code></td>
 <td>3</td>
 <td>57.2 MB</td>
 <td></td>
 </tr>
 <tr class="even">
-<td>without <code>json</code></td>
+<td>v0.1.0, without <code>json</code></td>
 <td>3</td>
 <td>56.8 MB</td>
 <td></td>
 </tr>
 <tr class="odd">
-<td>without <code>ipc</code></td>
+<td>v0.1.0, without <code>ipc</code></td>
 <td>3</td>
 <td>56.9 MB</td>
 <td></td>
 </tr>
 <tr class="even">
-<td>without <code>parquet</code> and <code>ipc</code></td>
+<td>v0.1.0, without <code>parquet</code> and <code>ipc</code></td>
 <td>3</td>
 <td>52.4 MB</td>
 <td></td>
 </tr>
 <tr class="odd">
-<td>CSV only (no optional features)</td>
+<td>v0.1.0, CSV only (no optional features)</td>
 <td>3</td>
 <td>51.8 MB</td>
 <td></td>
 </tr>
 <tr class="even">
-<td>CSV only (no optional features)</td>
+<td>v0.1.0, CSV only (no optional features)</td>
 <td>s</td>
 <td>35.9 MB</td>
 <td></td>
 </tr>
 </tbody>
 </table>
-<p>The optional features cost little: all of them together add about 5 MB. Most of the size is the Polars query engine, expression set, and data types that the core API needs. The <code>dist</code> profile uses <code>opt-level = "s"</code>, which is 30% smaller than <code>opt-level = 3</code> and as fast on the benchmark above (the <code>read_csv</code> → <code>filter</code> → <code>groupBy</code> pipeline on 1M rows). <code>opt-level = "z"</code> halves the size again but doubles single-threaded time. A clean <code>dist</code> build takes 4–5 minutes on an Apple M5 Ultra.</p>
 
 
 </section>
