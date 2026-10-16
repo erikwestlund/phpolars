@@ -553,6 +553,28 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
         Ok(factory.try_call(vec![&columns])?)
     }
 
+    pub fn writeCsv(&self, file: String, includeHeader: Option<bool>, separator: Option<String>, nullValue: Option<String>) -> PhpResult<()> {
+        crate::io::sink_csv(self.lf(), &file, includeHeader, separator, nullValue)
+    }
+
+    pub fn writeParquet(&self, file: String) -> PhpResult<()> {
+        crate::io::sink_parquet(self.lf(), &file)
+    }
+
+    /// Arrow IPC (Feather v2).
+    pub fn writeIpc(&self, file: String) -> PhpResult<()> {
+        crate::io::sink_ipc(self.lf(), &file)
+    }
+
+    pub fn writeNdjson(&self, file: String) -> PhpResult<()> {
+        crate::io::sink_ndjson(self.lf(), &file)
+    }
+
+    /// A JSON array of row objects.
+    pub fn writeJson(&self, file: String) -> PhpResult<()> {
+        crate::io::write_json(&self.inner, &file)
+    }
+
     pub fn equals(&self, other: &PhpDataFrame, nullEqual: Option<bool>) -> bool {
         if nullEqual.unwrap_or(true) {
             self.inner.equals_missing(&other.inner)
@@ -604,6 +626,22 @@ frame_verbs!(PhpLazyFrame, PhpLazyGroupBy, {
 
     pub fn columns(&self) -> PhpResult<Vec<String>> {
         Ok(self.schema_ref()?.iter_names().map(|n| n.to_string()).collect())
+    }
+
+    pub fn sinkCsv(&self, file: String, includeHeader: Option<bool>, separator: Option<String>, nullValue: Option<String>) -> PhpResult<()> {
+        crate::io::sink_csv(self.lf(), &file, includeHeader, separator, nullValue)
+    }
+
+    pub fn sinkParquet(&self, file: String) -> PhpResult<()> {
+        crate::io::sink_parquet(self.lf(), &file)
+    }
+
+    pub fn sinkIpc(&self, file: String) -> PhpResult<()> {
+        crate::io::sink_ipc(self.lf(), &file)
+    }
+
+    pub fn sinkNdjson(&self, file: String) -> PhpResult<()> {
+        crate::io::sink_ndjson(self.lf(), &file)
     }
 
     pub fn cache(&self) -> Self {

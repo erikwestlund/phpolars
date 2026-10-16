@@ -1,7 +1,6 @@
 <?php
 // php bench/pipeline.php CSV [phibble-autoload]
-// read_csv -> filter x > 500 -> group_by g -> mean(y), count(x) -> toRows, best of 5.
-use Phpolars\DataFrame;
+// read_csv -> filter x > 500 -> group_by g -> mean(y), count(x) -> toDicts, best of 5.
 use function Phpolars\col;
 
 $csv = $argv[1] ?? __DIR__ . '/data.csv';
@@ -22,12 +21,12 @@ function best(callable $f, int $n = 5): array {
 
 $runs = [];
 if (extension_loaded('php_polars')) {
-    $runs['phpolars'] = fn () => DataFrame::readCsv($csv)
+    $runs['phpolars'] = fn () => Phpolars\read_csv($csv)
         ->filter(col('x')->gt(500))
         ->groupBy('g')
-        ->agg([col('y')->mean()->alias('mean_y'), col('x')->count()->alias('n')])
+        ->agg(col('y')->mean()->alias('mean_y'), col('x')->count()->alias('n'))
         ->sort('g')
-        ->toRows();
+        ->toDicts();
 }
 // Plain PHP arrays: a floor for any pure-PHP frame.
 $runs['plain-php'] = function () use ($csv) {

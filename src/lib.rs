@@ -13,6 +13,7 @@ mod error;
 mod expr;
 mod frame;
 mod input;
+mod io;
 mod namespace;
 mod series;
 
@@ -225,7 +226,7 @@ fn startup(_ty: i32, mod_num: i32) -> i32 {
 #[php_module]
 #[php(startup = startup)]
 pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-    let module = error::register(module.name("php_polars"))
+    let module = io::register(error::register(module.name("php_polars")))
         .class::<dtype::PhpDataType>()
         .class::<PhpExpr>()
         .class::<PhpWhen>()
