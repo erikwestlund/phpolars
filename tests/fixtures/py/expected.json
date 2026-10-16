@@ -9953,6 +9953,9 @@
     ],
     [
      "banana"
+    ],
+    [
+     "x"
     ]
    ]
   },
@@ -10101,6 +10104,189 @@
     ]
    ],
    "scalar": true
+  },
+  "selectors": {
+   "columns": [
+    "numeric",
+    "integer",
+    "signed",
+    "unsigned",
+    "float",
+    "decimal",
+    "temporal",
+    "categorical",
+    "nested",
+    "struct",
+    "string",
+    "boolean",
+    "binary",
+    "date",
+    "time",
+    "all",
+    "first",
+    "last",
+    "list",
+    "list_str",
+    "array",
+    "array_w2",
+    "datetime",
+    "datetime_ms",
+    "datetime_utc",
+    "datetime_naive",
+    "duration",
+    "by_dtype",
+    "by_name",
+    "by_index",
+    "starts_with",
+    "ends_with",
+    "contains",
+    "matches",
+    "exclude",
+    "union",
+    "intersect",
+    "difference",
+    "complement",
+    "xor"
+   ],
+   "dtypes": [
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string"
+   ],
+   "rows": [
+    [
+     "id,i8,u32,f32,price_f64,dec",
+     "id,i8,u32",
+     "id,i8",
+     "u32",
+     "f32,price_f64",
+     "dec",
+     "day,ts_us,ts_ms_utc,dur,tm",
+     "cat",
+     "lst,lst_s,arr,st",
+     "st",
+     "name",
+     "flag",
+     "bin",
+     "day",
+     "tm",
+     "id,i8,u32,f32,price_f64,name,flag,day,ts_us,ts_ms_utc,dur,tm,cat,lst,lst_s,arr,st,bin,dec",
+     "id",
+     "dec",
+     "lst,lst_s",
+     "lst_s",
+     "arr",
+     "arr",
+     "ts_us,ts_ms_utc",
+     "ts_ms_utc",
+     "ts_ms_utc",
+     "ts_us",
+     "dur",
+     "id,name",
+     "name,id",
+     "id,dec",
+     "ts_us,ts_ms_utc,lst,lst_s",
+     "ts_ms_utc",
+     "f32,price_f64,flag",
+     "cat,arr,bin",
+     "name,flag,day,ts_us,ts_ms_utc,dur,tm,cat,lst,lst_s,arr,st,bin",
+     "name,flag",
+     "id,i8",
+     "i8,u32,f32,price_f64,dec",
+     "id,i8,u32,f32,price_f64,name,flag,cat,bin,dec",
+     "u32,f32,flag"
+    ]
+   ],
+   "scalar": true
+  },
+  "selectors_in_ops": {
+   "columns": [
+    "x",
+    "y",
+    "k",
+    "y_x2"
+   ],
+   "dtypes": [
+    "Int64",
+    "Float64",
+    "Int64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     3,
+     1.5,
+     2,
+     3.0
+    ],
+    [
+     null,
+     2.25,
+     1,
+     4.5
+    ],
+    [
+     1,
+     null,
+     2,
+     null
+    ],
+    [
+     7,
+     -0.5,
+     null,
+     -1.0
+    ],
+    [
+     2,
+     10.0,
+     3,
+     20.0
+    ],
+    [
+     5,
+     3.0,
+     1,
+     6.0
+    ]
+   ]
   }
  }
 }

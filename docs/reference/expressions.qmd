@@ -24,6 +24,14 @@ Operands of comparison and arithmetic methods may be an `Expr` or a PHP value. P
 
 {{< include ../examples/_nested.md >}}
 
+## Selectors
+
+Selectors pick columns by type, name, or position, as py-polars' `polars.selectors` does. They live in the `Phpolars\cs` namespace, so `use Phpolars\cs;` makes them read like py's `cs.numeric()`. A selector is an `Expr`. `or()`, `and()`, `xor()`, `sub()`, and `not()` combine two selectors as sets. PHP reserves `list`, `array`, and `empty`, so those selectors are named `list_()`, `array_()`, and `empty_()`.
+
+{{< include ../examples/_selectors.md >}}
+
+{{< include _api-selectors.md >}}
+
 ## Functions
 
 {{< include _api-functions.md >}}

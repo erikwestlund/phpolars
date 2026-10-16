@@ -20,6 +20,7 @@ mod frame;
 mod input;
 mod io;
 mod namespace;
+mod selectors;
 mod series;
 
 use expr::{PhpExpr, PhpThen, PhpWhen, wrap};
@@ -665,7 +666,7 @@ unsafe extern "C" fn request_startup(_ty: i32, _module_number: i32) -> i32 {
 #[php_module]
 #[php(startup = startup)]
 pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-    let module = io::register(error::register(module.name("php_polars")))
+    let module = selectors::register(io::register(error::register(module.name("php_polars"))))
         .class::<dtype::PhpDataType>()
         .class::<PhpExpr>()
         .class::<PhpWhen>()

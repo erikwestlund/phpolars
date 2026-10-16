@@ -941,3 +941,70 @@ namespace Phpolars\Exception {
         public function __construct() {}
     }
 }
+
+namespace Phpolars\cs {
+
+    function numeric(): Phpolars\Expr {}
+
+    function integer(): Phpolars\Expr {}
+
+    function signed_integer(): Phpolars\Expr {}
+
+    function unsigned_integer(): Phpolars\Expr {}
+
+    function float(): Phpolars\Expr {}
+
+    function decimal(): Phpolars\Expr {}
+
+    function temporal(): Phpolars\Expr {}
+
+    function categorical(): Phpolars\Expr {}
+
+    function enum_(): Phpolars\Expr {}
+
+    function nested(): Phpolars\Expr {}
+
+    function struct_(): Phpolars\Expr {}
+
+    function string(): Phpolars\Expr {}
+
+    function boolean(): Phpolars\Expr {}
+
+    function binary(): Phpolars\Expr {}
+
+    function date(): Phpolars\Expr {}
+
+    function time(): Phpolars\Expr {}
+
+    function all(): Phpolars\Expr {}
+
+    function empty_(): Phpolars\Expr {}
+
+    function first(): Phpolars\Expr {}
+
+    function last(): Phpolars\Expr {}
+
+    function list_(?Phpolars\Expr $inner = null): Phpolars\Expr {}
+
+    function array_(?Phpolars\Expr $inner = null, ?int $width = null): Phpolars\Expr {}
+
+    function datetime(mixed $timeUnit = null, mixed $timeZone = null): Phpolars\Expr {}
+
+    function duration(mixed $timeUnit = null): Phpolars\Expr {}
+
+    function by_dtype(mixed ...$dtypes_): Phpolars\Expr {}
+
+    function by_name(mixed $names_, ?bool $requireAll = null): Phpolars\Expr {}
+
+    function by_index(mixed $indices, ?bool $requireAll = null): Phpolars\Expr {}
+
+    function starts_with(mixed ...$prefix): Phpolars\Expr {}
+
+    function ends_with(mixed ...$suffix): Phpolars\Expr {}
+
+    function contains(mixed ...$substring): Phpolars\Expr {}
+
+    function matches(string $pattern): Phpolars\Expr {}
+
+    function exclude(mixed ...$columns): Phpolars\Expr {}
+}

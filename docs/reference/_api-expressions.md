@@ -365,3 +365,65 @@ toLowercase(): Phpolars\Expr
 toUppercase(): Phpolars\Expr
 ```
 
+### `Phpolars\CatNameSpace`
+
+```php
+endsWith(string $suffix): mixed
+getCategories(): mixed
+lenBytes(): mixed
+lenChars(): mixed
+slice(int $offset, ?int $length = null): mixed
+startsWith(string $prefix): mixed
+```
+
+### `Phpolars\ArrayNameSpace`
+
+```php
+agg(mixed $expr): mixed
+all(?bool $ignoreNulls = null): mixed
+any(?bool $ignoreNulls = null): mixed
+argMax(): mixed
+argMin(): mixed
+contains(mixed $item, ?bool $nullsEqual = null): mixed
+countMatches(mixed $element): mixed
+eval(mixed $expr, ?bool $asList = null): mixed
+explode(): mixed
+first(): mixed
+get(mixed $index, ?bool $nullOnOob = null): mixed
+head(?int $n = null, ?bool $asArray = null): mixed
+join(mixed $separator, ?bool $ignoreNulls = null): mixed
+last(): mixed
+len(): mixed
+max(): mixed
+mean(): mixed
+median(): mixed
+min(): mixed
+nUnique(): mixed
+reverse(): mixed
+shift(mixed $n = null): mixed
+slice(mixed $offset, mixed $length = null, ?bool $asArray = null): mixed
+sort(?bool $descending = null, ?bool $nullsLast = null): mixed
+std(?int $ddof = null): mixed
+sum(): mixed
+tail(?int $n = null, ?bool $asArray = null): mixed
+toList(): mixed
+toStruct(): mixed
+unique(?bool $maintainOrder = null): mixed
+var(?int $ddof = null): mixed
+```
+
+### `Phpolars\BinaryNameSpace`
+
+```php
+contains(mixed $literal): mixed
+decode(string $encoding, ?bool $strict = null): mixed
+encode(string $encoding): mixed
+endsWith(mixed $suffix): mixed
+get(mixed $index, ?bool $nullOnOob = null): mixed
+head(?int $n = null): mixed
+size(?string $unit = null): mixed
+slice(mixed $offset, mixed $length = null): mixed
+startsWith(mixed $prefix): mixed
+tail(?int $n = null): mixed
+```
+

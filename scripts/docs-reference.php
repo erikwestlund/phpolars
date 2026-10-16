@@ -33,7 +33,7 @@ function methods(string $class): string
 
 $pages = [
     'dataframe' => ['Phpolars\\DataFrame', 'Phpolars\\LazyFrame', 'Phpolars\\GroupBy', 'Phpolars\\LazyGroupBy'],
-    'expressions' => ['Phpolars\\Expr', 'Phpolars\\When', 'Phpolars\\Then', 'Phpolars\\StrNameSpace', 'Phpolars\\DtNameSpace', 'Phpolars\\ListNameSpace', 'Phpolars\\StructNameSpace', 'Phpolars\\NameNameSpace'],
+    'expressions' => ['Phpolars\\Expr', 'Phpolars\\When', 'Phpolars\\Then', 'Phpolars\\StrNameSpace', 'Phpolars\\DtNameSpace', 'Phpolars\\ListNameSpace', 'Phpolars\\StructNameSpace', 'Phpolars\\NameNameSpace', 'Phpolars\\CatNameSpace', 'Phpolars\\ArrayNameSpace', 'Phpolars\\BinaryNameSpace'],
     'series' => ['Phpolars\\Series'],
 ];
 foreach ($pages as $page => $classes) {
@@ -48,10 +48,13 @@ $functions = array_filter(get_extension_funcs('php_polars'), fn ($f) => str_star
 $io = ['read_', 'scan_'];
 $expr = [];
 $read = [];
+$selectors = [];
 foreach ($functions as $f) {
     $r = new ReflectionFunction($f);
     $line = sig($r);
-    if (array_any($io, fn ($p) => str_starts_with($r->getShortName(), $p))) {
+    if ($r->getNamespaceName() === 'Phpolars\\cs') {
+        $selectors[] = 'cs\\'.$line;
+    } elseif (array_any($io, fn ($p) => str_starts_with($r->getShortName(), $p))) {
         $read[] = $line;
     } else {
         $expr[] = $line;
@@ -59,6 +62,8 @@ foreach ($functions as $f) {
 }
 sort($expr);
 sort($read);
+sort($selectors);
+file_put_contents("{$out}/_api-selectors.md", "```php\n".implode("\n", $selectors)."\n```\n");
 file_put_contents("{$out}/_api-functions.md", "```php\n".implode("\n", $expr)."\n```\n");
 file_put_contents("{$out}/_api-io.md", "```php\n".implode("\n", $read)."\n```\n");
 echo "wrote reference signatures\n";

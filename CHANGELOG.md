@@ -8,10 +8,11 @@
 - Expressions: `cut`, `qcut`, `rle`, `rleId`, `searchSorted`, `peakMax`, `peakMin`, `entropy`, `hist`, `interpolateBy`, `isClose`, `argUnique`, `indexOf`, `upperBound`, `lowerBound`, `toPhysical`, `limit`, `exclude`, and the hyperbolic and degree functions.
 - Namespaces: `str` adds `containsAny`, `replaceMany`, `extractMany`, `findMany`, `extractGroups`, `splitExact`, `encode`, `decode`, `toDecimal`, `normalize`, `jsonDecode`, `jsonPathMatch`, and `escapeRegex`. `dt` adds `addBusinessDays`, `isBusinessDay`, `combine`, `replace`, `withTimeUnit`, `millennium`, `century`, `daysInMonth`, `baseUtcOffset`, `dstOffset`, and `totalNanoseconds`. `list` adds `any`, `all`, `filter`, `sample`, `gatherEvery`, `toArray`, and `agg`. New `cat`, `arr`, and `bin` namespaces cover Categorical, Array, and Binary columns.
 - `Series` runs any `Expr` method it does not define itself, so every expression method works on a Series. Reductions such as `skew()` return a PHP value.
+- Selectors in `Phpolars\cs`, as py's `polars.selectors`: by type (`numeric`, `integer`, `float`, `string`, `temporal`, `datetime`, `list_`, `array_`, and more), by name and position (`by_name`, `by_index`, `first`, `last`), and by pattern (`starts_with`, `ends_with`, `contains`, `matches`). `or()`, `and()`, `xor()`, `sub()`, and `not()` combine selectors as sets.
 - IO options: `read_csv` and `scan_csv` add `schema`, `commentPrefix`, `quoteChar`, `eolChar`, `encoding`, `ignoreErrors`, `missingUtf8IsEmptyString`, `truncateRaggedLines`, `decimalComma`, `rowIndexName`, `rowIndexOffset`, `skipRowsAfterHeader`, `newColumns`, `raiseIfEmpty`, and `glob`. Parquet reads add `rowIndexName`, `parallel`, `useStatistics`, `hivePartitioning`, `glob`, `allowMissingColumns`, and `includeFilePaths`. IPC reads add `columns` and a row index. NDJSON and JSON reads take a `schema` and `schemaOverrides`. `writeCsv` and `sinkCsv` add `quoteChar`, `dateFormat`, `datetimeFormat`, `timeFormat`, `floatScientific`, `floatPrecision`, `decimalComma`, `lineTerminator`, `quoteStyle`, and `includeBom`. `writeParquet` and `sinkParquet` add `compression`, `compressionLevel`, `statistics`, and `rowGroupSize`.
 - Data type strings accept `Array(Int64, 3)`, `Struct(a: Int64, b: String)`, `Int128`, and `UInt128`.
 - Lists of dates and datetimes convert to PHP `DateTimeImmutable` values; some list results had come back as raw integers.
-- 244 cases are compared against py-polars 1.43.2, and all match.
+- 246 cases are compared against py-polars 1.43.2, and all match.
 
 ## 0.1.0
 

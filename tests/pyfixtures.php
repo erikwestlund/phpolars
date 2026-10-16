@@ -5,6 +5,7 @@
 require __DIR__ . '/harness.php';
 
 use Phpolars\{DataFrame, Series};
+use Phpolars\cs;
 use function Phpolars\{col, lit, when, len, element, concat, concat_str, coalesce, concat_list, struct_};
 use function Phpolars\{sum_horizontal, mean_horizontal, min_horizontal, max_horizontal};
 use function Phpolars\{date_range, date_ranges, datetime_range, int_ranges, date, datetime, duration, from_epoch, arg_where, corr, cov, nth, repeat, linear_space, select, std, quantile, implode, approx_n_unique};
@@ -41,6 +42,15 @@ $words = new DataFrame(['w' => ['the quick fox', 'Lazy DOG', null, 'a.b*c', 'caf
 $days = new DataFrame(['d' => [$dt('2024-01-05'), $dt('2024-02-29'), $dt('1999-12-31'), null]])->cast(['d' => 'Date']);
 $arrs = new DataFrame(['a' => [[1, 5, 2], [4, null, 4], null]], schema: ['a' => 'Array(Int64, 3)']);
 $cats = new DataFrame(['c' => ['apple', 'banana', 'apple', null]], schema: ['c' => 'Categorical']);
+$wide = new DataFrame([
+    'id' => [1], 'i8' => [1], 'u32' => [1], 'f32' => [1.0], 'price_f64' => [1.0], 'name' => ['a'], 'flag' => [true],
+    'day' => [$dt('2024-01-01')], 'ts_us' => [$dt('2024-01-01')], 'ts_ms_utc' => [$dt('2024-01-01')],
+    'dur' => [86_400_000_000], 'tm' => ['01:02:00'], 'cat' => ['x'], 'lst' => [[1, 2]], 'lst_s' => [['a']],
+    'arr' => [[1, 2]], 'st' => [['a' => 1]], 'bin' => ['x'], 'dec' => [1],
+], schema: [
+    'i8' => 'Int8', 'u32' => 'UInt32', 'f32' => 'Float32', 'day' => 'Date', 'ts_ms_utc' => 'Datetime(ms, UTC)', 'dur' => 'Duration(us)',
+    'cat' => 'Categorical', 'arr' => 'Array(Int64, 2)', 'bin' => 'Binary', 'dec' => 'Decimal(10, 2)',
+])->withColumns(col('tm')->str()->toTime('%H:%M:%S'));
 $tsf = new DataFrame([
     't' => array_map($dt, ['2024-01-01 00:00', '2024-01-01 01:00', '2024-01-01 03:00', '2024-01-02 00:00', '2024-01-02 05:00', '2024-01-04 00:00']),
     'g' => ['a', 'b', 'a', 'a', 'b', 'a'],
@@ -680,6 +690,24 @@ $cases = [
         'nan_max' => $ys->nanMax(), 'approx' => $gs->approxNUnique(), 'index_of' => $xs->indexOf(7),
         'search' => $xs->dropNulls()->sort()->searchSorted(4),
     ],
+
+    // selectors
+    'selectors' => fn () => array_map(fn ($sel) => \implode(',', $wide->select($sel)->columns()), [
+        'numeric' => cs\numeric(), 'integer' => cs\integer(), 'signed' => cs\signed_integer(), 'unsigned' => cs\unsigned_integer(),
+        'float' => cs\float(), 'decimal' => cs\decimal(), 'temporal' => cs\temporal(), 'categorical' => cs\categorical(),
+        'nested' => cs\nested(), 'struct' => cs\struct_(), 'string' => cs\string(), 'boolean' => cs\boolean(), 'binary' => cs\binary(),
+        'date' => cs\date(), 'time' => cs\time(), 'all' => cs\all(), 'first' => cs\first(), 'last' => cs\last(),
+        'list' => cs\list_(), 'list_str' => cs\list_(cs\string()), 'array' => cs\array_(), 'array_w2' => cs\array_(width: 2),
+        'datetime' => cs\datetime(), 'datetime_ms' => cs\datetime('ms'), 'datetime_utc' => cs\datetime(timeZone: 'UTC'),
+        'datetime_naive' => cs\datetime(timeZone: null), 'duration' => cs\duration(),
+        'by_dtype' => cs\by_dtype('Int64', 'String'), 'by_name' => cs\by_name(['name', 'id']),
+        'by_index' => cs\by_index([0, -1]), 'starts_with' => cs\starts_with('ts_', 'lst'), 'ends_with' => cs\ends_with('_utc'),
+        'contains' => cs\contains('f'), 'matches' => cs\matches('^[a-c]'), 'exclude' => cs\exclude('id', cs\numeric()),
+        'union' => cs\string()->or(cs\boolean()), 'intersect' => cs\numeric()->and(cs\starts_with('i')),
+        'difference' => cs\numeric()->sub(cs\by_name('id')), 'complement' => cs\temporal()->not()->and(cs\nested()->not()),
+        'xor' => cs\integer()->xor(cs\starts_with('i', 'f')),
+    ]),
+    'selectors_in_ops' => fn () => $S(cs\numeric()->sub(cs\by_name('id')))->withColumns(cs\float()->mul(2)->name()->suffix('_x2')),
 ];
 
 // ---------------------------------------------------------------------------

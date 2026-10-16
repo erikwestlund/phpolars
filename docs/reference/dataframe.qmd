@@ -23,6 +23,12 @@ A `schema` argument names columns and sets their types.
 
 {{< include ../examples/_joins.md >}}
 
+## Time series
+
+`groupByDynamic()` groups rows into fixed time windows, and `rolling()` gives each row a window that ends at it. `joinAsof()` matches each row to the nearest earlier (or later, or nearest) row of another frame, optionally within `by` groups and a `tolerance`. Durations are py-polars strings such as `'1d'`, `'2h30m'`, `'1w'`, and `'1mo'`. Expressions add the `rolling*By()` family and `ewmMean()`. The functions `date_range()` and `datetime_range()` build calendars.
+
+{{< include ../examples/_time-series.md >}}
+
 ## Reshaping
 
 {{< include ../examples/_reshape.md >}}

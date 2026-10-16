@@ -18,6 +18,7 @@ import warnings
 from pathlib import Path
 
 import polars as pl
+import polars.selectors as cs
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -730,6 +731,37 @@ simple("series_scalar_reductions", lambda: {
     "nan_max": ys.nan_max(), "approx": gs.approx_n_unique(), "index_of": xs.index_of(7),
     "search": xs.drop_nulls().sort().search_sorted(4),
 })
+
+
+# selectors
+wide = pl.DataFrame(
+    {
+        "id": [1], "i8": [1], "u32": [1], "f32": [1.0], "price_f64": [1.0], "name": ["a"], "flag": [True],
+        "day": [dt.date(2024, 1, 1)], "ts_us": [dt.datetime(2024, 1, 1)], "ts_ms_utc": [dt.datetime(2024, 1, 1)],
+        "dur": [dt.timedelta(days=1)], "tm": [dt.time(1, 2)], "cat": ["x"], "lst": [[1, 2]], "lst_s": [["a"]],
+        "arr": [[1, 2]], "st": [{"a": 1}], "bin": [b"x"], "dec": [1],
+    },
+    schema_overrides={
+        "i8": pl.Int8, "u32": pl.UInt32, "f32": pl.Float32, "ts_ms_utc": pl.Datetime("ms", "UTC"), "cat": pl.Categorical,
+        "arr": pl.Array(pl.Int64, 2), "dec": pl.Decimal(10, 2),
+    },
+)
+simple("selectors", lambda: {k: ",".join(wide.select(v).columns) for k, v in {
+    "numeric": cs.numeric(), "integer": cs.integer(), "signed": cs.signed_integer(), "unsigned": cs.unsigned_integer(),
+    "float": cs.float(), "decimal": cs.decimal(), "temporal": cs.temporal(), "categorical": cs.categorical(),
+    "nested": cs.nested(), "struct": cs.struct(), "string": cs.string(), "boolean": cs.boolean(), "binary": cs.binary(),
+    "date": cs.date(), "time": cs.time(), "all": cs.all(), "first": cs.first(), "last": cs.last(),
+    "list": cs.list(), "list_str": cs.list(cs.string()), "array": cs.array(), "array_w2": cs.array(width=2),
+    "datetime": cs.datetime(), "datetime_ms": cs.datetime("ms"), "datetime_utc": cs.datetime(time_zone="UTC"),
+    "datetime_naive": cs.datetime(time_zone=None), "duration": cs.duration(),
+    "by_dtype": cs.by_dtype(pl.Int64, pl.String), "by_name": cs.by_name("name", "id"),
+    "by_index": cs.by_index(0, -1), "starts_with": cs.starts_with("ts_", "lst"), "ends_with": cs.ends_with("_utc"),
+    "contains": cs.contains("f"), "matches": cs.matches("^[a-c]"), "exclude": cs.exclude("id", cs.numeric()),
+    "union": cs.string() | cs.boolean(), "intersect": cs.numeric() & cs.starts_with("i"),
+    "difference": cs.numeric() - cs.by_name("id"), "complement": ~cs.temporal() & ~cs.nested(),
+    "xor": cs.integer() ^ cs.starts_with("i", "f"),
+}.items()})
+simple("selectors_in_ops", lambda: base.select(cs.numeric() - cs.by_name("id")).with_columns((cs.float() * 2).name.suffix("_x2")))
 
 
 

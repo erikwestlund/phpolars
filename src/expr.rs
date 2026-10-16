@@ -24,6 +24,23 @@ pub fn wrap(inner: Expr) -> PhpExpr {
     PhpExpr { inner }
 }
 
+impl PhpExpr {
+    /// A set operation when this and other are selectors, as py's selector
+    /// operators; None otherwise. `columns` lets a col() Expr count as a selector.
+    fn selector_op(
+        &self,
+        other: &Zval,
+        columns: bool,
+        f: impl Fn(Selector, Selector) -> Selector,
+    ) -> Option<Self> {
+        let Expr::Selector(a) = &self.inner else {
+            return None;
+        };
+        let b = crate::selectors::as_selector(other, columns)?;
+        Some(wrap(f(a.clone(), b).as_expr()))
+    }
+}
+
 pub fn quantile_method(s: Option<String>) -> PhpResult<QuantileMethod> {
     Ok(match s.as_deref().unwrap_or("nearest") {
         "nearest" => QuantileMethod::Nearest,
@@ -224,7 +241,11 @@ impl PhpExpr {
         Ok(wrap(self.inner.clone() + operand(other)?))
     }
 
+    /// Subtraction; on two selectors, set difference: cs\numeric()->sub(cs\by_name('id')).
     pub fn sub(&self, other: &Zval) -> PhpResult<Self> {
+        if let Some(s) = self.selector_op(other, false, |a, b| a - b) {
+            return Ok(s);
+        }
         Ok(wrap(self.inner.clone() - operand(other)?))
     }
 
@@ -310,20 +331,35 @@ impl PhpExpr {
 
     // Boolean.
 
+    /// Logical and; on two selectors, their intersection.
     pub fn and(&self, other: &Zval) -> PhpResult<Self> {
+        if let Some(s) = self.selector_op(other, true, |a, b| a & b) {
+            return Ok(s);
+        }
         Ok(wrap(self.inner.clone().and(operand(other)?)))
     }
 
+    /// Logical or; on two selectors, their union.
     pub fn or(&self, other: &Zval) -> PhpResult<Self> {
+        if let Some(s) = self.selector_op(other, true, |a, b| a | b) {
+            return Ok(s);
+        }
         Ok(wrap(self.inner.clone().or(operand(other)?)))
     }
 
     pub fn xor(&self, other: &Zval) -> PhpResult<Self> {
+        if let Some(s) = self.selector_op(other, true, |a, b| a ^ b) {
+            return Ok(s);
+        }
         Ok(wrap(self.inner.clone().xor(operand(other)?)))
     }
 
+    /// Logical not; on a selector, every other column.
     pub fn not(&self) -> Self {
-        wrap(self.inner.clone().not())
+        match &self.inner {
+            Expr::Selector(s) => wrap((!s.clone()).as_expr()),
+            e => wrap(e.clone().not()),
+        }
     }
 
     pub fn any(&self, ignoreNulls: Option<bool>) -> Self {
