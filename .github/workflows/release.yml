@@ -57,3 +57,53 @@ jobs:
         with:
           name: phpolars-source
           path: dist/
+
+  publish:
+    needs: source
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Create the GitHub release with source and binaries
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          python3 - "$version" > notes.md <<'PY'
+          import re, sys
+          text = open('CHANGELOG.md').read()
+          match = re.search(r'^## ' + re.escape(sys.argv[1]) + r'\n(.*?)(?=^## |\Z)', text, re.S | re.M)
+          print(match.group(1).strip() if match else 'Release ' + sys.argv[1])
+          PY
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md \
+            artifacts/phpolars-source/* artifacts/linux-*-nts-bookworm/*
+
+  verify-release:
+    needs: publish
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: x86_64
+          - runner: ubuntu-24.04-arm
+            arch: aarch64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the attached binary into a clean PHP 8.5 image
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p release
+          gh release download "$GITHUB_REF_NAME" --dir release --pattern "php_polars-*-${{ matrix.arch }}-nts-bookworm.*"
+          cd release && sha256sum -c ./*.sha256 && tar -xzf ./*.tar.gz && cd ..
+          docker run --rm -v "$PWD:/src:ro" php:8.5-fpm-bookworm@sha256:dd198c828c224e479bdaa184cdcf04a28c73d186bf5a885493bf9cc78d7196ef sh -c '
+            cp /src/release/php_polars-*/php_polars.so "$(php-config --extension-dir)/" &&
+            echo "extension=php_polars.so" > /usr/local/etc/php/conf.d/php_polars.ini &&
+            php /src/tests/deployment.php'
