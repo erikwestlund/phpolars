@@ -553,6 +553,88 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
         Ok(factory.try_call(vec![&columns])?)
     }
 
+    /// Summary statistics per column, as py's describe().
+    pub fn describe(&self, percentiles: Option<Vec<f64>>) -> PhpResult<Self> {
+        describe(&self.inner, percentiles.unwrap_or_else(|| vec![0.25, 0.5, 0.75]))
+    }
+
+    /// pivot(on: 'k', index: 'id', values: 'v', aggregateFunction: 'sum')
+    pub fn pivot(&self, on: &Zval, index: Option<&Zval>, values: Option<&Zval>, aggregateFunction: Option<&Zval>, sortColumns: Option<bool>, separator: Option<String>, maintainOrder: Option<bool>) -> PhpResult<Self> {
+        let on = names(&[on])?;
+        let schema = self.inner.schema();
+        let index = opt_names(index)?;
+        let values = opt_names(values)?;
+        let all_names: Vec<String> = schema.iter_names().map(|n| n.to_string()).collect();
+        let (index, values) = match (index, values) {
+            (Some(i), Some(v)) => (i, v),
+            (Some(i), None) => {
+                let v = all_names.iter().filter(|n| !on.contains(n) && !i.contains(n)).cloned().collect();
+                (i, v)
+            }
+            (None, Some(v)) => {
+                let i = all_names.iter().filter(|n| !on.contains(n) && !v.contains(n)).cloned().collect();
+                (i, v)
+            }
+            (None, None) => return Err(value_error("pivot() needs index or values")),
+        };
+        let agg = match given(aggregateFunction) {
+            None => element().first(),
+            Some(f) => match f.str() {
+                Some("first") => element().first(),
+                Some("last") => element().last(),
+                Some("sum") => element().sum(),
+                Some("mean") => element().mean(),
+                Some("median") => element().median(),
+                Some("min") => element().min(),
+                Some("max") => element().max(),
+                Some("len") => element().len(),
+                Some(other) => return Err(value_error(format!("unknown aggregate function '{other}'"))),
+                None => into_expr(f)?,
+            },
+        };
+        let mut on_columns = self.inner.select(on.iter().map(|s| s.as_str())).php()?.unique_stable(None, UniqueKeepStrategy::First, None).php()?;
+        if sortColumns.unwrap_or(false) {
+            on_columns = on_columns.sort(on.clone(), SortMultipleOptions::default()).php()?;
+        }
+        let lf = self.lf().pivot(
+            selector(on),
+            std::sync::Arc::new(on_columns),
+            selector(index),
+            selector(values),
+            agg,
+            maintainOrder.unwrap_or(true),
+            separator.unwrap_or_else(|| "_".into()).into(),
+            polars_core::frame::PivotColumnNaming::Auto,
+        );
+        Self::out(lf)
+    }
+
+    /// Rows become columns. includeHeader keeps the old names in headerName.
+    pub fn transpose(&self, includeHeader: Option<bool>, headerName: Option<String>, columnNames: Option<&Zval>) -> PhpResult<Self> {
+        let header = headerName.unwrap_or_else(|| "column".into());
+        let keep = if includeHeader.unwrap_or(false) { Some(header.as_str()) } else { None };
+        let new_names = match given(columnNames) {
+            None => None,
+            Some(v) => match v.str() {
+                Some(c) => Some(either::Either::Left(c.to_string())),
+                None => Some(either::Either::Right(names(&[v])?)),
+            },
+        };
+        let mut df = self.inner.clone();
+        df.transpose(keep, new_names).php().map(Self::wrap)
+    }
+
+    pub fn sample(&self, n: Option<i64>, fraction: Option<f64>, withReplacement: Option<bool>, shuffle: Option<bool>, seed: Option<i64>) -> PhpResult<Self> {
+        let wr = withReplacement.unwrap_or(false);
+        let seed = seed.map(|s| s as u64);
+        let out = match (n, fraction) {
+            (Some(_), Some(_)) => return Err(value_error("sample() takes n or fraction, not both")),
+            (_, Some(f)) => self.inner.sample_frac(&Series::new("frac".into(), [f]), wr, shuffle, seed),
+            (n, None) => self.inner.sample_n_literal(n.unwrap_or(1).max(0) as usize, wr, shuffle, seed),
+        };
+        out.php().map(Self::wrap)
+    }
+
     pub fn writeCsv(&self, file: String, includeHeader: Option<bool>, separator: Option<String>, nullValue: Option<String>) -> PhpResult<()> {
         crate::io::sink_csv(self.lf(), &file, includeHeader, separator, nullValue)
     }
@@ -791,6 +873,60 @@ pub fn concat(items: &ZendHashTable, how: Option<String>) -> PhpResult<Zval> {
     } else {
         Ok(PhpLazyFrame::wrap(lf).into_zval(false)?)
     }
+}
+
+/// py describe(): count, null_count, mean, std, min, percentiles, and max per
+/// column. Numeric columns give floats; any other column turns the table into
+/// strings, as in py.
+fn describe(df: &DataFrame, percentiles: Vec<f64>) -> PhpResult<PhpDataFrame> {
+    let mut stats: Vec<String> = vec!["count".into(), "null_count".into(), "mean".into(), "std".into(), "min".into()];
+    for p in &percentiles {
+        stats.push(format!("{}%", p * 100.0));
+    }
+    stats.push("max".into());
+    let mut exprs = Vec::new();
+    let mut numeric = Vec::new();
+    for c in df.columns() {
+        let name = c.name().as_str();
+        let is_num = c.dtype().is_primitive_numeric() || c.dtype().is_bool();
+        numeric.push(is_num);
+        let x = if c.dtype().is_bool() { col(name).cast(DataType::Float64) } else { col(name) };
+        let nan = || lit(Null {});
+        let mut row = vec![
+            col(name).count().cast(DataType::Float64),
+            col(name).null_count().cast(DataType::Float64),
+            if is_num { x.clone().mean() } else { nan() },
+            if is_num { x.clone().std(1) } else { nan() },
+            if c.dtype().is_nested() { nan() } else { x.clone().min() },
+        ];
+        for p in &percentiles {
+            row.push(if is_num { x.clone().quantile(lit(*p), QuantileMethod::Nearest) } else { nan() });
+        }
+        row.push(if c.dtype().is_nested() { nan() } else { x.clone().max() });
+        for (i, e) in row.into_iter().enumerate() {
+            let e = if is_num { e.cast(DataType::Float64) } else { e.cast(DataType::String) };
+            exprs.push(e.alias(format!("{name}\u{0}{i}")));
+        }
+    }
+    init_threads();
+    let one = df.clone().lazy().select(exprs).collect().php()?;
+    let any_text = numeric.iter().any(|n| !n);
+    let mut columns: Vec<Column> = vec![Series::new("statistic".into(), stats.clone()).into()];
+    for (ci, c) in df.columns().iter().enumerate() {
+        let mut vals = Vec::with_capacity(stats.len());
+        for i in 0..stats.len() {
+            let s = one.column(&format!("{}\u{0}{i}", c.name())).php()?.as_materialized_series().clone();
+            let s = if any_text { s.cast(&DataType::String).php()? } else { s };
+            vals.push(s);
+        }
+        let mut out = vals[0].clone();
+        for v in &vals[1..] {
+            out.append(v).php()?;
+        }
+        let _ = ci;
+        columns.push(out.with_name(c.name().clone()).into());
+    }
+    DataFrame::new_infer_height(columns).php().map(PhpDataFrame::wrap)
 }
 
 /// Convenience for exprs that take an IntoExpr argument.

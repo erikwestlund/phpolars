@@ -1958,6 +1958,7 @@ name = "php-polars"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "either",
  "ext-php-rs",
  "polars",
  "polars-core",

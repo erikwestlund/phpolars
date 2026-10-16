@@ -101,3 +101,18 @@ same('lazy groupBy', $df->lazy()->groupBy('g', maintainOrder: true)->agg(col('x'
 same('equals', $df->equals($df->clone()), true);
 same('not equals', $df->equals($df->head(2)), false);
 same('threads capped by INI', Phpolars\thread_pool_size(), (int) (getenv('POLARS_MAX_THREADS') ?: ini_get('php_polars.max_threads')));
+
+// Reshaping and summaries
+$w = new DataFrame(['id' => [1, 1, 2, 2], 'k' => ['a', 'b', 'a', 'b'], 'v' => [10, 20, 30, null]]);
+same('pivot', $w->pivot('k', index: 'id', values: 'v')->toDicts(), [['id' => 1, 'a' => 10, 'b' => 20], ['id' => 2, 'a' => 30, 'b' => null]]);
+same('pivot sum', $w->pivot('k', index: 'id', values: 'v', aggregateFunction: 'sum')->getColumn('a')->toList(), [10, 30]);
+same('pivot expr agg', $w->pivot('k', index: 'id', values: 'v', aggregateFunction: Phpolars\element()->max())->getColumn('b')->toList(), [20, null]);
+same('transpose', $w->select('id', 'v')->transpose(includeHeader: true)->row(1), ['v', 10, 20, 30, null]);
+same('transpose names', $w->select('v')->head(2)->transpose(columnNames: ['p', 'q'])->columns(), ['p', 'q']);
+same('sample n', $w->sample(3, seed: 7)->height(), 3);
+same('sample fraction', $w->sample(fraction: 0.5, seed: 7)->height(), 2);
+same('sample seeded', $w->sample(2, seed: 1)->toDicts(), $w->sample(2, seed: 1)->toDicts());
+$d = $w->select('id', 'v')->describe();
+same('describe stats', $d->getColumn('statistic')->toList(), ['count', 'null_count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max']);
+same('describe numeric', $d->getColumn('v')->toList(), [3.0, 1.0, 20.0, 10.0, 10.0, 20.0, 20.0, 30.0, 30.0]);
+same('describe mixed is strings', $w->describe()->dtypes(), ['String', 'String', 'String', 'String']);

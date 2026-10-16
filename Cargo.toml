@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 chrono = { version = "0.4", default-features = false }
+either = "1"
 ext-php-rs = "0.16"
 polars = { version = "=0.55.2", default-features = false, features = [
     "csv", "lazy", "strings", "temporal", "dtype-date", "dtype-datetime", "dtype-duration", "dtype-time", "dtype-struct", "dtype-categorical", "dtype-i8", "dtype-i16", "dtype-u8", "dtype-u16", "dtype-i128", "dtype-decimal", "dtype-u128", "is_in", "cross_join", "semi_anti_join", "pivot", "cum_agg", "rank", "round_series", "abs", "log", "diff", "pct_change", "mode", "unique_counts", "concat_str", "string_pad", "regex", "replace", "diagonal_concat", "range", "random", "list_eval", "list_gather", "list_count", "list_sets", "list_drop_nulls", "is_unique", "is_first_distinct", "is_between", "moment", "product", "sign", "top_k", "cov", "rolling_window", "interpolate", "zip_with", "dataframe_arithmetic", "propagate_nans", "trigonometry", "rows", "describe", "string_reverse", "string_to_integer", "extract_jsonpath", "is_last_distinct", "repeat_by", "arg_where", "offset_by", "month_start", "month_end", "dtype-array", "list_to_struct", "coalesce", "find_many", "ewma", "peaks", "search_sorted", "approx_unique", "rle", "cutqcut", "meta", "to_dummies", "partition_by", "index_of", "hist", "list_sample",
