@@ -2,15 +2,15 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://erikwestlund.github.io/phpolars/reference/types.html</loc>
-    <lastmod>2026-10-16T10:59:48.011Z</lastmod>
+    <lastmod>2026-10-16T14:33:26.667Z</lastmod>
   </url>
   <url>
     <loc>https://erikwestlund.github.io/phpolars/reference/io.html</loc>
-    <lastmod>2026-10-16T08:05:01.658Z</lastmod>
+    <lastmod>2026-10-16T14:20:53.465Z</lastmod>
   </url>
   <url>
     <loc>https://erikwestlund.github.io/phpolars/reference/dataframe.html</loc>
-    <lastmod>2026-10-16T08:05:01.646Z</lastmod>
+    <lastmod>2026-10-16T14:21:14.936Z</lastmod>
   </url>
   <url>
     <loc>https://erikwestlund.github.io/phpolars/performance.html</loc>
@@ -26,11 +26,11 @@
   </url>
   <url>
     <loc>https://erikwestlund.github.io/phpolars/coming-from-python.html</loc>
-    <lastmod>2026-10-16T08:03:56.787Z</lastmod>
+    <lastmod>2026-10-16T14:33:58.071Z</lastmod>
   </url>
   <url>
     <loc>https://erikwestlund.github.io/phpolars/development.html</loc>
-    <lastmod>2026-10-16T11:00:35.999Z</lastmod>
+    <lastmod>2026-10-16T13:49:41.754Z</lastmod>
   </url>
   <url>
     <loc>https://erikwestlund.github.io/phpolars/index.html</loc>
@@ -42,7 +42,7 @@
   </url>
   <url>
     <loc>https://erikwestlund.github.io/phpolars/reference/expressions.html</loc>
-    <lastmod>2026-10-16T08:05:01.651Z</lastmod>
+    <lastmod>2026-10-16T14:08:44.828Z</lastmod>
   </url>
   <url>
     <loc>https://erikwestlund.github.io/phpolars/reference/series.html</loc>

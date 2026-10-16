@@ -21,6 +21,10 @@ phpolars keeps py-polars' names and semantics. The differences come from PHP's s
 | `expr.mod(2)`, `expr % 2` | `$expr->mod(2)` |
 | `a + b`, `a > b` | `$a->add($b)`, `$a->gt($b)` |
 | `pl.Int64` | `'Int64'` or `DataType::Int64` |
+| `import polars.selectors as cs`, `cs.numeric()` | `use Phpolars\cs;`, `cs\numeric()` |
+| `cs.numeric() - cs.by_name("id")` | `cs\numeric()->sub(cs\by_name('id'))` |
+| `for key, group in df.group_by("g")` | `foreach ($df->groupBy('g') as $key => $group)` |
+| `df.sql("SELECT ...")`, `pl.SQLContext` | `$df->sql('SELECT ...')`, `new SQLContext([...])` |
 
 Methods are camelCase. Functions are snake_case in the `Phpolars` namespace. Named parameters are camelCase. PHP has no operator overloading, so arithmetic and comparison are methods: `add`, `sub`, `mul`, `truediv`, `floordiv`, `mod`, `pow`, `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `and`, `or`, `not`.
 
@@ -45,8 +49,19 @@ $df->drop('a', 'b');
 
 Results come back as PHP values: `int`, `float`, `bool`, `string`, `null`, `DateTimeImmutable` for dates and datetimes, lists for List columns, and associative arrays for Struct columns. See [Types and values](reference/types.qmd).
 
+## Names PHP reserves
+
+PHP keywords cannot be function names, so a few functions take a trailing underscore, as `struct_()` does: `var_()`, and the selectors `cs\list_()`, `cs\array_()`, `cs\empty_()`, and `cs\enum_()`. Methods keep their py names, because PHP allows keywords there: `$expr->struct()`, `$expr->list()`.
+
+## Python callables
+
+py-polars methods that run a Python function per value or per batch, such as `map_elements`, `map_batches`, `fold`, and `map_groups`, have no phpolars equivalent. Polars runs expressions on its own threads, and PHP code cannot run there. Use expressions instead. `DataFrame::mapRows()` is the exception: it runs on the PHP thread, after collecting, and calls a PHP callable per row.
+
 ## Small differences
 
 - `Series::count()` keeps py's meaning (non-null values). `Series` does not implement `Countable`; use `len()`.
 - `__toString()` gives Polars' table layout, so `echo $df` prints like `print(df)`.
 - `DataFrame::toColumns()` is a phpolars addition: `toDict(asSeries: false)`.
+- Strings in arithmetic are literals in phpolars, as they are in comparisons. py treats a string as a column name in some operators (`col("a") - "b"`) but not others (`col("a") + "b"`); use `col('b')` for a column.
+- `Series` and `DataFrame` methods never change the object in place. py's in-place methods (`scatter`, `set`, `extend`, `insert_column`, `replace_column`) return a new object.
+- `read_database()` takes a PDO connection.

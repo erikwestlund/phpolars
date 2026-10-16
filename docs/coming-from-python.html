@@ -242,6 +242,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#naming" id="toc-naming" class="nav-link active" data-scroll-target="#naming">Naming</a></li>
   <li><a href="#variadic-arguments-and-named" id="toc-variadic-arguments-and-named" class="nav-link" data-scroll-target="#variadic-arguments-and-named">Variadic arguments and <code>**named</code></a></li>
   <li><a href="#values" id="toc-values" class="nav-link" data-scroll-target="#values">Values</a></li>
+  <li><a href="#names-php-reserves" id="toc-names-php-reserves" class="nav-link" data-scroll-target="#names-php-reserves">Names PHP reserves</a></li>
+  <li><a href="#python-callables" id="toc-python-callables" class="nav-link" data-scroll-target="#python-callables">Python callables</a></li>
   <li><a href="#small-differences" id="toc-small-differences" class="nav-link" data-scroll-target="#small-differences">Small differences</a></li>
   </ul>
 </nav>
@@ -335,6 +337,22 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td><code>pl.Int64</code></td>
 <td><code>'Int64'</code> or <code>DataType::Int64</code></td>
 </tr>
+<tr class="even">
+<td><code>import polars.selectors as cs</code>, <code>cs.numeric()</code></td>
+<td><code>use Phpolars\cs;</code>, <code>cs\numeric()</code></td>
+</tr>
+<tr class="odd">
+<td><code>cs.numeric() - cs.by_name("id")</code></td>
+<td><code>cs\numeric()-&gt;sub(cs\by_name('id'))</code></td>
+</tr>
+<tr class="even">
+<td><code>for key, group in df.group_by("g")</code></td>
+<td><code>foreach ($df-&gt;groupBy('g') as $key =&gt; $group)</code></td>
+</tr>
+<tr class="odd">
+<td><code>df.sql("SELECT ...")</code>, <code>pl.SQLContext</code></td>
+<td><code>$df-&gt;sql('SELECT ...')</code>, <code>new SQLContext([...])</code></td>
+</tr>
 </tbody>
 </table>
 <p>Methods are camelCase. Functions are snake_case in the <code>Phpolars</code> namespace. Named parameters are camelCase. PHP has no operator overloading, so arithmetic and comparison are methods: <code>add</code>, <code>sub</code>, <code>mul</code>, <code>truediv</code>, <code>floordiv</code>, <code>mod</code>, <code>pow</code>, <code>eq</code>, <code>ne</code>, <code>gt</code>, <code>ge</code>, <code>lt</code>, <code>le</code>, <code>and</code>, <code>or</code>, <code>not</code>.</p>
@@ -353,12 +371,23 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="values">Values</h2>
 <p>Results come back as PHP values: <code>int</code>, <code>float</code>, <code>bool</code>, <code>string</code>, <code>null</code>, <code>DateTimeImmutable</code> for dates and datetimes, lists for List columns, and associative arrays for Struct columns. See <a href="./reference/types.html">Types and values</a>.</p>
 </section>
+<section id="names-php-reserves" class="level2">
+<h2 class="anchored" data-anchor-id="names-php-reserves">Names PHP reserves</h2>
+<p>PHP keywords cannot be function names, so a few functions take a trailing underscore, as <code>struct_()</code> does: <code>var_()</code>, and the selectors <code>cs\list_()</code>, <code>cs\array_()</code>, <code>cs\empty_()</code>, and <code>cs\enum_()</code>. Methods keep their py names, because PHP allows keywords there: <code>$expr-&gt;struct()</code>, <code>$expr-&gt;list()</code>.</p>
+</section>
+<section id="python-callables" class="level2">
+<h2 class="anchored" data-anchor-id="python-callables">Python callables</h2>
+<p>py-polars methods that run a Python function per value or per batch, such as <code>map_elements</code>, <code>map_batches</code>, <code>fold</code>, and <code>map_groups</code>, have no phpolars equivalent. Polars runs expressions on its own threads, and PHP code cannot run there. Use expressions instead. <code>DataFrame::mapRows()</code> is the exception: it runs on the PHP thread, after collecting, and calls a PHP callable per row.</p>
+</section>
 <section id="small-differences" class="level2">
 <h2 class="anchored" data-anchor-id="small-differences">Small differences</h2>
 <ul>
 <li><code>Series::count()</code> keeps py’s meaning (non-null values). <code>Series</code> does not implement <code>Countable</code>; use <code>len()</code>.</li>
 <li><code>__toString()</code> gives Polars’ table layout, so <code>echo $df</code> prints like <code>print(df)</code>.</li>
 <li><code>DataFrame::toColumns()</code> is a phpolars addition: <code>toDict(asSeries: false)</code>.</li>
+<li>Strings in arithmetic are literals in phpolars, as they are in comparisons. py treats a string as a column name in some operators (<code>col("a") - "b"</code>) but not others (<code>col("a") + "b"</code>); use <code>col('b')</code> for a column.</li>
+<li><code>Series</code> and <code>DataFrame</code> methods never change the object in place. py’s in-place methods (<code>scatter</code>, <code>set</code>, <code>extend</code>, <code>insert_column</code>, <code>replace_column</code>) return a new object.</li>
+<li><code>read_database()</code> takes a PDO connection.</li>
 </ul>
 
 
