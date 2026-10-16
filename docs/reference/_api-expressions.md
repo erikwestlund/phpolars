@@ -23,6 +23,15 @@ argUnique(): Phpolars\Expr
 arr(): Phpolars\ArrayNameSpace
 backwardFill(?int $limit = null): Phpolars\Expr
 bin(): Phpolars\BinaryNameSpace
+bitwiseAnd(): Phpolars\Expr
+bitwiseCountOnes(): Phpolars\Expr
+bitwiseCountZeros(): Phpolars\Expr
+bitwiseLeadingOnes(): Phpolars\Expr
+bitwiseLeadingZeros(): Phpolars\Expr
+bitwiseOr(): Phpolars\Expr
+bitwiseTrailingOnes(): Phpolars\Expr
+bitwiseTrailingZeros(): Phpolars\Expr
+bitwiseXor(): Phpolars\Expr
 bottomK(?int $k = null): Phpolars\Expr
 cast(string $dtype, ?bool $strict = null): Phpolars\Expr
 cat(): Phpolars\CatNameSpace
@@ -38,6 +47,7 @@ cumMax(?bool $reverse = null): Phpolars\Expr
 cumMin(?bool $reverse = null): Phpolars\Expr
 cumProd(?bool $reverse = null): Phpolars\Expr
 cumSum(?bool $reverse = null): Phpolars\Expr
+cumulativeEval(mixed $expr, ?int $minPeriods = null): Phpolars\Expr
 cut(mixed $breaks, ?array $labels = null, ?bool $leftClosed = null, ?bool $includeBreaks = null): Phpolars\Expr
 degrees(): Phpolars\Expr
 diff(?int $n = null, ?string $nullBehavior = null): Phpolars\Expr
@@ -59,7 +69,7 @@ explode(): Phpolars\Expr
 fillNan(mixed $value): Phpolars\Expr
 fillNull(mixed $value = null, ?string $strategy = null, ?int $limit = null): Phpolars\Expr
 filter(mixed $predicate): Phpolars\Expr
-first(): Phpolars\Expr
+first(?bool $ignoreNulls = null): Phpolars\Expr
 floor(): Phpolars\Expr
 floordiv(mixed $other): Phpolars\Expr
 forwardFill(?int $limit = null): Phpolars\Expr
@@ -88,8 +98,9 @@ isNotNan(): Phpolars\Expr
 isNotNull(): Phpolars\Expr
 isNull(): Phpolars\Expr
 isUnique(): Phpolars\Expr
+item(?bool $allowEmpty = null): Phpolars\Expr
 kurtosis(?bool $fisher = null, ?bool $bias = null): Phpolars\Expr
-last(): Phpolars\Expr
+last(?bool $ignoreNulls = null): Phpolars\Expr
 le(mixed $other): Phpolars\Expr
 len(): Phpolars\Expr
 limit(?int $n = null): Phpolars\Expr
@@ -100,9 +111,11 @@ log1P(): Phpolars\Expr
 lowerBound(): Phpolars\Expr
 lt(mixed $other): Phpolars\Expr
 max(): Phpolars\Expr
+maxBy(mixed $by): Phpolars\Expr
 mean(): Phpolars\Expr
 median(): Phpolars\Expr
 min(): Phpolars\Expr
+minBy(mixed $by): Phpolars\Expr
 mod(mixed $other): Phpolars\Expr
 mode(): Phpolars\Expr
 mul(mixed $other): Phpolars\Expr
@@ -352,6 +365,7 @@ var(?int $ddof = null): mixed
 field(string $name): mixed
 jsonEncode(): mixed
 renameFields(mixed $names): mixed
+withFields(mixed ...$exprs): mixed
 ```
 
 ### `Phpolars\NameNameSpace`

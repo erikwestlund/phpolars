@@ -91,7 +91,7 @@ fn week_mask(mask: Option<Vec<bool>>) -> PhpResult<[bool; 7]> {
     }
 }
 
-fn holidays_expr(v: Option<&Zval>) -> PhpResult<Expr> {
+pub fn holidays_expr(v: Option<&Zval>) -> PhpResult<Expr> {
     match crate::input::given(v) {
         None => Ok(lit(Series::new_empty("".into(), &DataType::Date)).implode(true)),
         Some(v) if v.array().is_some() => Ok(crate::convert::literal(v)?
@@ -1095,6 +1095,15 @@ impl PhpListNameSpace {
 impl PhpStructNameSpace {
     pub fn field(&self, name: String) -> PhpResult<Zval> {
         self.finish(self.base().struct_().field_by_name(&name))
+    }
+
+    /// Add or replace fields: withFields(field('a')->mul(2)->alias('b')).
+    pub fn withFields(&self, exprs: &[&Zval]) -> PhpResult<Zval> {
+        self.finish(
+            self.base()
+                .struct_()
+                .with_fields(crate::input::exprs(exprs)?),
+        )
     }
 
     pub fn renameFields(&self, names: &Zval) -> PhpResult<Zval> {

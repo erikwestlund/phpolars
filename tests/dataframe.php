@@ -136,3 +136,23 @@ throws('asof needs keys', fn () => $ts->joinAsof($ts), ValueError::class, 'needs
 throws('ewm needs one parameter', fn () => col('v')->ewmMean(com: 1, span: 2), ValueError::class, 'exactly one');
 throws('gatherEvery zero', fn () => $ts->gatherEvery(0), ValueError::class, 'at least 1');
 same('exclude', $ts->select(Phpolars\all()->exclude('t'))->columns(), ['v']);
+
+// SQL
+$ctx = new Phpolars\SQLContext(['w' => $w]);
+$ctx->register('t', $ts->lazy());
+same('SQLContext tables', $ctx->tables(), ['t', 'w']);
+same('execute is lazy by default', $ctx->execute('SELECT * FROM w') instanceof Phpolars\LazyFrame, true);
+same('execute eager', $ctx->execute('SELECT SUM(v) AS s FROM t', eager: true)->item(), 6);
+$ctx->unregister('t');
+same('unregister', $ctx->tables(), ['w']);
+throws('unknown table', fn () => $ctx->execute('SELECT * FROM t', eager: true), Phpolars\PolarsError::class);
+same('LazyFrame sql', $w->lazy()->sql('SELECT COUNT(*) AS n FROM self')->collect()->item(), 4);
+same('eager SQLContext', (new Phpolars\SQLContext(['w' => $w], eager: true))->execute('SELECT id FROM w LIMIT 1') instanceof DataFrame, true);
+
+// glimpse, extend, rechunk
+$g = $w->glimpse();
+same('glimpse header', explode("\n", $g)[0], 'Rows: 4');
+same('glimpse line', explode("\n", $g)[3], '$ k  <String> "a", "b", "a", "b"');
+same('extend', $w->extend($w)->height(), 8);
+same('rechunk keeps data', $w->extend($w)->rechunk()->equals($w->vstack($w)), true);
+throws('getColumnIndex unknown', fn () => $w->getColumnIndex('nope'), Phpolars\Exception\ColumnNotFoundError::class);

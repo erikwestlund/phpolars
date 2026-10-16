@@ -764,6 +764,50 @@ simple("selectors", lambda: {k: ",".join(wide.select(v).columns) for k, v in {
 simple("selectors_in_ops", lambda: base.select(cs.numeric() - cs.by_name("id")).with_columns((cs.float() * 2).name.suffix("_x2")))
 
 
+# SQL
+simple("sql_frame", lambda: base.sql("SELECT g, SUM(x) AS sx, COUNT(*) AS n FROM self WHERE x IS NOT NULL GROUP BY g ORDER BY g NULLS LAST"))
+simple("sql_context_join", lambda: pl.SQLContext({"b": base, "r": right}).execute(
+    "SELECT b.id, b.g, r.z FROM b LEFT JOIN r ON b.g = r.g ORDER BY b.id", eager=True))
+simple("sql_expressions", lambda: base.sql(
+    "SELECT id, CASE WHEN x > 2 THEN 'big' ELSE 'small' END AS size, UPPER(s) AS us, "
+    "COALESCE(y, 0) AS y0, EXTRACT(year FROM d) AS yr, x * 2 + 1 AS x2 FROM self ORDER BY id"))
+simple("sql_window_cte", lambda: base.sql(
+    "WITH t AS (SELECT id, g, x FROM self WHERE g IS NOT NULL) "
+    "SELECT id, g, ROW_NUMBER() OVER (PARTITION BY g ORDER BY id) AS rn, SUM(x) OVER (PARTITION BY g) AS gx FROM t ORDER BY id"))
+simple("sql_table_name", lambda: base.select("id", "x").sql("SELECT MAX(x) AS mx FROM df", table_name="df"))
+simple("sql_function", lambda: pl.sql("SELECT k, COUNT(*) AS n FROM long GROUP BY k ORDER BY k", eager=True))
+simple("sql_error", lambda: base.sql("SELECT nope FROM self"))
+
+
+# more frame and expression methods
+simple("frame_to_dummies", lambda: base.select("id", "g", "k").to_dummies(["g", "k"]))
+simple("frame_to_dummies_opts", lambda: base.select("g").to_dummies(separator=":", drop_first=True, drop_nulls=True))
+simple("series_to_dummies", lambda: gs.to_dummies())
+simple("frame_horizontal", lambda: pl.DataFrame([
+    base.select("x", "y", "k").sum_horizontal(), base.select("x", "y", "k").mean_horizontal(ignore_nulls=False),
+    base.select("x", "y", "k").min_horizontal(), base.select("x", "y", "k").max_horizontal(),
+]))
+simple("frame_clear", lambda: pl.concat([base.select("id", "g").clear(), base.select("id", "g").clear(2)]))
+simple("frame_replace_column", lambda: base.select("id", "g").head(2).replace_column(1, pl.Series("z", [9, 8])))
+simple("frame_column_index", lambda: {"k": base.get_column_index("k")})
+simple("group_by_quantile", lambda: base.group_by("g", maintain_order=True).quantile(0.5, "linear").select("g", "x", "y"))
+simple("min_max_by", lambda: base.select(col("g").min_by("x").alias("min"), col("g").max_by("y").alias("max")))
+simple("first_last_non_null", lambda: base.select(col("x").shift(1).first(ignore_nulls=True).alias("f"), col("g").last(ignore_nulls=True).alias("l")))
+simple("expr_item", lambda: base.select(col("x").max().item()))
+simple("cumulative_eval", lambda: base.select(col("x").cumulative_eval(pl.element().first() - pl.element().last())))
+simple("bitwise", lambda: pl.DataFrame({"a": [1, 6, 12]}).select(
+    col("a").bitwise_count_ones().alias("ones"), col("a").cast(pl.UInt8).bitwise_leading_zeros().alias("lz"),
+    col("a").bitwise_trailing_zeros().alias("tz"),
+    col("a").bitwise_and().alias("and"), col("a").bitwise_or().alias("or"), col("a").bitwise_xor().alias("xor"),
+))
+simple("struct_with_fields", lambda: base.select(pl.struct("id", "x").alias("s")).select(
+    col("s").struct.with_fields(pl.field("x").mul(10).alias("x10"), (pl.field("id") + pl.field("x")).alias("sum"))).unnest("s"))
+simple("fn_business_day_count", lambda: days.select(pl.business_day_count(col("d"), col("d").dt.offset_by("10d")).alias("n")))
+simple("fn_format", lambda: base.select(pl.format("{} has {}", "g", col("x")).alias("f")))
+simple("fn_arg_sort_by", lambda: base.select(pl.arg_sort_by(["k", "id"], descending=[True, False], nulls_last=True)))
+simple("fn_concat_arr", lambda: base.select(pl.concat_arr("id", "k").alias("a")).select(col("a").arr.sum()))
+
+
 
 # ---------------------------------------------------------------------------
 # Serialisation

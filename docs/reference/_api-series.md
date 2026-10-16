@@ -88,6 +88,7 @@ struct(): Phpolars\StructNameSpace
 sub(mixed $other): Phpolars\Series
 sum(): mixed
 tail(?int $n = null): Phpolars\Series
+toDummies(?string $separator = null, ?bool $dropFirst = null, ?bool $dropNulls = null): Phpolars\DataFrame
 toFrame(?string $name = null): Phpolars\DataFrame
 toList(): array
 truediv(mixed $other): Phpolars\Series

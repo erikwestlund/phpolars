@@ -22,6 +22,7 @@ mod io;
 mod namespace;
 mod selectors;
 mod series;
+mod sql;
 
 use expr::{PhpExpr, PhpThen, PhpWhen, wrap};
 
@@ -609,6 +610,80 @@ pub fn quantile_fn(
     )))
 }
 
+/// Business days from start (inclusive) to end (exclusive).
+#[php_function]
+#[php(name = "Phpolars\\business_day_count")]
+pub fn business_day_count(
+    start: &Zval,
+    end: &Zval,
+    weekMask: Option<Vec<bool>>,
+    holidays: Option<&Zval>,
+) -> PhpResult<PhpExpr> {
+    let mask: [bool; 7] = match weekMask {
+        None => [true, true, true, true, true, false, false],
+        Some(m) => m
+            .try_into()
+            .map_err(|_| error::value_error("weekMask needs seven booleans, Monday to Sunday"))?,
+    };
+    let date = |v: &Zval| -> PhpResult<polars::prelude::Expr> {
+        Ok(input::into_expr(v)?.cast(polars::prelude::DataType::Date))
+    };
+    Ok(wrap(pl_dsl::business_day_count(
+        date(start)?,
+        date(end)?,
+        mask,
+        namespace::holidays_expr(holidays)?,
+    )))
+}
+
+/// format('{} costs {}', 'item', col('price')): {} placeholders filled in order.
+#[php_function]
+#[php(name = "Phpolars\\format")]
+pub fn format(fString: String, args: &[&Zval]) -> PhpResult<PhpExpr> {
+    use error::OrPhp;
+    polars::prelude::format_str(&fString, &input::exprs(args)?)
+        .php()
+        .map(wrap)
+}
+
+/// The row order that sorts by the given columns: arg_sort_by(['a', 'b'], descending: [false, true]).
+#[php_function]
+#[php(name = "Phpolars\\arg_sort_by")]
+pub fn arg_sort_by(
+    exprs: &Zval,
+    descending: Option<&Zval>,
+    nullsLast: Option<&Zval>,
+    maintainOrder: Option<bool>,
+) -> PhpResult<PhpExpr> {
+    let options = polars::prelude::SortMultipleOptions::default()
+        .with_order_descending_multi(input::bools(descending, false)?)
+        .with_nulls_last_multi(input::bools(nullsLast, false)?)
+        .with_maintain_order(maintainOrder.unwrap_or(false));
+    Ok(wrap(polars::prelude::arg_sort_by(
+        input::exprs(&[exprs])?,
+        options,
+    )))
+}
+
+/// Combine columns into one fixed-width Array column.
+#[php_function]
+#[php(name = "Phpolars\\concat_arr")]
+pub fn concat_arr(exprs: &[&Zval]) -> PhpResult<PhpExpr> {
+    use error::OrPhp;
+    polars::prelude::concat_arr(input::exprs(exprs)?)
+        .php()
+        .map(wrap)
+}
+
+/// A struct field inside struct()->withFields(): field('a').
+#[php_function]
+#[php(name = "Phpolars\\field")]
+pub fn field(name: &Zval) -> PhpResult<PhpExpr> {
+    let names: Vec<polars::prelude::PlSmallStr> =
+        input::names(&[name])?.into_iter().map(Into::into).collect();
+    Ok(wrap(polars::prelude::Expr::Field(names.into())))
+}
+
 /// count('a') counts non-null values; count() alone counts rows.
 #[php_function]
 #[php(name = "Phpolars\\count")]
@@ -666,24 +741,26 @@ unsafe extern "C" fn request_startup(_ty: i32, _module_number: i32) -> i32 {
 #[php_module]
 #[php(startup = startup)]
 pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-    let module = selectors::register(io::register(error::register(module.name("php_polars"))))
-        .class::<dtype::PhpDataType>()
-        .class::<PhpExpr>()
-        .class::<PhpWhen>()
-        .class::<PhpThen>()
-        .class::<namespace::PhpStrNameSpace>()
-        .class::<namespace::PhpDtNameSpace>()
-        .class::<namespace::PhpListNameSpace>()
-        .class::<namespace::PhpStructNameSpace>()
-        .class::<namespace::PhpNameNameSpace>()
-        .class::<namespace::PhpCatNameSpace>()
-        .class::<namespace::PhpArrNameSpace>()
-        .class::<namespace::PhpBinNameSpace>()
-        .class::<series::PhpSeries>()
-        .class::<frame::PhpDataFrame>()
-        .class::<frame::PhpLazyFrame>()
-        .class::<frame::PhpGroupBy>()
-        .class::<frame::PhpLazyGroupBy>();
+    let module = sql::register(selectors::register(io::register(error::register(
+        module.name("php_polars"),
+    ))))
+    .class::<dtype::PhpDataType>()
+    .class::<PhpExpr>()
+    .class::<PhpWhen>()
+    .class::<PhpThen>()
+    .class::<namespace::PhpStrNameSpace>()
+    .class::<namespace::PhpDtNameSpace>()
+    .class::<namespace::PhpListNameSpace>()
+    .class::<namespace::PhpStructNameSpace>()
+    .class::<namespace::PhpNameNameSpace>()
+    .class::<namespace::PhpCatNameSpace>()
+    .class::<namespace::PhpArrNameSpace>()
+    .class::<namespace::PhpBinNameSpace>()
+    .class::<series::PhpSeries>()
+    .class::<frame::PhpDataFrame>()
+    .class::<frame::PhpLazyFrame>()
+    .class::<frame::PhpGroupBy>()
+    .class::<frame::PhpLazyGroupBy>();
     module
         .request_startup_function(request_startup)
         .function(wrap_function!(col))
@@ -713,6 +790,11 @@ pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
         .function(wrap_function!(last))
         .function(wrap_function!(n_unique))
         .function(wrap_function!(count))
+        .function(wrap_function!(business_day_count))
+        .function(wrap_function!(format))
+        .function(wrap_function!(arg_sort_by))
+        .function(wrap_function!(concat_arr))
+        .function(wrap_function!(field))
         .function(wrap_function!(date_range))
         .function(wrap_function!(date_ranges))
         .function(wrap_function!(datetime_range))

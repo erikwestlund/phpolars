@@ -113,6 +113,7 @@ Polars is large. Release builds use the `dist` profile, which applies fat LTO, o
 | `json` | `read_json`, `read_ndjson`, `writeJson`, `writeNdjson` |
 | `ipc` | Arrow IPC (Feather) reading and writing; also enables `parquet`, which Polars 0.55's IPC reader needs |
 | `fmt` | the table layout used by `__toString()` |
+| `sql` | `SQLContext`, `DataFrame::sql()`, `LazyFrame::sql()`, and `Phpolars\sql()` |
 
 All features are on by default. Build a smaller extension with, for example, `cargo build --profile dist --no-default-features --features parquet`.
 

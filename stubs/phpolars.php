@@ -9,6 +9,16 @@ namespace Phpolars {
         public function __construct() {}
     }
 
+    class SQLContext
+    {
+        public function register(string $name, mixed $frame): void {}
+        public function registerMany(array $frames): void {}
+        public function unregister(mixed $names): void {}
+        public function tables(): array {}
+        public function execute(string $query, ?bool $eager = null): mixed {}
+        public function __construct(?array $frames = null, ?bool $eager = null) {}
+    }
+
     class DataType
     {
         public const Boolean = 'Boolean';
@@ -103,8 +113,21 @@ namespace Phpolars {
         public function len(): Phpolars\Expr {}
         public function nUnique(): Phpolars\Expr {}
         public function approxNUnique(): Phpolars\Expr {}
-        public function first(): Phpolars\Expr {}
-        public function last(): Phpolars\Expr {}
+        public function first(?bool $ignoreNulls = null): Phpolars\Expr {}
+        public function last(?bool $ignoreNulls = null): Phpolars\Expr {}
+        public function minBy(mixed $by): Phpolars\Expr {}
+        public function maxBy(mixed $by): Phpolars\Expr {}
+        public function item(?bool $allowEmpty = null): Phpolars\Expr {}
+        public function cumulativeEval(mixed $expr, ?int $minPeriods = null): Phpolars\Expr {}
+        public function bitwiseCountOnes(): Phpolars\Expr {}
+        public function bitwiseCountZeros(): Phpolars\Expr {}
+        public function bitwiseLeadingOnes(): Phpolars\Expr {}
+        public function bitwiseLeadingZeros(): Phpolars\Expr {}
+        public function bitwiseTrailingOnes(): Phpolars\Expr {}
+        public function bitwiseTrailingZeros(): Phpolars\Expr {}
+        public function bitwiseAnd(): Phpolars\Expr {}
+        public function bitwiseOr(): Phpolars\Expr {}
+        public function bitwiseXor(): Phpolars\Expr {}
         public function mode(): Phpolars\Expr {}
         public function argMin(): Phpolars\Expr {}
         public function argMax(): Phpolars\Expr {}
@@ -387,6 +410,7 @@ namespace Phpolars {
     class StructNameSpace
     {
         public function field(string $name): mixed {}
+        public function withFields(mixed ...$exprs): mixed {}
         public function renameFields(mixed $names): mixed {}
         public function jsonEncode(): mixed {}
         public function __construct() {}
@@ -557,6 +581,7 @@ namespace Phpolars {
         public function arr(): Phpolars\ArrayNameSpace {}
         public function bin(): Phpolars\BinaryNameSpace {}
         public function struct(): Phpolars\StructNameSpace {}
+        public function toDummies(?string $separator = null, ?bool $dropFirst = null, ?bool $dropNulls = null): Phpolars\DataFrame {}
         public function equals(Phpolars\Series $other): bool {}
         public function __call(string $name, array $arguments): mixed {}
         public function __toString(): string {}
@@ -608,6 +633,16 @@ namespace Phpolars {
         public function toStruct(?string $name = null): Phpolars\Series {}
         public function corr(): Phpolars\DataFrame {}
         public function insertColumn(int $index, Phpolars\Series $column): Phpolars\DataFrame {}
+        public function toDummies(mixed $columns = null, ?string $separator = null, ?bool $dropFirst = null, ?bool $dropNulls = null): Phpolars\DataFrame {}
+        public function sumHorizontal(?bool $ignoreNulls = null): Phpolars\Series {}
+        public function meanHorizontal(?bool $ignoreNulls = null): Phpolars\Series {}
+        public function minHorizontal(): Phpolars\Series {}
+        public function maxHorizontal(): Phpolars\Series {}
+        public function getColumnIndex(string $name): int {}
+        public function replaceColumn(int $index, Phpolars\Series $column): Phpolars\DataFrame {}
+        public function extend(Phpolars\DataFrame $other): Phpolars\DataFrame {}
+        public function rechunk(): Phpolars\DataFrame {}
+        public function glimpse(?int $maxItemsPerColumn = null): string {}
         public function __toString(): string {}
         public function select(mixed ...$exprs): Phpolars\DataFrame {}
         public function withColumns(mixed ...$exprs): Phpolars\DataFrame {}
@@ -658,6 +693,8 @@ namespace Phpolars {
         public function dropNans(mixed $subset = null): Phpolars\DataFrame {}
         public function selectSeq(mixed ...$exprs): Phpolars\DataFrame {}
         public function withColumnsSeq(mixed ...$exprs): Phpolars\DataFrame {}
+        public function clear(?int $n = null): Phpolars\DataFrame {}
+        public function sql(string $query, ?string $tableName = null): Phpolars\DataFrame {}
         public function collectSchema(): array {}
         public function __construct(?array $data = null, ?array $schema = null) {}
     }
@@ -724,6 +761,8 @@ namespace Phpolars {
         public function dropNans(mixed $subset = null): Phpolars\LazyFrame {}
         public function selectSeq(mixed ...$exprs): Phpolars\LazyFrame {}
         public function withColumnsSeq(mixed ...$exprs): Phpolars\LazyFrame {}
+        public function clear(?int $n = null): Phpolars\LazyFrame {}
+        public function sql(string $query, ?string $tableName = null): Phpolars\LazyFrame {}
         public function collectSchema(): array {}
         public function __construct() {}
     }
@@ -741,6 +780,7 @@ namespace Phpolars {
         public function last(): Phpolars\DataFrame {}
         public function count(): Phpolars\DataFrame {}
         public function nUnique(): Phpolars\DataFrame {}
+        public function quantile(float $quantile, ?string $interpolation = null): Phpolars\DataFrame {}
         public function all(): Phpolars\DataFrame {}
         public function head(?int $n = null): Phpolars\DataFrame {}
         public function tail(?int $n = null): Phpolars\DataFrame {}
@@ -760,6 +800,7 @@ namespace Phpolars {
         public function last(): Phpolars\LazyFrame {}
         public function count(): Phpolars\LazyFrame {}
         public function nUnique(): Phpolars\LazyFrame {}
+        public function quantile(float $quantile, ?string $interpolation = null): Phpolars\LazyFrame {}
         public function all(): Phpolars\LazyFrame {}
         public function head(?int $n = null): Phpolars\LazyFrame {}
         public function tail(?int $n = null): Phpolars\LazyFrame {}
@@ -783,6 +824,8 @@ namespace Phpolars {
     function scan_ndjson(string $source, ?int $nRows = null, ?int $inferSchemaLength = null, ?array $schema = null, ?array $schemaOverrides = null, ?bool $ignoreErrors = null, ?string $rowIndexName = null, ?int $rowIndexOffset = null): Phpolars\LazyFrame {}
 
     function read_json(string $source, ?array $schema = null, ?array $schemaOverrides = null, ?int $inferSchemaLength = null): Phpolars\DataFrame {}
+
+    function sql(string $query, ?array $frames = null, ?bool $eager = null): mixed {}
 
     function col(mixed ...$names): Phpolars\Expr {}
 
@@ -837,6 +880,16 @@ namespace Phpolars {
     function n_unique(mixed ...$names): Phpolars\Expr {}
 
     function count(mixed ...$names): Phpolars\Expr {}
+
+    function business_day_count(mixed $start, mixed $end, ?array $weekMask = null, mixed $holidays = null): Phpolars\Expr {}
+
+    function format(string $fString, mixed ...$args): Phpolars\Expr {}
+
+    function arg_sort_by(mixed $exprs, mixed $descending = null, mixed $nullsLast = null, ?bool $maintainOrder = null): Phpolars\Expr {}
+
+    function concat_arr(mixed ...$exprs): Phpolars\Expr {}
+
+    function field(mixed $name): Phpolars\Expr {}
 
     function date_range(mixed $start = null, mixed $end = null, ?string $interval = null, ?int $numSamples = null, ?string $closed = null): Phpolars\Expr {}
 

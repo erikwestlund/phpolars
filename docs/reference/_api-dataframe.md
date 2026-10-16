@@ -5,6 +5,7 @@ __toString(): string
 approxNUnique(): Phpolars\DataFrame
 bottomK(int $k, mixed $by, mixed $reverse = null): Phpolars\DataFrame
 cast(mixed $dtypes, ?bool $strict = null): Phpolars\DataFrame
+clear(?int $n = null): Phpolars\DataFrame
 clone(): Phpolars\DataFrame
 collectSchema(): array
 columns(): array
@@ -18,13 +19,16 @@ dtypes(): array
 equals(Phpolars\DataFrame $other, ?bool $nullEqual = null): bool
 estimatedSize(): int
 explode(mixed ...$columns): Phpolars\DataFrame
+extend(Phpolars\DataFrame $other): Phpolars\DataFrame
 fillNan(mixed $value): Phpolars\DataFrame
 fillNull(mixed $value = null, ?string $strategy = null, ?int $limit = null): Phpolars\DataFrame
 filter(mixed ...$predicates): Phpolars\DataFrame
 first(): Phpolars\DataFrame
 gatherEvery(int $n, ?int $offset = null): Phpolars\DataFrame
 getColumn(string $name): Phpolars\Series
+getColumnIndex(string $name): int
 getColumns(): array
+glimpse(?int $maxItemsPerColumn = null): string
 groupBy(mixed $by, ?bool $maintainOrder = null): Phpolars\GroupBy
 groupByDynamic(mixed $indexColumn, string $every, ?string $period = null, ?string $offset = null, ?bool $includeBoundaries = null, ?string $closed = null, ?string $label = null, mixed $groupBy = null, ?string $startBy = null): Phpolars\GroupBy
 head(?int $n = null): Phpolars\DataFrame
@@ -43,16 +47,21 @@ last(): Phpolars\DataFrame
 lazy(): Phpolars\LazyFrame
 limit(?int $n = null): Phpolars\DataFrame
 max(): Phpolars\DataFrame
+maxHorizontal(): Phpolars\Series
 mean(): Phpolars\DataFrame
+meanHorizontal(?bool $ignoreNulls = null): Phpolars\Series
 median(): Phpolars\DataFrame
 min(): Phpolars\DataFrame
+minHorizontal(): Phpolars\Series
 nUnique(): Phpolars\DataFrame
 nullCount(): Phpolars\DataFrame
 partitionBy(mixed $by, ?bool $maintainOrder = null, ?bool $includeKey = null, ?bool $asDict = null): array
 pivot(mixed $on, mixed $index = null, mixed $values = null, mixed $aggregateFunction = null, ?bool $sortColumns = null, ?string $separator = null, ?bool $maintainOrder = null): Phpolars\DataFrame
 product(): Phpolars\DataFrame
 quantile(float $quantile, ?string $interpolation = null): Phpolars\DataFrame
+rechunk(): Phpolars\DataFrame
 rename(array $mapping, ?bool $strict = null): Phpolars\DataFrame
+replaceColumn(int $index, Phpolars\Series $column): Phpolars\DataFrame
 reverse(): Phpolars\DataFrame
 rolling(mixed $indexColumn, string $period, ?string $offset = null, ?string $closed = null, mixed $groupBy = null): Phpolars\GroupBy
 row(int $index, ?bool $named = null): mixed
@@ -65,16 +74,19 @@ shape(): array
 shift(?int $n = null, mixed $fillValue = null): Phpolars\DataFrame
 slice(int $offset, ?int $length = null): Phpolars\DataFrame
 sort(mixed $by, mixed $descending = null, mixed $nullsLast = null, ?bool $maintainOrder = null): Phpolars\DataFrame
+sql(string $query, ?string $tableName = null): Phpolars\DataFrame
 static fromDict(array $data, ?array $schema = null): Phpolars\DataFrame
 static fromDicts(array $data, ?array $schema = null): Phpolars\DataFrame
 static fromPhibble(mixed $table): Phpolars\DataFrame
 static fromRows(array $data, ?array $schema = null): Phpolars\DataFrame
 std(?int $ddof = null): Phpolars\DataFrame
 sum(): Phpolars\DataFrame
+sumHorizontal(?bool $ignoreNulls = null): Phpolars\Series
 tail(?int $n = null): Phpolars\DataFrame
 toColumns(): array
 toDict(?bool $asSeries = null): array
 toDicts(): array
+toDummies(mixed $columns = null, ?string $separator = null, ?bool $dropFirst = null, ?bool $dropNulls = null): Phpolars\DataFrame
 toPhibble(): mixed
 toSeries(?int $index = null): Phpolars\Series
 toStruct(?string $name = null): Phpolars\Series
@@ -105,6 +117,7 @@ approxNUnique(): Phpolars\LazyFrame
 bottomK(int $k, mixed $by, mixed $reverse = null): Phpolars\LazyFrame
 cache(): Phpolars\LazyFrame
 cast(mixed $dtypes, ?bool $strict = null): Phpolars\LazyFrame
+clear(?int $n = null): Phpolars\LazyFrame
 collect(): Phpolars\DataFrame
 collectSchema(): array
 columns(): array
@@ -150,6 +163,7 @@ sinkNdjson(string $file): void
 sinkParquet(string $file, ?string $compression = null, ?int $compressionLevel = null, ?bool $statistics = null, ?int $rowGroupSize = null): void
 slice(int $offset, ?int $length = null): Phpolars\LazyFrame
 sort(mixed $by, mixed $descending = null, mixed $nullsLast = null, ?bool $maintainOrder = null): Phpolars\LazyFrame
+sql(string $query, ?string $tableName = null): Phpolars\LazyFrame
 std(?int $ddof = null): Phpolars\LazyFrame
 sum(): Phpolars\LazyFrame
 tail(?int $n = null): Phpolars\LazyFrame
@@ -178,6 +192,7 @@ mean(): Phpolars\DataFrame
 median(): Phpolars\DataFrame
 min(): Phpolars\DataFrame
 nUnique(): Phpolars\DataFrame
+quantile(float $quantile, ?string $interpolation = null): Phpolars\DataFrame
 sum(): Phpolars\DataFrame
 tail(?int $n = null): Phpolars\DataFrame
 ```
@@ -197,6 +212,7 @@ mean(): Phpolars\LazyFrame
 median(): Phpolars\LazyFrame
 min(): Phpolars\LazyFrame
 nUnique(): Phpolars\LazyFrame
+quantile(float $quantile, ?string $interpolation = null): Phpolars\LazyFrame
 sum(): Phpolars\LazyFrame
 tail(?int $n = null): Phpolars\LazyFrame
 ```

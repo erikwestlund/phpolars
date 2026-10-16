@@ -592,6 +592,24 @@ impl PhpSeries {
         PhpStructNameSpace::new(me(), Some(self.inner.clone()))
     }
 
+    /// One UInt8 column per distinct value, named <name><separator><value>.
+    pub fn toDummies(
+        &self,
+        separator: Option<String>,
+        dropFirst: Option<bool>,
+        dropNulls: Option<bool>,
+    ) -> PhpResult<PhpDataFrame> {
+        use polars::prelude::ToDummies;
+        self.inner
+            .to_dummies(
+                Some(separator.as_deref().unwrap_or("_")),
+                dropFirst.unwrap_or(false),
+                dropNulls.unwrap_or(false),
+            )
+            .php()
+            .map(PhpDataFrame::wrap)
+    }
+
     pub fn equals(&self, other: &PhpSeries) -> bool {
         self.inner.equals_missing(&other.inner)
     }

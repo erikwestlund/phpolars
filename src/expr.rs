@@ -564,12 +564,80 @@ impl PhpExpr {
         wrap(self.inner.clone().approx_n_unique())
     }
 
-    pub fn first(&self) -> Self {
-        wrap(self.inner.clone().first())
+    /// The first value; ignoreNulls: true skips nulls.
+    pub fn first(&self, ignoreNulls: Option<bool>) -> Self {
+        wrap(if ignoreNulls.unwrap_or(false) {
+            self.inner.clone().first_non_null()
+        } else {
+            self.inner.clone().first()
+        })
     }
 
-    pub fn last(&self) -> Self {
-        wrap(self.inner.clone().last())
+    pub fn last(&self, ignoreNulls: Option<bool>) -> Self {
+        wrap(if ignoreNulls.unwrap_or(false) {
+            self.inner.clone().last_non_null()
+        } else {
+            self.inner.clone().last()
+        })
+    }
+
+    /// The value at the row where by is smallest.
+    pub fn minBy(&self, by: &Zval) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().min_by(into_expr(by)?)))
+    }
+
+    pub fn maxBy(&self, by: &Zval) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().max_by(into_expr(by)?)))
+    }
+
+    /// The single value of a one-row result; an error otherwise.
+    pub fn item(&self, allowEmpty: Option<bool>) -> Self {
+        wrap(self.inner.clone().item(allowEmpty.unwrap_or(false)))
+    }
+
+    /// Run expr over every prefix of the column: cumulativeEval(element()->sum()).
+    pub fn cumulativeEval(&self, expr: &Zval, minPeriods: Option<i64>) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().cumulative_eval(
+            into_expr(expr)?,
+            crate::input::count(minPeriods.unwrap_or(1), "minPeriods")?,
+        )))
+    }
+
+    pub fn bitwiseCountOnes(&self) -> Self {
+        wrap(self.inner.clone().bitwise_count_ones())
+    }
+
+    pub fn bitwiseCountZeros(&self) -> Self {
+        wrap(self.inner.clone().bitwise_count_zeros())
+    }
+
+    pub fn bitwiseLeadingOnes(&self) -> Self {
+        wrap(self.inner.clone().bitwise_leading_ones())
+    }
+
+    pub fn bitwiseLeadingZeros(&self) -> Self {
+        wrap(self.inner.clone().bitwise_leading_zeros())
+    }
+
+    pub fn bitwiseTrailingOnes(&self) -> Self {
+        wrap(self.inner.clone().bitwise_trailing_ones())
+    }
+
+    pub fn bitwiseTrailingZeros(&self) -> Self {
+        wrap(self.inner.clone().bitwise_trailing_zeros())
+    }
+
+    /// Bitwise and of every value: an aggregation.
+    pub fn bitwiseAnd(&self) -> Self {
+        wrap(self.inner.clone().bitwise_and())
+    }
+
+    pub fn bitwiseOr(&self) -> Self {
+        wrap(self.inner.clone().bitwise_or())
+    }
+
+    pub fn bitwiseXor(&self) -> Self {
+        wrap(self.inner.clone().bitwise_xor())
     }
 
     pub fn mode(&self) -> Self {

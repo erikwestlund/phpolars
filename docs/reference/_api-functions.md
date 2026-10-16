@@ -3,10 +3,13 @@ all(): Phpolars\Expr
 all_horizontal(mixed ...$exprs): Phpolars\Expr
 any_horizontal(mixed ...$exprs): Phpolars\Expr
 approx_n_unique(mixed ...$names): Phpolars\Expr
+arg_sort_by(mixed $exprs, mixed $descending = null, mixed $nullsLast = null, ?bool $maintainOrder = null): Phpolars\Expr
 arg_where(mixed $condition): Phpolars\Expr
+business_day_count(mixed $start, mixed $end, ?array $weekMask = null, mixed $holidays = null): Phpolars\Expr
 coalesce(mixed ...$exprs): Phpolars\Expr
 col(mixed ...$names): Phpolars\Expr
 concat(array $items, ?string $how = null): mixed
+concat_arr(mixed ...$exprs): Phpolars\Expr
 concat_list(mixed ...$exprs): Phpolars\Expr
 concat_str(mixed $exprs, ?string $separator = null, ?bool $ignoreNulls = null): Phpolars\Expr
 corr(mixed $a, mixed $b, ?string $method = null, ?bool $propagateNans = null): Phpolars\Expr
@@ -21,7 +24,9 @@ datetime_ranges(mixed $start = null, mixed $end = null, ?string $interval = null
 duration(mixed $weeks = null, mixed $days = null, mixed $hours = null, mixed $minutes = null, mixed $seconds = null, mixed $milliseconds = null, mixed $microseconds = null, mixed $nanoseconds = null, ?string $timeUnit = null): Phpolars\Expr
 element(): Phpolars\Expr
 exclude(mixed ...$names): Phpolars\Expr
+field(mixed $name): Phpolars\Expr
 first(mixed ...$names): Phpolars\Expr
+format(string $fString, mixed ...$args): Phpolars\Expr
 from_epoch(mixed $column, ?string $timeUnit = null): Phpolars\Expr
 implode(mixed ...$names): Phpolars\Expr
 int_range(mixed $start, mixed $end = null, ?int $step = null): Phpolars\Expr
@@ -43,6 +48,7 @@ polars_version(): string
 quantile(mixed $column, float $quantile, ?string $interpolation = null): Phpolars\Expr
 repeat(mixed $value, mixed $n, ?string $dtype = null): Phpolars\Expr
 select(mixed ...$exprs): Phpolars\DataFrame
+sql(string $query, ?array $frames = null, ?bool $eager = null): mixed
 std(mixed $column, ?int $ddof = null): Phpolars\Expr
 struct_(mixed ...$exprs): Phpolars\Expr
 sum(mixed ...$names): Phpolars\Expr

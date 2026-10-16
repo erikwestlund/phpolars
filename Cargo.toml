@@ -8,16 +8,18 @@ chrono = { version = "0.4", default-features = false }
 either = "1"
 ext-php-rs = "0.16"
 polars = { version = "=0.55.2", default-features = false, features = [
-    "csv", "lazy", "strings", "temporal", "dtype-date", "dtype-datetime", "dtype-duration", "dtype-time", "dtype-struct", "dtype-categorical", "dtype-i8", "dtype-i16", "dtype-u8", "dtype-u16", "dtype-i128", "dtype-decimal", "dtype-u128", "is_in", "cross_join", "semi_anti_join", "pivot", "cum_agg", "rank", "round_series", "abs", "log", "diff", "pct_change", "mode", "unique_counts", "concat_str", "string_pad", "regex", "replace", "diagonal_concat", "range", "random", "list_eval", "list_gather", "list_count", "list_sets", "list_drop_nulls", "is_unique", "is_first_distinct", "is_between", "moment", "product", "sign", "top_k", "cov", "rolling_window", "interpolate", "zip_with", "dataframe_arithmetic", "propagate_nans", "trigonometry", "rows", "describe", "string_reverse", "string_to_integer", "extract_jsonpath", "is_last_distinct", "repeat_by", "arg_where", "offset_by", "month_start", "month_end", "dtype-array", "list_to_struct", "coalesce", "find_many", "ewma", "peaks", "search_sorted", "approx_unique", "rle", "cutqcut", "meta", "iejoin", "timezones", "to_dummies", "partition_by", "index_of", "hist", "list_sample", "asof_join", "dynamic_group_by", "rolling_window_by", "ewma_by", "interpolate_by", "is_close", "business", "extract_groups", "string_encoding", "binary_encoding", "string_normalize", "array_count", "array_to_struct",
+    "csv", "lazy", "strings", "temporal", "dtype-date", "dtype-datetime", "dtype-duration", "dtype-time", "dtype-struct", "dtype-categorical", "dtype-i8", "dtype-i16", "dtype-u8", "dtype-u16", "dtype-i128", "dtype-decimal", "dtype-u128", "is_in", "cross_join", "semi_anti_join", "pivot", "cum_agg", "rank", "round_series", "abs", "log", "diff", "pct_change", "mode", "unique_counts", "concat_str", "string_pad", "regex", "replace", "diagonal_concat", "range", "random", "list_eval", "list_gather", "list_count", "list_sets", "list_drop_nulls", "is_unique", "is_first_distinct", "is_between", "moment", "product", "sign", "top_k", "cov", "rolling_window", "interpolate", "zip_with", "dataframe_arithmetic", "propagate_nans", "trigonometry", "rows", "describe", "string_reverse", "string_to_integer", "extract_jsonpath", "is_last_distinct", "repeat_by", "arg_where", "offset_by", "month_start", "month_end", "dtype-array", "list_to_struct", "coalesce", "find_many", "ewma", "peaks", "search_sorted", "approx_unique", "rle", "cutqcut", "meta", "iejoin", "timezones", "to_dummies", "partition_by", "index_of", "hist", "list_sample", "asof_join", "dynamic_group_by", "rolling_window_by", "ewma_by", "interpolate_by", "is_close", "business", "extract_groups", "string_encoding", "binary_encoding", "string_normalize", "array_count", "array_to_struct", "bitwise", "cumulative_eval",
 ] }
 polars-core = { version = "=0.55.2", default-features = false }
 
 [features]
-default = ["parquet", "json", "ipc", "fmt"]
+default = ["parquet", "json", "ipc", "fmt", "sql"]
 parquet = ["polars/parquet"]
 json = ["polars/json"]
 # polars-stream 0.55.2's IPC source uses Parquet code, so IPC needs Parquet.
 ipc = ["polars/ipc", "polars/ipc_streaming", "parquet"]
+# SQLContext and DataFrame/LazyFrame::sql().
+sql = ["polars/sql"]
 # Table rendering for DataFrame::__toString().
 fmt = ["polars/fmt"]
 

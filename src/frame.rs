@@ -39,6 +39,15 @@ impl PhpDataFrame {
         Self { inner }
     }
 
+    /// Evaluate a horizontal expression over every column into a named Series.
+    fn horizontal(&self, e: Expr, name: &str) -> PhpResult<PhpSeries> {
+        init_threads();
+        let out = self.lf().select([e.alias(name)]).collect().php()?;
+        Ok(PhpSeries {
+            inner: out.columns()[0].as_materialized_series().clone(),
+        })
+    }
+
     fn lf(&self) -> LazyFrame {
         self.inner.clone().lazy()
     }
@@ -593,6 +602,30 @@ macro_rules! frame_verbs {
                 Self::out(self.lf().with_columns_seq(crate::input::exprs(exprs)?))
             }
 
+            /// An empty frame with the same schema, or n rows of nulls.
+            pub fn clear(&self, n: Option<i64>) -> PhpResult<Self> {
+                let n = crate::input::count(n.unwrap_or(0), "n")?;
+                let schema = self.schema_ref()?;
+                let empty = DataFrame::empty_with_schema(&schema);
+                let lf = if n == 0 {
+                    empty.lazy()
+                } else {
+                    let nulls: Vec<Column> = schema
+                        .iter()
+                        .map(|(name, dt)| Column::full_null(name.clone(), n, dt))
+                        .collect();
+                    DataFrame::new_infer_height(nulls).php()?.lazy()
+                };
+                Self::out(lf)
+            }
+
+            /// Run SQL against this frame, named tableName (default 'self'):
+            /// $df->sql('SELECT a, SUM(b) FROM self GROUP BY a').
+            pub fn sql(&self, query: String, tableName: Option<String>) -> PhpResult<Self> {
+                let name = tableName.unwrap_or_else(|| "self".into());
+                Self::out(crate::sql::run(&query, &[(name, self.lf())])?)
+            }
+
             /// Columns and their py data type names.
             pub fn collectSchema(&self) -> PhpResult<Vec<(String, String)>> {
                 Ok(dtype::schema_array(self.schema_ref()?.as_ref()))
@@ -615,13 +648,38 @@ fn other_frame(other: &Zval) -> PhpResult<LazyFrame> {
 }
 
 frame_verbs!(PhpDataFrame, PhpGroupBy, {
-    /// new DataFrame(['a' => [1, 2], 'b' => ['x', 'y']]) or a list of rows.
+    /// new DataFrame(['a' => [1, 2], 'b' => ['x', 'y']]), a list of rows, or a list of Series.
     pub fn __construct(
         data: Option<&ZendHashTable>,
         schema: Option<&ZendHashTable>,
     ) -> PhpResult<Self> {
         let df = match data {
             None => convert::from_columns(&ZendHashTable::new(), schema)?,
+            // A list of Series is a list of columns, as in py.
+            Some(d)
+                if convert::is_list(d)
+                    && !d.is_empty()
+                    && d.values().all(|v| v.extract::<&PhpSeries>().is_some()) =>
+            {
+                let columns: Vec<Column> = d
+                    .values()
+                    .map(|v| {
+                        v.extract::<&PhpSeries>()
+                            .unwrap()
+                            .inner
+                            .clone()
+                            .into_column()
+                    })
+                    .collect();
+                let df = DataFrame::new_infer_height(columns).php()?;
+                match schema {
+                    Some(_) => {
+                        let cols = convert::to_columns(&df)?;
+                        convert::from_columns(&cols, schema)?
+                    }
+                    None => df,
+                }
+            }
             Some(d) if convert::is_list(d) && !d.is_empty() => convert::from_rows(d, schema)?,
             Some(d) => convert::from_columns(d, schema)?,
         };
@@ -1213,6 +1271,132 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
         Ok(Self::wrap(df))
     }
 
+    /// One Boolean (UInt8) column per distinct value of the given columns (default: all).
+    pub fn toDummies(
+        &self,
+        columns: Option<&Zval>,
+        separator: Option<String>,
+        dropFirst: Option<bool>,
+        dropNulls: Option<bool>,
+    ) -> PhpResult<Self> {
+        let cols: Vec<String> = match opt_names(columns)? {
+            Some(c) => c,
+            None => self.columns(),
+        };
+        self.inner
+            .columns_to_dummies(
+                cols.iter().map(|s| s.as_str()).collect(),
+                Some(separator.as_deref().unwrap_or("_")),
+                dropFirst.unwrap_or(false),
+                dropNulls.unwrap_or(false),
+            )
+            .php()
+            .map(Self::wrap)
+    }
+
+    /// Row-wise sums as a Series named "sum".
+    pub fn sumHorizontal(&self, ignoreNulls: Option<bool>) -> PhpResult<PhpSeries> {
+        self.horizontal(
+            polars::lazy::dsl::sum_horizontal([all().as_expr()], ignoreNulls.unwrap_or(true))
+                .php()?,
+            "sum",
+        )
+    }
+
+    pub fn meanHorizontal(&self, ignoreNulls: Option<bool>) -> PhpResult<PhpSeries> {
+        self.horizontal(
+            polars::lazy::dsl::mean_horizontal([all().as_expr()], ignoreNulls.unwrap_or(true))
+                .php()?,
+            "mean",
+        )
+    }
+
+    pub fn minHorizontal(&self) -> PhpResult<PhpSeries> {
+        self.horizontal(
+            polars::lazy::dsl::min_horizontal([all().as_expr()]).php()?,
+            "min",
+        )
+    }
+
+    pub fn maxHorizontal(&self) -> PhpResult<PhpSeries> {
+        self.horizontal(
+            polars::lazy::dsl::max_horizontal([all().as_expr()]).php()?,
+            "max",
+        )
+    }
+
+    /// The position of a column; an error if it does not exist.
+    pub fn getColumnIndex(&self, name: String) -> PhpResult<i64> {
+        self.inner
+            .get_column_index(&name)
+            .map(|i| i as i64)
+            .ok_or_else(|| column_not_found(&name))
+    }
+
+    /// Replace the column at a position with a Series.
+    pub fn replaceColumn(&self, index: i64, column: &PhpSeries) -> PhpResult<Self> {
+        let w = self.inner.width() as i64;
+        let i = if index < 0 { w + index } else { index };
+        if i < 0 || i >= w {
+            return Err(PhpException::from_class::<crate::error::OutOfBoundsError>(
+                format!("column index {index} is out of bounds"),
+            ));
+        }
+        let mut df = self.inner.clone();
+        df.replace_column(i as usize, column.inner.clone().into_column())
+            .php()?;
+        Ok(Self::wrap(df))
+    }
+
+    /// Append the rows of other, as py's extend(); the same as vstack().
+    pub fn extend(&self, other: &PhpDataFrame) -> PhpResult<Self> {
+        self.vstack(other)
+    }
+
+    /// The same data in one chunk per column.
+    pub fn rechunk(&self) -> Self {
+        let mut df = self.inner.clone();
+        df.rechunk_mut();
+        Self::wrap(df)
+    }
+
+    /// A transposed preview: one line per column with its type and first values.
+    pub fn glimpse(&self, maxItemsPerColumn: Option<i64>) -> PhpResult<String> {
+        let n = crate::input::count(maxItemsPerColumn.unwrap_or(10), "maxItemsPerColumn")?;
+        let head = self.inner.head(Some(n));
+        let mut out = format!(
+            "Rows: {}\nColumns: {}\n",
+            self.inner.height(),
+            self.inner.width()
+        );
+        let width = self
+            .inner
+            .get_column_names()
+            .iter()
+            .map(|c| c.chars().count())
+            .max()
+            .unwrap_or(0);
+        for c in head.columns() {
+            let s = c.as_materialized_series();
+            let values: Vec<String> = (0..s.len())
+                .map(|i| match s.get(i) {
+                    Ok(AnyValue::Null) => "null".to_string(),
+                    Ok(AnyValue::String(v)) => format!("{v:?}"),
+                    Ok(AnyValue::StringOwned(v)) => format!("{:?}", v.as_str()),
+                    Ok(v) => v.to_string(),
+                    Err(_) => "?".to_string(),
+                })
+                .collect();
+            out.push_str(&format!(
+                "$ {:<width$} <{}> {}\n",
+                c.name(),
+                dtype::name(c.dtype()),
+                values.join(", ")
+            ));
+        }
+        Ok(out)
+    }
+
     pub fn __to_string(&self) -> String {
         format!("{}", self.inner)
     }
@@ -1422,6 +1606,15 @@ macro_rules! group_by {
 
             pub fn nUnique(&self) -> PhpResult<$frame> {
                 self.all_other(|e| e.n_unique())
+            }
+
+            pub fn quantile(
+                &self,
+                quantile: crate::input::Num,
+                interpolation: Option<String>,
+            ) -> PhpResult<$frame> {
+                let method = crate::expr::quantile_method(interpolation)?;
+                self.all_other(|e| e.quantile(lit(quantile.0), method))
             }
 
             /// Each group's values as lists.

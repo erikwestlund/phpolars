@@ -8,6 +8,7 @@ use Phpolars\{DataFrame, Series};
 use Phpolars\cs;
 use function Phpolars\{col, lit, when, len, element, concat, concat_str, coalesce, concat_list, struct_};
 use function Phpolars\{sum_horizontal, mean_horizontal, min_horizontal, max_horizontal};
+use function Phpolars\{business_day_count, format, arg_sort_by, concat_arr, field};
 use function Phpolars\{date_range, date_ranges, datetime_range, int_ranges, date, datetime, duration, from_epoch, arg_where, corr, cov, nth, repeat, linear_space, select, std, quantile, implode, approx_n_unique};
 
 $fixture = json_decode(file_get_contents(__DIR__ . '/fixtures/py/expected.json'), true, flags: JSON_THROW_ON_ERROR);
@@ -708,6 +709,46 @@ $cases = [
         'xor' => cs\integer()->xor(cs\starts_with('i', 'f')),
     ]),
     'selectors_in_ops' => fn () => $S(cs\numeric()->sub(cs\by_name('id')))->withColumns(cs\float()->mul(2)->name()->suffix('_x2')),
+    // SQL
+    'sql_frame' => fn () => $base->sql('SELECT g, SUM(x) AS sx, COUNT(*) AS n FROM self WHERE x IS NOT NULL GROUP BY g ORDER BY g NULLS LAST'),
+    'sql_context_join' => fn () => (new Phpolars\SQLContext(['b' => $base, 'r' => $right]))->execute(
+        'SELECT b.id, b.g, r.z FROM b LEFT JOIN r ON b.g = r.g ORDER BY b.id', eager: true),
+    'sql_expressions' => fn () => $base->sql(
+        "SELECT id, CASE WHEN x > 2 THEN 'big' ELSE 'small' END AS size, UPPER(s) AS us, "
+        . 'COALESCE(y, 0) AS y0, EXTRACT(year FROM d) AS yr, x * 2 + 1 AS x2 FROM self ORDER BY id'),
+    'sql_window_cte' => fn () => $base->sql(
+        'WITH t AS (SELECT id, g, x FROM self WHERE g IS NOT NULL) '
+        . 'SELECT id, g, ROW_NUMBER() OVER (PARTITION BY g ORDER BY id) AS rn, SUM(x) OVER (PARTITION BY g) AS gx FROM t ORDER BY id'),
+    'sql_table_name' => fn () => $base->select('id', 'x')->sql('SELECT MAX(x) AS mx FROM df', tableName: 'df'),
+    'sql_function' => fn () => Phpolars\sql('SELECT k, COUNT(*) AS n FROM long GROUP BY k ORDER BY k', ['long' => $long], eager: true),
+    'sql_error' => fn () => $base->sql('SELECT nope FROM self'),
+    // more frame and expression methods
+    'frame_to_dummies' => fn () => $base->select('id', 'g', 'k')->toDummies(['g', 'k']),
+    'frame_to_dummies_opts' => fn () => $base->select('g')->toDummies(separator: ':', dropFirst: true, dropNulls: true),
+    'series_to_dummies' => fn () => $gs->toDummies(),
+    'frame_horizontal' => fn () => new DataFrame([
+        $base->select('x', 'y', 'k')->sumHorizontal(), $base->select('x', 'y', 'k')->meanHorizontal(ignoreNulls: false),
+        $base->select('x', 'y', 'k')->minHorizontal(), $base->select('x', 'y', 'k')->maxHorizontal(),
+    ]),
+    'frame_clear' => fn () => concat([$base->select('id', 'g')->clear(), $base->select('id', 'g')->clear(2)]),
+    'frame_replace_column' => fn () => $base->select('id', 'g')->head(2)->replaceColumn(1, new Series('z', [9, 8])),
+    'frame_column_index' => fn () => ['k' => $base->getColumnIndex('k')],
+    'group_by_quantile' => fn () => $base->groupBy('g', maintainOrder: true)->quantile(0.5, 'linear')->select('g', 'x', 'y'),
+    'min_max_by' => fn () => $S(col('g')->minBy('x')->alias('min'), col('g')->maxBy('y')->alias('max')),
+    'first_last_non_null' => fn () => $S(col('x')->shift(1)->first(ignoreNulls: true)->alias('f'), col('g')->last(ignoreNulls: true)->alias('l')),
+    'expr_item' => fn () => $S(col('x')->max()->item()),
+    'cumulative_eval' => fn () => $S(col('x')->cumulativeEval(element()->first()->sub(element()->last()))),
+    'bitwise' => fn () => (new DataFrame(['a' => [1, 6, 12]]))->select(
+        col('a')->bitwiseCountOnes()->alias('ones'), col('a')->cast('UInt8')->bitwiseLeadingZeros()->alias('lz'),
+        col('a')->bitwiseTrailingZeros()->alias('tz'),
+        col('a')->bitwiseAnd()->alias('and'), col('a')->bitwiseOr()->alias('or'), col('a')->bitwiseXor()->alias('xor'),
+    ),
+    'struct_with_fields' => fn () => $S(struct_('id', 'x')->alias('s'))->select(
+        col('s')->struct()->withFields(field('x')->mul(10)->alias('x10'), field('id')->add(field('x'))->alias('sum')))->unnest('s'),
+    'fn_business_day_count' => fn () => $days->select(business_day_count(col('d'), col('d')->dt()->offsetBy('10d'))->alias('n')),
+    'fn_format' => fn () => $S(format('{} has {}', 'g', col('x'))->alias('f')),
+    'fn_arg_sort_by' => fn () => $S(arg_sort_by(['k', 'id'], descending: [true, false], nullsLast: true)),
+    'fn_concat_arr' => fn () => $S(concat_arr('id', 'k')->alias('a'))->select(col('a')->arr()->sum()),
 ];
 
 // ---------------------------------------------------------------------------
