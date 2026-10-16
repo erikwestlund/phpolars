@@ -1,0 +1,7 @@
+/target/
+
+# phpize/autoconf outputs; only pie/config.m4 and Makefile.frag are maintained.
+/pie/*
+!/pie/config.m4
+!/pie/Makefile.frag
+/bench/*.csv

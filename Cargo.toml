@@ -1,0 +1,31 @@
+[package]
+name = "php-polars"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ext-php-rs = "0.16"
+polars = { version = "=0.55.2", default-features = false, features = ["csv", "lazy"] }
+polars-core = { version = "=0.55.2", default-features = false }
+
+[features]
+default = ["parquet", "fmt"]
+parquet = ["polars/parquet"]
+# Table rendering for DataFrame::__toString().
+fmt = ["polars/fmt"]
+
+[lib]
+name = "php_polars"
+crate-type = ["cdylib"]
+test = false
+doctest = false
+
+[profile.release]
+strip = "debuginfo"
+
+# Smaller, faster binary for releases; slower to build.
+[profile.dist]
+inherits = "release"
+lto = "fat"
+codegen-units = 1
+strip = "symbols"

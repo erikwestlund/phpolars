@@ -1,0 +1,16 @@
+{
+    "name": "erikwestlund/phpolars",
+    "description": "Polars data frames for PHP, as a native Rust extension",
+    "type": "php-ext",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.5 <8.6"
+    },
+    "php-ext": {
+        "extension-name": "php_polars",
+        "build-path": "pie",
+        "support-nts": true,
+        "support-zts": false,
+        "os-families": ["linux", "darwin"]
+    }
+}
