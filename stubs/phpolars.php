@@ -483,6 +483,7 @@ namespace Phpolars {
         public function explode(mixed ...$columns): Phpolars\DataFrame {}
         public function unnest(mixed ...$columns): Phpolars\DataFrame {}
         public function join(mixed $other, mixed $on = null, ?string $how = null, mixed $leftOn = null, mixed $rightOn = null, ?string $suffix = null, ?bool $coalesce = null, ?string $maintainOrder = null, ?bool $nullsEqual = null): Phpolars\DataFrame {}
+        public function joinWhere(mixed $other, mixed ...$predicates): Phpolars\DataFrame {}
         public function groupBy(mixed $by, ?bool $maintainOrder = null): Phpolars\GroupBy {}
         public function sum(): Phpolars\DataFrame {}
         public function mean(): Phpolars\DataFrame {}
@@ -533,6 +534,7 @@ namespace Phpolars {
         public function explode(mixed ...$columns): Phpolars\LazyFrame {}
         public function unnest(mixed ...$columns): Phpolars\LazyFrame {}
         public function join(mixed $other, mixed $on = null, ?string $how = null, mixed $leftOn = null, mixed $rightOn = null, ?string $suffix = null, ?bool $coalesce = null, ?string $maintainOrder = null, ?bool $nullsEqual = null): Phpolars\LazyFrame {}
+        public function joinWhere(mixed $other, mixed ...$predicates): Phpolars\LazyFrame {}
         public function groupBy(mixed $by, ?bool $maintainOrder = null): Phpolars\LazyGroupBy {}
         public function sum(): Phpolars\LazyFrame {}
         public function mean(): Phpolars\LazyFrame {}

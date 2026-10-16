@@ -8,7 +8,7 @@ use InvalidArgumentException;
 use Phibble\Exception\ColumnNotFound;
 use Phpolars\DataFrame;
 
-use function Phpolars\{coalesce, col, concat, lit};
+use function Phpolars\{all_horizontal, coalesce, col, concat, lit};
 
 /**
  * dplyr 1.1 joins in Polars, with the same row order, column naming,
@@ -134,9 +134,31 @@ final class Joiner
             $ky["__cr{$i}"] = $common === null ? col($c['right']) : col($c['right'])->cast($common);
         }
         $keys = array_map(fn ($i) => "__k{$i}", array_keys($pairs));
-        $candidates = $keys === []
-            ? $X->select($kx)->join($Y->select($ky), how: 'cross')
-            : $X->select($kx)->join($Y->select($ky), on: $keys, how: 'inner', nullsEqual: $naMatches);
+        $xk = $X->select($kx);
+        $yk = $Y->select($ky);
+        if ($keys === []) {
+            // Rows with all comparison values present go through Polars' IEJoin;
+            // rows with NA (which can match NA under naMatches) are paired by a
+            // cross join and filtered below.
+            $present = fn (string $prefix) => all_horizontal(...array_map(fn ($i) => col("{$prefix}{$i}")->isNotNull(), array_keys($conditions)));
+            $xPresent = $xk->filter($present('__cl'));
+            $yPresent = $yk->filter($present('__cr'));
+            $ops = array_map(fn (array $c, int $i) => match ($c['op']) {
+                '==' => col("__cl{$i}")->eq(col("__cr{$i}")),
+                '>=' => col("__cl{$i}")->ge(col("__cr{$i}")),
+                '>' => col("__cl{$i}")->gt(col("__cr{$i}")),
+                '<=' => col("__cl{$i}")->le(col("__cr{$i}")),
+                '<' => col("__cl{$i}")->lt(col("__cr{$i}")),
+            }, $conditions, array_keys($conditions));
+            $parts = [$xPresent->joinWhere($yPresent, ...$ops)];
+            if ($naMatches) {
+                $parts[] = $xk->filter($present('__cl')->not())->join($yk, how: 'cross');
+                $parts[] = $xPresent->join($yk->filter($present('__cr')->not()), how: 'cross');
+            }
+            $candidates = concat($parts);
+        } else {
+            $candidates = $xk->join($yk, on: $keys, how: 'inner', nullsEqual: $naMatches);
+        }
 
         $test = function (array $c, int $i) use ($naMatches) {
             $l = col("__cl{$i}");

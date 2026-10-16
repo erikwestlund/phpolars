@@ -321,6 +321,18 @@ macro_rules! frame_verbs {
                 Self::out(self.lf().join(other, left, right, args))
             }
 
+            /// Inner join on arbitrary predicates (py join_where):
+            /// joinWhere($other, col('start')->le(col('t')), col('t')->lt(col('end'))).
+            /// Right-hand columns that clash with left ones are named <name>_right.
+            pub fn joinWhere(&self, other: &Zval, predicates: &[&Zval]) -> PhpResult<Self> {
+                let other = other_frame(other)?;
+                let predicates = crate::input::exprs(predicates)?;
+                if predicates.is_empty() {
+                    return Err(value_error("joinWhere() needs at least one predicate"));
+                }
+                Self::out(self.lf().join_builder().with(other).join_where(predicates))
+            }
+
             /// groupBy('a'), groupBy(['a', col('b')], maintainOrder: true)
             pub fn groupBy(&self, by: &Zval, maintainOrder: Option<bool>) -> PhpResult<$group> {
                 let keys = exprs(&[by])?;
