@@ -7,7 +7,10 @@ use ext_php_rs::{
     types::{ZendHashTable, Zval},
     zend::{IniEntryDef, IniEntryDefs},
 };
-use std::{ffi::c_char, sync::Once};
+use std::{
+    ffi::c_char,
+    sync::atomic::{AtomicU32, Ordering},
+};
 
 mod convert;
 mod dtype;
@@ -31,22 +34,28 @@ unsafe extern "C" {
     fn zend_ini_long(name: *const c_char, name_length: usize, orig: i32) -> i64;
 }
 
-static THREADS: Once = Once::new();
+/// The process that last applied the thread cap. FPM forks workers from the
+/// master and (with clear_env) wipes their environment, so each process
+/// checks again rather than trusting state copied across fork().
+static APPLIED_PID: AtomicU32 = AtomicU32::new(0);
 
 /// Polars sizes its thread pool from POLARS_MAX_THREADS the first time the
-/// pool is touched, so this must run before any Polars work. An explicit
-/// environment variable wins over the INI setting.
+/// pool is touched, so this must run in each process before any Polars work:
+/// at module startup, at every request startup, and before Polars calls. An
+/// explicit environment variable wins over the INI setting.
 pub(crate) fn init_threads() {
-    THREADS.call_once(|| {
-        if std::env::var_os("POLARS_MAX_THREADS").is_some() {
-            return;
-        }
+    let pid = std::process::id();
+    if APPLIED_PID.load(Ordering::Relaxed) == pid {
+        return;
+    }
+    if std::env::var_os("POLARS_MAX_THREADS").is_none() {
         let name = c"php_polars.max_threads";
         let n = unsafe { zend_ini_long(name.as_ptr(), name.count_bytes(), 0) }.max(1);
-        // SAFETY: PHP NTS runs one thread per process and Polars has not
-        // started its pool yet, so nothing else reads the environment.
+        // SAFETY: this runs once per process, at startup or the first request,
+        // before Polars has started any threads, and PHP NTS is single-threaded.
         unsafe { std::env::set_var("POLARS_MAX_THREADS", n.to_string()) };
-    });
+    }
+    APPLIED_PID.store(pid, Ordering::Relaxed);
 }
 
 // Expression functions, as py's pl.col(), pl.lit(), pl.when() ...
@@ -257,9 +266,15 @@ pub fn polars_version() -> &'static str {
 
 fn startup(_ty: i32, mod_num: i32) -> i32 {
     IniEntryDef::register(INI.as_slice(), mod_num);
-    // Apply the cap now, before any PHP code runs: eager operations can start
-    // Polars' pool without passing through init_threads(). MINIT runs once,
-    // single-threaded, before FPM forks its workers.
+    // Apply the cap before any PHP code runs: eager operations can start
+    // Polars' pool without passing through init_threads().
+    init_threads();
+    0
+}
+
+/// RINIT: forked FPM workers apply the cap again, since their environment
+/// may have been cleared after the master's startup.
+unsafe extern "C" fn request_startup(_ty: i32, _module_number: i32) -> i32 {
     init_threads();
     0
 }
@@ -283,6 +298,7 @@ pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
         .class::<frame::PhpGroupBy>()
         .class::<frame::PhpLazyGroupBy>();
     module
+        .request_startup_function(request_startup)
         .function(wrap_function!(col))
         .function(wrap_function!(lit))
         .function(wrap_function!(when))
