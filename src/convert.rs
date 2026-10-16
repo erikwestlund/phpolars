@@ -48,16 +48,49 @@ fn call(function: &str, args: Vec<&dyn ext_php_rs::convert::IntoZvalDyn>) -> Php
 }
 
 /// A DateTimeImmutable for a UTC instant, moved into `tz` when given.
-fn php_datetime(dt: NaiveDateTime, tz: Option<&str>) -> PhpResult<Zval> {
-    let utc = call("timezone_open", vec![&"UTC"])?;
-    let text = dt.format("%Y-%m-%d %H:%M:%S%.6f").to_string();
-    let value = call("date_create_immutable", vec![&text, &utc])?;
-    match tz {
-        None => Ok(value),
-        Some(tz) => {
-            let zone = call("timezone_open", vec![&tz])?;
-            Ok(value.try_call_method("setTimezone", vec![&zone])?)
+/// Makes DateTimeImmutable values for one column. The PHP function and the
+/// time zones are looked up once, not per value.
+struct DateMaker {
+    create: ZendCallable<'static>,
+    utc: Zval,
+    zone: Option<Zval>,
+}
+
+impl DateMaker {
+    fn new(tz: Option<&str>) -> PhpResult<Self> {
+        let create = ZendCallable::try_from_name("date_create_immutable")
+            .map_err(|_| PhpException::from("date_create_immutable() is not available"))?;
+        let utc = call("timezone_open", vec![&"UTC"])?;
+        let zone = match tz {
+            Some(tz) => Some(call("timezone_open", vec![&tz])?),
+            None => None,
+        };
+        Ok(Self { create, utc, zone })
+    }
+
+    /// A UTC instant, moved into the column's zone when it has one.
+    fn make(&self, dt: NaiveDateTime) -> PhpResult<Zval> {
+        use std::fmt::Write;
+        let mut text = String::with_capacity(26);
+        let _ = write!(text, "{}", dt.format("%Y-%m-%d %H:%M:%S%.6f"));
+        let value = self.create.try_call(vec![&text, &self.utc])?;
+        match &self.zone {
+            None => Ok(value),
+            Some(zone) => Ok(value.try_call_method("setTimezone", vec![zone])?),
         }
+    }
+
+    fn column(
+        &self,
+        values: impl Iterator<Item = Option<i64>>,
+        tu: TimeUnit,
+    ) -> PhpResult<Vec<Zval>> {
+        values
+            .map(|v| match v.and_then(|v| naive(v, tu)) {
+                Some(dt) => self.make(dt),
+                None => Ok(null()),
+            })
+            .collect()
     }
 }
 
@@ -86,13 +119,6 @@ fn hashtable(z: ZBox<ZendHashTable>) -> Zval {
     let mut out = Zval::new();
     out.set_hashtable(z);
     out
-}
-
-fn temporal(v: Option<i64>, tu: TimeUnit, tz: Option<&str>) -> PhpResult<Zval> {
-    match v.and_then(|v| naive(v, tu)) {
-        Some(dt) => php_datetime(dt, tz),
-        None => Ok(null()),
-    }
 }
 
 /// One Zval per element of the series.
@@ -124,24 +150,17 @@ pub fn series_values(s: &Series) -> PhpResult<Vec<Zval>> {
         }
         DataType::Date => {
             let days = s.to_physical_repr();
-            let mut out = Vec::with_capacity(s.len());
-            for v in days.i32().php()?.iter() {
-                out.push(temporal(
-                    v.map(|d| d as i64 * 86_400_000),
-                    TimeUnit::Milliseconds,
-                    None,
-                )?);
-            }
-            out
+            let millis = days
+                .i32()
+                .php()?
+                .iter()
+                .map(|v| v.map(|d| d as i64 * 86_400_000));
+            DateMaker::new(None)?.column(millis, TimeUnit::Milliseconds)?
         }
         DataType::Datetime(tu, tz) => {
-            let tz = tz.as_ref().map(|t| t.as_str().to_string());
             let phys = s.to_physical_repr();
-            let mut out = Vec::with_capacity(s.len());
-            for v in phys.i64().php()?.iter() {
-                out.push(temporal(v, *tu, tz.as_deref())?);
-            }
-            out
+            DateMaker::new(tz.as_ref().map(|t| t.as_str()))?
+                .column(phys.i64().php()?.iter(), *tu)?
         }
         DataType::Duration(_) => {
             let phys = s.to_physical_repr();
@@ -301,10 +320,61 @@ fn is_datetime(v: &Zval) -> bool {
 /// Microseconds since the epoch on the value's wall clock.
 fn wall_clock_micros(v: &Zval) -> PhpResult<i64> {
     let text = v.try_call_method("format", vec![&"Y-m-d H:i:s.u"])?;
-    let text = text.str().unwrap_or_default().to_string();
-    let dt = NaiveDateTime::parse_from_str(&text, "%Y-%m-%d %H:%M:%S%.f")
+    let text = text.str().unwrap_or_default();
+    if let Some(micros) = fast_wall_clock(text) {
+        return Ok(micros);
+    }
+    let dt = NaiveDateTime::parse_from_str(text, "%Y-%m-%d %H:%M:%S%.f")
         .map_err(|e| value_error(format!("cannot read date '{text}': {e}")))?;
     Ok(dt.and_utc().timestamp_micros())
+}
+
+/// "YYYY-mm-dd HH:MM:SS.uuuuuu" with a four-digit year, read without chrono's
+/// format parser. Other shapes return None and take the general path.
+fn fast_wall_clock(t: &str) -> Option<i64> {
+    let b = t.as_bytes();
+    if b.len() != 26
+        || b[4] != b'-'
+        || b[7] != b'-'
+        || b[10] != b' '
+        || b[13] != b':'
+        || b[16] != b':'
+        || b[19] != b'.'
+    {
+        return None;
+    }
+    let num = |r: std::ops::Range<usize>| -> Option<u32> { t.get(r)?.parse().ok() };
+    let date = chrono::NaiveDate::from_ymd_opt(num(0..4)? as i32, num(5..7)?, num(8..10)?)?;
+    let time = chrono::NaiveTime::from_hms_micro_opt(
+        num(11..13)?,
+        num(14..16)?,
+        num(17..19)?,
+        num(20..26)?,
+    )?;
+    Some(NaiveDateTime::new(date, time).and_utc().timestamp_micros())
+}
+
+/// A column of DateTimeInterface values (and nulls) read straight into
+/// Datetime(us), or None when anything else is in it.
+fn datetime_column(name: PlSmallStr, vals: &[&Zval]) -> PhpResult<Option<Series>> {
+    let Some(ce) = ClassEntry::try_find("DateTimeInterface") else {
+        return Ok(None);
+    };
+    let mut out = Vec::with_capacity(vals.len());
+    for v in vals {
+        if v.is_null() {
+            out.push(None);
+        } else if v.object().is_some_and(|o| o.instance_of(ce)) {
+            out.push(Some(wall_clock_micros(v)?));
+        } else {
+            return Ok(None);
+        }
+    }
+    let s = Series::new(name, out);
+    Ok(Some(
+        s.cast(&DataType::Datetime(TimeUnit::Microseconds, None))
+            .php()?,
+    ))
 }
 
 /// A PHP value as an owned AnyValue, for nested and temporal data.
@@ -372,6 +442,12 @@ pub fn series(name: PlSmallStr, vals: &[&Zval], dtype: Option<&DataType>) -> Php
         ),
         Kind::Str => Series::new(name, vals.iter().map(|v| v.str()).collect::<Vec<_>>()),
         Kind::Other => {
+            if let Some(s) = datetime_column(name.clone(), vals)? {
+                return match dtype {
+                    Some(dt) if dt != s.dtype() => s.strict_cast(dt).php(),
+                    _ => Ok(s),
+                };
+            }
             let avs = vals
                 .iter()
                 .map(|v| any_value(v))

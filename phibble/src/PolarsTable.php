@@ -406,20 +406,31 @@ final class PolarsTable implements Table
 
             return;
         }
-        if ($this->groups === []) {
-            yield 0 => ['key' => [], 'table' => $this->ungroup()];
+        foreach ($this->groupRows() as $i => $group) {
+            yield $i => ['key' => $group['key'], 'table' => $this->ungroup()->take($group['rows'])];
+        }
+    }
 
-            return;
+    public function groupRows(): array
+    {
+        if ($this->rowwise || $this->keepsEmptyGroups()) {
+            return $this->collect()->groupRows();
+        }
+        if ($this->groups === []) {
+            return [['key' => [], 'rows' => $this->nrow() === 0 ? [] : range(0, $this->nrow() - 1)]];
         }
         $index = $this->df->withRowIndex('__row')
             ->groupBy($this->groups, maintainOrder: true)
-            ->agg(col('__row'));
-        $index = $index->sort($this->groupOrder($this->groups), nullsLast: true, maintainOrder: true);
-        foreach ($index->toDicts() as $i => $group) {
+            ->agg(col('__row'))
+            ->sort($this->groupOrder($this->groups), nullsLast: true, maintainOrder: true);
+        $out = [];
+        foreach ($index->toDicts() as $group) {
             $rows = $group['__row'];
             unset($group['__row']);
-            yield $i => ['key' => $group, 'table' => $this->ungroup()->take($rows)];
+            $out[] = ['key' => $group, 'rows' => $rows];
         }
+
+        return $out;
     }
 
     /** @param ?string $groups dplyr's .groups: drop_last (default), drop, keep or rowwise. */

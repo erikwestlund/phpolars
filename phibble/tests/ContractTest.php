@@ -220,3 +220,16 @@ it('honours summarise .groups and groupBy(drop: false)', function () {
         ->and($levels->groupBy(['g'], drop: false)->dropsEmptyGroups())->toBeFalse()
         ->and($levels->groupBy(['g'], drop: false)->summarise(['n' => n()])->toRows())->toBe([['g' => 'a', 'n' => 2], ['g' => 'b', 'n' => 0]]);
 });
+
+it('lists group rows in group order', function () {
+    $t = pt(Frame::fromColumns(['g' => ['b', 'a', null, 'b'], 'x' => [1, 2, 3, 4]]));
+
+    expect($t->groupBy(['g'])->groupRows())->toBe([
+        ['key' => ['g' => 'a'], 'rows' => [1]],
+        ['key' => ['g' => 'b'], 'rows' => [0, 3]],
+        ['key' => ['g' => null], 'rows' => [2]],
+    ])
+        ->and($t->groupRows())->toBe([['key' => [], 'rows' => [0, 1, 2, 3]]])
+        ->and($t->head(0)->groupRows())->toBe([['key' => [], 'rows' => []]])
+        ->and($t->groupBy(['g'])->groupRows())->toBe($t->collect()->groupBy(['g'])->groupRows());
+});
