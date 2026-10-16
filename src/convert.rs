@@ -73,7 +73,13 @@ fn naive(value: i64, tu: TimeUnit) -> Option<NaiveDateTime> {
 fn time_string(nanos: i64) -> String {
     let secs = nanos / 1_000_000_000;
     let frac = (nanos % 1_000_000_000) / 1_000;
-    format!("{:02}:{:02}:{:02}.{:06}", secs / 3600, secs / 60 % 60, secs % 60, frac)
+    format!(
+        "{:02}:{:02}:{:02}.{:06}",
+        secs / 3600,
+        secs / 60 % 60,
+        secs % 60,
+        frac
+    )
 }
 
 fn hashtable(z: ZBox<ZendHashTable>) -> Zval {
@@ -120,7 +126,11 @@ pub fn series_values(s: &Series) -> PhpResult<Vec<Zval>> {
             let days = s.to_physical_repr();
             let mut out = Vec::with_capacity(s.len());
             for v in days.i32().php()?.iter() {
-                out.push(temporal(v.map(|d| d as i64 * 86_400_000), TimeUnit::Milliseconds, None)?);
+                out.push(temporal(
+                    v.map(|d| d as i64 * 86_400_000),
+                    TimeUnit::Milliseconds,
+                    None,
+                )?);
             }
             out
         }
@@ -171,7 +181,11 @@ pub fn series_values(s: &Series) -> PhpResult<Vec<Zval>> {
                 for (name, it) in columns.iter_mut() {
                     row.insert(name.as_str(), it.next().unwrap_or_else(null))?;
                 }
-                out.push(if valid == Some(true) { hashtable(row) } else { null() });
+                out.push(if valid == Some(true) {
+                    hashtable(row)
+                } else {
+                    null()
+                });
             }
             out
         }
@@ -237,7 +251,10 @@ pub fn to_tuples(df: &DataFrame) -> PhpResult<ZBox<ZendHashTable>> {
 pub fn to_columns(df: &DataFrame) -> PhpResult<ZBox<ZendHashTable>> {
     let mut out = ZendHashTable::with_capacity(df.width() as u32);
     for column in df.columns() {
-        out.insert(column.name().as_str(), series_list(column.as_materialized_series())?)?;
+        out.insert(
+            column.name().as_str(),
+            series_list(column.as_materialized_series())?,
+        )?;
     }
     Ok(out)
 }
@@ -337,9 +354,9 @@ pub fn series(name: PlSmallStr, vals: &[&Zval], dtype: Option<&DataType>) -> Php
             (a, b) if a == b => a,
             (Kind::Other, _) | (_, Kind::Other) => Kind::Other,
             _ => {
-                return Err(PhpException::from_class::<crate::error::SchemaError>(format!(
-                    "column '{name}' mixes incompatible types; pass a dtype or cast first"
-                )));
+                return Err(PhpException::from_class::<crate::error::SchemaError>(
+                    format!("column '{name}' mixes incompatible types; pass a dtype or cast first"),
+                ));
             }
         };
     }
@@ -355,7 +372,10 @@ pub fn series(name: PlSmallStr, vals: &[&Zval], dtype: Option<&DataType>) -> Php
         ),
         Kind::Str => Series::new(name, vals.iter().map(|v| v.str()).collect::<Vec<_>>()),
         Kind::Other => {
-            let avs = vals.iter().map(|v| any_value(v)).collect::<PhpResult<Vec<_>>>()?;
+            let avs = vals
+                .iter()
+                .map(|v| any_value(v))
+                .collect::<PhpResult<Vec<_>>>()?;
             let s = Series::from_any_values(name, &avs, false).php()?;
             return match dtype {
                 Some(dt) if dt != s.dtype() => s.strict_cast(dt).php(),
@@ -369,7 +389,11 @@ pub fn series(name: PlSmallStr, vals: &[&Zval], dtype: Option<&DataType>) -> Php
     }
 }
 
-pub fn series_from_array(name: &str, list: &ZendHashTable, dtype: Option<&DataType>) -> PhpResult<Series> {
+pub fn series_from_array(
+    name: &str,
+    list: &ZendHashTable,
+    dtype: Option<&DataType>,
+) -> PhpResult<Series> {
     let vals: Vec<&Zval> = list.values().collect();
     series(name.into(), &vals, dtype)
 }
@@ -393,7 +417,10 @@ fn lookup<'a>(schema: &'a [(String, DataType)], name: &str) -> Option<&'a DataTy
 }
 
 /// ['name' => [values...] | Series, ...]
-pub fn from_columns(columns: &ZendHashTable, schema: Option<&ZendHashTable>) -> PhpResult<DataFrame> {
+pub fn from_columns(
+    columns: &ZendHashTable,
+    schema: Option<&ZendHashTable>,
+) -> PhpResult<DataFrame> {
     let schema = schema_overrides(schema)?;
     let mut out: Vec<Column> = Vec::with_capacity(columns.len());
     for (key, value) in columns.iter() {
@@ -407,7 +434,9 @@ pub fn from_columns(columns: &ZendHashTable, schema: Option<&ZendHashTable>) -> 
         } else if let Some(list) = value.array() {
             series_from_array(&name, list, lookup(&schema, &name))?
         } else {
-            return Err(value_error(format!("column '{name}' must be a list or a Series")));
+            return Err(value_error(format!(
+                "column '{name}' must be a list or a Series"
+            )));
         };
         out.push(s.into());
     }
@@ -429,22 +458,33 @@ pub fn from_rows(rows: &ZendHashTable, schema: Option<&ZendHashTable>) -> PhpRes
     let mut lists: Vec<Vec<&Zval>> = Vec::new();
     let mut positional = false;
     for (i, (_, row)) in rows.iter().enumerate() {
-        let row = row.array().ok_or_else(|| value_error("each row must be an array"))?;
+        let row = row
+            .array()
+            .ok_or_else(|| value_error("each row must be an array"))?;
         if i == 0 {
             positional = is_list(row) && !row.is_empty();
             if positional {
                 if overrides.len() != row.len() {
-                    return Err(value_error("rows without keys need a schema naming every column"));
+                    return Err(value_error(
+                        "rows without keys need a schema naming every column",
+                    ));
                 }
                 names = overrides.iter().map(|(n, _)| n.clone()).collect();
             } else {
                 names = row.iter().map(|(k, _)| k.to_string()).collect();
             }
-            lists = names.iter().map(|_| Vec::with_capacity(rows.len())).collect();
+            lists = names
+                .iter()
+                .map(|_| Vec::with_capacity(rows.len()))
+                .collect();
         }
         if positional {
             if row.len() != names.len() {
-                return Err(value_error(format!("row {i} has {} values, expected {}", row.len(), names.len())));
+                return Err(value_error(format!(
+                    "row {i} has {} values, expected {}",
+                    row.len(),
+                    names.len()
+                )));
             }
             for (list, v) in lists.iter_mut().zip(row.values()) {
                 list.push(v);
@@ -495,7 +535,10 @@ pub fn literal(value: &Zval) -> PhpResult<Expr> {
                 return Ok(lit(wall_clock_micros(value)?)
                     .cast(DataType::Datetime(TimeUnit::Microseconds, None)));
             }
-            Err(value_error(format!("cannot use a {} as a literal", value.get_type())))
+            Err(value_error(format!(
+                "cannot use a {} as a literal",
+                value.get_type()
+            )))
         }
     }
 }

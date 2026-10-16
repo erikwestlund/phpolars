@@ -16,7 +16,7 @@ use crate::{
     error::{OrPhp, column_not_found, value_error},
     expr::fill_null,
     init_threads,
-    input::{bools, exprs, given, into_expr, names, opt_names, operand},
+    input::{bools, exprs, given, into_expr, names, operand, opt_names},
     series::PhpSeries,
 };
 
@@ -90,11 +90,19 @@ fn unique_keep(keep: Option<String>) -> PhpResult<UniqueKeepStrategy> {
         "first" => UniqueKeepStrategy::First,
         "last" => UniqueKeepStrategy::Last,
         "none" => UniqueKeepStrategy::None,
-        other => return Err(value_error(format!("keep must be any, first, last or none, not '{other}'"))),
+        other => {
+            return Err(value_error(format!(
+                "keep must be any, first, last or none, not '{other}'"
+            )));
+        }
     })
 }
 
-fn sort_options(descending: Option<&Zval>, nullsLast: Option<&Zval>, maintainOrder: Option<bool>) -> PhpResult<SortMultipleOptions> {
+fn sort_options(
+    descending: Option<&Zval>,
+    nullsLast: Option<&Zval>,
+    maintainOrder: Option<bool>,
+) -> PhpResult<SortMultipleOptions> {
     Ok(SortMultipleOptions::default()
         .with_order_descending_multi(bools(descending, false)?)
         .with_nulls_last_multi(bools(nullsLast, false)?)
@@ -399,12 +407,17 @@ fn other_frame(other: &Zval) -> PhpResult<LazyFrame> {
     if let Some(lf) = other.extract::<&PhpLazyFrame>() {
         return Ok(lf.inner.clone());
     }
-    Err(value_error("expected a Phpolars\\DataFrame or Phpolars\\LazyFrame"))
+    Err(value_error(
+        "expected a Phpolars\\DataFrame or Phpolars\\LazyFrame",
+    ))
 }
 
 frame_verbs!(PhpDataFrame, PhpGroupBy, {
     /// new DataFrame(['a' => [1, 2], 'b' => ['x', 'y']]) or a list of rows.
-    pub fn __construct(data: Option<&ZendHashTable>, schema: Option<&ZendHashTable>) -> PhpResult<Self> {
+    pub fn __construct(
+        data: Option<&ZendHashTable>,
+        schema: Option<&ZendHashTable>,
+    ) -> PhpResult<Self> {
         let df = match data {
             None => convert::from_columns(&ZendHashTable::new(), schema)?,
             Some(d) if convert::is_list(d) && !d.is_empty() => convert::from_rows(d, schema)?,
@@ -431,7 +444,9 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
     /// Any Phibble\Contracts\Table, read through its toColumns().
     pub fn fromPhibble(table: &Zval) -> PhpResult<Self> {
         let columns = table.try_call_method("toColumns", vec![])?;
-        let columns = columns.array().ok_or_else(|| value_error("toColumns() must return an array"))?;
+        let columns = columns
+            .array()
+            .ok_or_else(|| value_error("toColumns() must return an array"))?;
         convert::from_columns(columns, None).map(Self::wrap)
     }
 
@@ -440,7 +455,11 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
     }
 
     pub fn columns(&self) -> Vec<String> {
-        self.inner.get_column_names().into_iter().map(|n| n.to_string()).collect()
+        self.inner
+            .get_column_names()
+            .into_iter()
+            .map(|n| n.to_string())
+            .collect()
     }
 
     pub fn height(&self) -> i64 {
@@ -466,7 +485,11 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
     }
 
     pub fn dtypes(&self) -> Vec<String> {
-        self.inner.columns().iter().map(|c| dtype::name(c.dtype())).collect()
+        self.inner
+            .columns()
+            .iter()
+            .map(|c| dtype::name(c.dtype()))
+            .collect()
     }
 
     pub fn estimatedSize(&self) -> i64 {
@@ -474,15 +497,22 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
     }
 
     pub fn getColumn(&self, name: String) -> PhpResult<PhpSeries> {
-        let c = self.inner.column(&name).map_err(|_| column_not_found(&name))?;
-        Ok(PhpSeries { inner: c.as_materialized_series().clone() })
+        let c = self
+            .inner
+            .column(&name)
+            .map_err(|_| column_not_found(&name))?;
+        Ok(PhpSeries {
+            inner: c.as_materialized_series().clone(),
+        })
     }
 
     pub fn getColumns(&self) -> Vec<PhpSeries> {
         self.inner
             .columns()
             .iter()
-            .map(|c| PhpSeries { inner: c.as_materialized_series().clone() })
+            .map(|c| PhpSeries {
+                inner: c.as_materialized_series().clone(),
+            })
             .collect()
     }
 
@@ -491,9 +521,15 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
         let i = index.unwrap_or(0);
         let i = if i < 0 { w + i } else { i };
         if i < 0 || i >= w {
-            return Err(PhpException::from_class::<crate::error::OutOfBoundsError>(format!("column index {i} is out of bounds")));
+            return Err(PhpException::from_class::<crate::error::OutOfBoundsError>(
+                format!("column index {i} is out of bounds"),
+            ));
         }
-        Ok(PhpSeries { inner: self.inner.columns()[i as usize].as_materialized_series().clone() })
+        Ok(PhpSeries {
+            inner: self.inner.columns()[i as usize]
+                .as_materialized_series()
+                .clone(),
+        })
     }
 
     /// [['col' => value, ...], ...]
@@ -515,11 +551,20 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
         let h = self.inner.height() as i64;
         let i = if index < 0 { h + index } else { index };
         if i < 0 || i >= h {
-            return Err(PhpException::from_class::<crate::error::OutOfBoundsError>(format!("row index {index} is out of bounds")));
+            return Err(PhpException::from_class::<crate::error::OutOfBoundsError>(
+                format!("row index {index} is out of bounds"),
+            ));
         }
         let one = self.inner.slice(i, 1);
-        let rows = if named.unwrap_or(false) { convert::to_rows(&one)? } else { convert::to_tuples(&one)? };
-        Ok(rows.get_index(0).map(|z| z.shallow_clone()).unwrap_or_default())
+        let rows = if named.unwrap_or(false) {
+            convert::to_rows(&one)?
+        } else {
+            convert::to_tuples(&one)?
+        };
+        Ok(rows
+            .get_index(0)
+            .map(|z| z.shallow_clone())
+            .unwrap_or_default())
     }
 
     /// The single value of a 1x1 frame, or the value at (row, column).
@@ -527,14 +572,23 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
         let (r, c) = match (row, given(column)) {
             (None, None) => {
                 if self.inner.shape() != (1, 1) {
-                    return Err(value_error(format!("item() without arguments needs a 1x1 frame, not {:?}", self.inner.shape())));
+                    return Err(value_error(format!(
+                        "item() without arguments needs a 1x1 frame, not {:?}",
+                        self.inner.shape()
+                    )));
                 }
                 (0, 0)
             }
             (Some(r), Some(c)) => {
                 let ci = match c.str() {
-                    Some(name) => self.inner.get_column_index(name).ok_or_else(|| column_not_found(name))?,
-                    None => c.long().ok_or_else(|| value_error("column must be a name or index"))? as usize,
+                    Some(name) => self
+                        .inner
+                        .get_column_index(name)
+                        .ok_or_else(|| column_not_found(name))?,
+                    None => c
+                        .long()
+                        .ok_or_else(|| value_error("column must be a name or index"))?
+                        as usize,
                 };
                 (r, ci)
             }
@@ -551,7 +605,12 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
         }
         let mut out = ZendHashTable::with_capacity(self.inner.width() as u32);
         for c in self.inner.columns() {
-            out.insert(c.name().as_str(), PhpSeries { inner: c.as_materialized_series().clone() })?;
+            out.insert(
+                c.name().as_str(),
+                PhpSeries {
+                    inner: c.as_materialized_series().clone(),
+                },
+            )?;
         }
         Ok(out)
     }
@@ -563,19 +622,37 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
 
     /// A Phibble\Frame; requires erikwestlund/phibble.
     pub fn toPhibble(&self) -> PhpResult<Zval> {
-        let factory = ZendCallable::try_from_name("Phibble\\Frame::fromColumns")
-            .map_err(|_| PhpException::from("Phibble\\Frame::fromColumns() is not available; install erikwestlund/phibble"))?;
+        let factory = ZendCallable::try_from_name("Phibble\\Frame::fromColumns").map_err(|_| {
+            PhpException::from(
+                "Phibble\\Frame::fromColumns() is not available; install erikwestlund/phibble",
+            )
+        })?;
         let columns = convert::to_columns(&self.inner)?;
         Ok(factory.try_call(vec![&columns])?)
     }
 
     /// Summary statistics per column, as py's describe().
     pub fn describe(&self, percentiles: Option<Vec<crate::input::Num>>) -> PhpResult<Self> {
-        describe(&self.inner, percentiles.map_or_else(|| vec![0.25, 0.5, 0.75], |p| p.into_iter().map(|n| n.0).collect()))
+        describe(
+            &self.inner,
+            percentiles.map_or_else(
+                || vec![0.25, 0.5, 0.75],
+                |p| p.into_iter().map(|n| n.0).collect(),
+            ),
+        )
     }
 
     /// pivot(on: 'k', index: 'id', values: 'v', aggregateFunction: 'sum')
-    pub fn pivot(&self, on: &Zval, index: Option<&Zval>, values: Option<&Zval>, aggregateFunction: Option<&Zval>, sortColumns: Option<bool>, separator: Option<String>, maintainOrder: Option<bool>) -> PhpResult<Self> {
+    pub fn pivot(
+        &self,
+        on: &Zval,
+        index: Option<&Zval>,
+        values: Option<&Zval>,
+        aggregateFunction: Option<&Zval>,
+        sortColumns: Option<bool>,
+        separator: Option<String>,
+        maintainOrder: Option<bool>,
+    ) -> PhpResult<Self> {
         let on = names(&[on])?;
         let schema = self.inner.schema();
         let index = opt_names(index)?;
@@ -584,11 +661,19 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
         let (index, values) = match (index, values) {
             (Some(i), Some(v)) => (i, v),
             (Some(i), None) => {
-                let v = all_names.iter().filter(|n| !on.contains(n) && !i.contains(n)).cloned().collect();
+                let v = all_names
+                    .iter()
+                    .filter(|n| !on.contains(n) && !i.contains(n))
+                    .cloned()
+                    .collect();
                 (i, v)
             }
             (None, Some(v)) => {
-                let i = all_names.iter().filter(|n| !on.contains(n) && !v.contains(n)).cloned().collect();
+                let i = all_names
+                    .iter()
+                    .filter(|n| !on.contains(n) && !v.contains(n))
+                    .cloned()
+                    .collect();
                 (i, v)
             }
             (None, None) => return Err(value_error("pivot() needs index or values")),
@@ -604,13 +689,22 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
                 Some("min") => element().min(),
                 Some("max") => element().max(),
                 Some("len") => element().len(),
-                Some(other) => return Err(value_error(format!("unknown aggregate function '{other}'"))),
+                Some(other) => {
+                    return Err(value_error(format!("unknown aggregate function '{other}'")));
+                }
                 None => into_expr(f)?,
             },
         };
-        let mut on_columns = self.inner.select(on.iter().map(|s| s.as_str())).php()?.unique_stable(None, UniqueKeepStrategy::First, None).php()?;
+        let mut on_columns = self
+            .inner
+            .select(on.iter().map(|s| s.as_str()))
+            .php()?
+            .unique_stable(None, UniqueKeepStrategy::First, None)
+            .php()?;
         if sortColumns.unwrap_or(false) {
-            on_columns = on_columns.sort(on.clone(), SortMultipleOptions::default()).php()?;
+            on_columns = on_columns
+                .sort(on.clone(), SortMultipleOptions::default())
+                .php()?;
         }
         let lf = self.lf().pivot(
             selector(on),
@@ -626,9 +720,18 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
     }
 
     /// Rows become columns. includeHeader keeps the old names in headerName.
-    pub fn transpose(&self, includeHeader: Option<bool>, headerName: Option<String>, columnNames: Option<&Zval>) -> PhpResult<Self> {
+    pub fn transpose(
+        &self,
+        includeHeader: Option<bool>,
+        headerName: Option<String>,
+        columnNames: Option<&Zval>,
+    ) -> PhpResult<Self> {
         let header = headerName.unwrap_or_else(|| "column".into());
-        let keep = if includeHeader.unwrap_or(false) { Some(header.as_str()) } else { None };
+        let keep = if includeHeader.unwrap_or(false) {
+            Some(header.as_str())
+        } else {
+            None
+        };
         let new_names = match given(columnNames) {
             None => None,
             Some(v) => match v.str() {
@@ -640,18 +743,39 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
         df.transpose(keep, new_names).php().map(Self::wrap)
     }
 
-    pub fn sample(&self, n: Option<i64>, fraction: Option<crate::input::Num>, withReplacement: Option<bool>, shuffle: Option<bool>, seed: Option<i64>) -> PhpResult<Self> {
+    pub fn sample(
+        &self,
+        n: Option<i64>,
+        fraction: Option<crate::input::Num>,
+        withReplacement: Option<bool>,
+        shuffle: Option<bool>,
+        seed: Option<i64>,
+    ) -> PhpResult<Self> {
         let wr = withReplacement.unwrap_or(false);
         let seed = seed.map(|s| s as u64);
         let out = match (n, fraction) {
-            (Some(_), Some(_)) => return Err(value_error("sample() takes n or fraction, not both")),
-            (_, Some(f)) => self.inner.sample_frac(&Series::new("frac".into(), [f.0]), wr, shuffle, seed),
-            (n, None) => self.inner.sample_n_literal(n.unwrap_or(1).max(0) as usize, wr, shuffle, seed),
+            (Some(_), Some(_)) => {
+                return Err(value_error("sample() takes n or fraction, not both"));
+            }
+            (_, Some(f)) => {
+                self.inner
+                    .sample_frac(&Series::new("frac".into(), [f.0]), wr, shuffle, seed)
+            }
+            (n, None) => {
+                self.inner
+                    .sample_n_literal(n.unwrap_or(1).max(0) as usize, wr, shuffle, seed)
+            }
         };
         out.php().map(Self::wrap)
     }
 
-    pub fn writeCsv(&self, file: String, includeHeader: Option<bool>, separator: Option<String>, nullValue: Option<String>) -> PhpResult<()> {
+    pub fn writeCsv(
+        &self,
+        file: String,
+        includeHeader: Option<bool>,
+        separator: Option<String>,
+        nullValue: Option<String>,
+    ) -> PhpResult<()> {
         crate::io::sink_csv(self.lf(), &file, includeHeader, separator, nullValue)
     }
 
@@ -692,11 +816,15 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
             add.extend(df.inner.columns().iter().cloned());
         } else if let Some(list) = columns.array() {
             for v in list.values() {
-                let s = v.extract::<&PhpSeries>().ok_or_else(|| value_error("hstack() takes a DataFrame or a list of Series"))?;
+                let s = v
+                    .extract::<&PhpSeries>()
+                    .ok_or_else(|| value_error("hstack() takes a DataFrame or a list of Series"))?;
                 add.push(s.inner.clone().into());
             }
         } else {
-            return Err(value_error("hstack() takes a DataFrame or a list of Series"));
+            return Err(value_error(
+                "hstack() takes a DataFrame or a list of Series",
+            ));
         }
         self.inner.hstack(&add).php().map(Self::wrap)
     }
@@ -723,10 +851,20 @@ frame_verbs!(PhpLazyFrame, PhpLazyGroupBy, {
     }
 
     pub fn columns(&self) -> PhpResult<Vec<String>> {
-        Ok(self.schema_ref()?.iter_names().map(|n| n.to_string()).collect())
+        Ok(self
+            .schema_ref()?
+            .iter_names()
+            .map(|n| n.to_string())
+            .collect())
     }
 
-    pub fn sinkCsv(&self, file: String, includeHeader: Option<bool>, separator: Option<String>, nullValue: Option<String>) -> PhpResult<()> {
+    pub fn sinkCsv(
+        &self,
+        file: String,
+        includeHeader: Option<bool>,
+        separator: Option<String>,
+        nullValue: Option<String>,
+    ) -> PhpResult<()> {
         crate::io::sink_csv(self.lf(), &file, includeHeader, separator, nullValue)
     }
 
@@ -749,7 +887,12 @@ frame_verbs!(PhpLazyFrame, PhpLazyGroupBy, {
     /// Collect only the first n rows, for a quick look at a plan.
     pub fn fetch(&self, n: Option<i64>) -> PhpResult<PhpDataFrame> {
         init_threads();
-        self.inner.clone().limit(n.unwrap_or(500) as IdxSize).collect().php().map(PhpDataFrame::wrap)
+        self.inner
+            .clone()
+            .limit(n.unwrap_or(500) as IdxSize)
+            .collect()
+            .php()
+            .map(PhpDataFrame::wrap)
     }
 
     pub fn __to_string(&self) -> String {
@@ -795,7 +938,10 @@ macro_rules! group_by {
             }
 
             pub fn len(&self, name: Option<String>) -> PhpResult<$frame> {
-                $frame::out(self.grouped().agg([pl_len().alias(name.unwrap_or_else(|| "len".into()))]))
+                $frame::out(
+                    self.grouped()
+                        .agg([pl_len().alias(name.unwrap_or_else(|| "len".into()))]),
+                )
             }
 
             pub fn sum(&self) -> PhpResult<$frame> {
@@ -862,17 +1008,24 @@ pub fn concat(items: &ZendHashTable, how: Option<String>) -> PhpResult<Zval> {
     use ext_php_rs::convert::IntoZval;
     let how = how.unwrap_or_else(|| "vertical".into());
     let values: Vec<&Zval> = items.values().collect();
-    let first = values.first().ok_or_else(|| value_error("concat() needs at least one item"))?;
+    let first = values
+        .first()
+        .ok_or_else(|| value_error("concat() needs at least one item"))?;
     if first.extract::<&PhpSeries>().is_some() {
         let mut out = first.extract::<&PhpSeries>().unwrap().inner.clone();
         for v in &values[1..] {
-            let s = v.extract::<&PhpSeries>().ok_or_else(|| value_error("concat() items must all be the same kind"))?;
+            let s = v
+                .extract::<&PhpSeries>()
+                .ok_or_else(|| value_error("concat() items must all be the same kind"))?;
             out.append(&s.inner).php()?;
         }
         return Ok(PhpSeries { inner: out }.into_zval(false)?);
     }
     let eager = first.extract::<&PhpDataFrame>().is_some();
-    let lfs = values.iter().map(|v| other_frame(v)).collect::<PhpResult<Vec<_>>>()?;
+    let lfs = values
+        .iter()
+        .map(|v| other_frame(v))
+        .collect::<PhpResult<Vec<_>>>()?;
     let args = UnionArgs {
         rechunk: true,
         to_supertypes: how.ends_with("_relaxed"),
@@ -896,7 +1049,13 @@ pub fn concat(items: &ZendHashTable, how: Option<String>) -> PhpResult<Zval> {
 /// temporal columns get a mean, min, max, and percentiles; strings get min
 /// and max; nested columns only counts.
 fn describe(df: &DataFrame, percentiles: Vec<f64>) -> PhpResult<PhpDataFrame> {
-    let mut stats: Vec<String> = vec!["count".into(), "null_count".into(), "mean".into(), "std".into(), "min".into()];
+    let mut stats: Vec<String> = vec![
+        "count".into(),
+        "null_count".into(),
+        "mean".into(),
+        "std".into(),
+        "min".into(),
+    ];
     for p in &percentiles {
         stats.push(format!("{}%", p * 100.0));
     }
@@ -912,13 +1071,19 @@ fn describe(df: &DataFrame, percentiles: Vec<f64>) -> PhpResult<PhpDataFrame> {
         let ordered = !dt.is_nested() && !dt.is_null();
         let x = || col(name);
         let mut row = vec![x().count(), x().null_count()];
-        row.push(if numeric || boolean || temporal { x().mean() } else { none() });
+        row.push(if numeric || boolean || temporal {
+            x().mean()
+        } else {
+            none()
+        });
         row.push(if numeric { x().std(1) } else { none() });
         row.push(if ordered { x().min() } else { none() });
         for p in &percentiles {
             row.push(match (numeric, temporal) {
                 (true, _) => x().quantile(lit(*p), QuantileMethod::Nearest),
-                (_, true) => x().quantile(lit(*p), QuantileMethod::Nearest).cast(dt.clone()),
+                (_, true) => x()
+                    .quantile(lit(*p), QuantileMethod::Nearest)
+                    .cast(dt.clone()),
                 _ => none(),
             });
         }
@@ -928,7 +1093,9 @@ fn describe(df: &DataFrame, percentiles: Vec<f64>) -> PhpResult<PhpDataFrame> {
                 e.cast(DataType::Float64)
             } else {
                 // Trim a zero fraction so temporal means read like py's.
-                e.cast(DataType::String).str().replace(lit("\\.0+$"), lit(""), false)
+                e.cast(DataType::String)
+                    .str()
+                    .replace(lit("\\.0+$"), lit(""), false)
             };
             exprs.push(e.alias(format!("{name}\u{0}{i}")));
         }
@@ -939,7 +1106,11 @@ fn describe(df: &DataFrame, percentiles: Vec<f64>) -> PhpResult<PhpDataFrame> {
     for c in df.columns() {
         let mut out: Option<Series> = None;
         for i in 0..stats.len() {
-            let s = one.column(&format!("{}\u{0}{i}", c.name())).php()?.as_materialized_series().clone();
+            let s = one
+                .column(&format!("{}\u{0}{i}", c.name()))
+                .php()?
+                .as_materialized_series()
+                .clone();
             match out.as_mut() {
                 None => out = Some(s),
                 Some(o) => {
@@ -949,7 +1120,9 @@ fn describe(df: &DataFrame, percentiles: Vec<f64>) -> PhpResult<PhpDataFrame> {
         }
         columns.push(out.unwrap().with_name(c.name().clone()).into());
     }
-    DataFrame::new_infer_height(columns).php().map(PhpDataFrame::wrap)
+    DataFrame::new_infer_height(columns)
+        .php()
+        .map(PhpDataFrame::wrap)
 }
 
 /// Convenience for exprs that take an IntoExpr argument.

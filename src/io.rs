@@ -44,7 +44,9 @@ fn null_values(v: Option<&Zval>) -> PhpResult<Option<NullValues>> {
         None => Ok(None),
         Some(v) => match v.str() {
             Some(s) => Ok(Some(NullValues::AllColumnsSingle(s.into()))),
-            None => Ok(Some(NullValues::AllColumns(names(&[v])?.into_iter().map(Into::into).collect()))),
+            None => Ok(Some(NullValues::AllColumns(
+                names(&[v])?.into_iter().map(Into::into).collect(),
+            ))),
         },
     }
 }
@@ -66,7 +68,9 @@ fn csv_reader(
         None
     } else {
         Some(Arc::new(Schema::from_iter(
-            overrides.into_iter().map(|(n, dt)| Field::new(n.into(), dt)),
+            overrides
+                .into_iter()
+                .map(|(n, dt)| Field::new(n.into(), dt)),
         )))
     };
     LazyCsvReader::new(path(source))
@@ -89,10 +93,31 @@ fn csv_reader(
 #[php_function]
 #[php(name = "Phpolars\\read_csv")]
 #[allow(clippy::too_many_arguments)]
-pub fn read_csv(source: String, hasHeader: Option<bool>, separator: Option<String>, nullValues: Option<&Zval>, schemaOverrides: Option<&ext_php_rs::types::ZendHashTable>, nRows: Option<i64>, skipRows: Option<i64>, inferSchemaLength: Option<i64>, tryParseDates: Option<bool>, columns: Option<&Zval>) -> PhpResult<PhpDataFrame> {
-    let mut lf = csv_reader(&source, hasHeader, separator, nullValues, schemaOverrides, nRows, skipRows, inferSchemaLength, tryParseDates)?;
+pub fn read_csv(
+    source: String,
+    hasHeader: Option<bool>,
+    separator: Option<String>,
+    nullValues: Option<&Zval>,
+    schemaOverrides: Option<&ext_php_rs::types::ZendHashTable>,
+    nRows: Option<i64>,
+    skipRows: Option<i64>,
+    inferSchemaLength: Option<i64>,
+    tryParseDates: Option<bool>,
+    columns: Option<&Zval>,
+) -> PhpResult<PhpDataFrame> {
+    let mut lf = csv_reader(
+        &source,
+        hasHeader,
+        separator,
+        nullValues,
+        schemaOverrides,
+        nRows,
+        skipRows,
+        inferSchemaLength,
+        tryParseDates,
+    )?;
     if let Some(cols) = crate::input::given(columns) {
-        lf = lf.select(names(&[cols])?.into_iter().map(|c| col(c)).collect::<Vec<_>>());
+        lf = lf.select(names(&[cols])?.into_iter().map(col).collect::<Vec<_>>());
     }
     collect(lf)
 }
@@ -100,8 +125,29 @@ pub fn read_csv(source: String, hasHeader: Option<bool>, separator: Option<Strin
 #[php_function]
 #[php(name = "Phpolars\\scan_csv")]
 #[allow(clippy::too_many_arguments)]
-pub fn scan_csv(source: String, hasHeader: Option<bool>, separator: Option<String>, nullValues: Option<&Zval>, schemaOverrides: Option<&ext_php_rs::types::ZendHashTable>, nRows: Option<i64>, skipRows: Option<i64>, inferSchemaLength: Option<i64>, tryParseDates: Option<bool>) -> PhpResult<PhpLazyFrame> {
-    csv_reader(&source, hasHeader, separator, nullValues, schemaOverrides, nRows, skipRows, inferSchemaLength, tryParseDates).map(PhpLazyFrame::wrap)
+pub fn scan_csv(
+    source: String,
+    hasHeader: Option<bool>,
+    separator: Option<String>,
+    nullValues: Option<&Zval>,
+    schemaOverrides: Option<&ext_php_rs::types::ZendHashTable>,
+    nRows: Option<i64>,
+    skipRows: Option<i64>,
+    inferSchemaLength: Option<i64>,
+    tryParseDates: Option<bool>,
+) -> PhpResult<PhpLazyFrame> {
+    csv_reader(
+        &source,
+        hasHeader,
+        separator,
+        nullValues,
+        schemaOverrides,
+        nRows,
+        skipRows,
+        inferSchemaLength,
+        tryParseDates,
+    )
+    .map(PhpLazyFrame::wrap)
 }
 
 #[cfg(feature = "parquet")]
@@ -120,10 +166,14 @@ fn parquet_scan(_: &str, _: Option<i64>) -> PhpResult<LazyFrame> {
 
 #[php_function]
 #[php(name = "Phpolars\\read_parquet")]
-pub fn read_parquet(source: String, columns: Option<&Zval>, nRows: Option<i64>) -> PhpResult<PhpDataFrame> {
+pub fn read_parquet(
+    source: String,
+    columns: Option<&Zval>,
+    nRows: Option<i64>,
+) -> PhpResult<PhpDataFrame> {
     let mut lf = parquet_scan(&source, nRows)?;
     if let Some(cols) = crate::input::given(columns) {
-        lf = lf.select(names(&[cols])?.into_iter().map(|c| col(c)).collect::<Vec<_>>());
+        lf = lf.select(names(&[cols])?.into_iter().map(col).collect::<Vec<_>>());
     }
     collect(lf)
 }
@@ -163,10 +213,16 @@ pub fn scan_ipc(source: String, nRows: Option<i64>) -> PhpResult<PhpLazyFrame> {
 }
 
 #[cfg(feature = "json")]
-fn ndjson_scan(source: &str, nRows: Option<i64>, inferSchemaLength: Option<i64>) -> PhpResult<LazyFrame> {
+fn ndjson_scan(
+    source: &str,
+    nRows: Option<i64>,
+    inferSchemaLength: Option<i64>,
+) -> PhpResult<LazyFrame> {
     LazyJsonLineReader::new(path(source))
         .with_n_rows(nRows.map(|n| n as usize))
-        .with_infer_schema_length(inferSchemaLength.map(|n| std::num::NonZeroUsize::new(n.max(1) as usize).unwrap()))
+        .with_infer_schema_length(
+            inferSchemaLength.map(|n| std::num::NonZeroUsize::new(n.max(1) as usize).unwrap()),
+        )
         .finish()
         .php()
 }
@@ -179,13 +235,21 @@ fn ndjson_scan(_: &str, _: Option<i64>, _: Option<i64>) -> PhpResult<LazyFrame> 
 /// Newline-delimited JSON, one object per line.
 #[php_function]
 #[php(name = "Phpolars\\read_ndjson")]
-pub fn read_ndjson(source: String, nRows: Option<i64>, inferSchemaLength: Option<i64>) -> PhpResult<PhpDataFrame> {
+pub fn read_ndjson(
+    source: String,
+    nRows: Option<i64>,
+    inferSchemaLength: Option<i64>,
+) -> PhpResult<PhpDataFrame> {
     collect(ndjson_scan(&source, nRows, inferSchemaLength)?)
 }
 
 #[php_function]
 #[php(name = "Phpolars\\scan_ndjson")]
-pub fn scan_ndjson(source: String, nRows: Option<i64>, inferSchemaLength: Option<i64>) -> PhpResult<PhpLazyFrame> {
+pub fn scan_ndjson(
+    source: String,
+    nRows: Option<i64>,
+    inferSchemaLength: Option<i64>,
+) -> PhpResult<PhpLazyFrame> {
     ndjson_scan(&source, nRows, inferSchemaLength).map(PhpLazyFrame::wrap)
 }
 
@@ -214,12 +278,23 @@ pub fn read_json(source: String) -> PhpResult<PhpDataFrame> {
 
 fn sink(lf: LazyFrame, file: &str, format: FileWriteFormat) -> PhpResult<()> {
     init_threads();
-    let target = SinkDestination::File { target: SinkTarget::Path(path(file)) };
-    lf.sink(target, format, UnifiedSinkArgs::default()).php()?.collect().php()?;
+    let target = SinkDestination::File {
+        target: SinkTarget::Path(path(file)),
+    };
+    lf.sink(target, format, UnifiedSinkArgs::default())
+        .php()?
+        .collect()
+        .php()?;
     Ok(())
 }
 
-pub fn sink_csv(lf: LazyFrame, file: &str, includeHeader: Option<bool>, separator: Option<String>, nullValue: Option<String>) -> PhpResult<()> {
+pub fn sink_csv(
+    lf: LazyFrame,
+    file: &str,
+    includeHeader: Option<bool>,
+    separator: Option<String>,
+    nullValue: Option<String>,
+) -> PhpResult<()> {
     let mut options = CsvWriterOptions {
         include_header: includeHeader.unwrap_or(true),
         ..Default::default()
@@ -236,7 +311,11 @@ pub fn sink_csv(lf: LazyFrame, file: &str, includeHeader: Option<bool>, separato
 pub fn sink_parquet(lf: LazyFrame, file: &str) -> PhpResult<()> {
     #[cfg(feature = "parquet")]
     {
-        sink(lf, file, FileWriteFormat::Parquet(Arc::new(ParquetWriteOptions::default())))
+        sink(
+            lf,
+            file,
+            FileWriteFormat::Parquet(Arc::new(ParquetWriteOptions::default())),
+        )
     }
     #[cfg(not(feature = "parquet"))]
     {
@@ -260,7 +339,11 @@ pub fn sink_ipc(lf: LazyFrame, file: &str) -> PhpResult<()> {
 pub fn sink_ndjson(lf: LazyFrame, file: &str) -> PhpResult<()> {
     #[cfg(feature = "json")]
     {
-        sink(lf, file, FileWriteFormat::NDJson(NDJsonWriterOptions::default()))
+        sink(
+            lf,
+            file,
+            FileWriteFormat::NDJson(NDJsonWriterOptions::default()),
+        )
     }
     #[cfg(not(feature = "json"))]
     {

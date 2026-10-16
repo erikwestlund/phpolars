@@ -18,7 +18,9 @@ impl<'a> FromZval<'a> for Num {
     const TYPE: PhpType = PhpType::Double;
 
     fn from_zval(zval: &'a Zval) -> Option<Self> {
-        zval.double().or_else(|| zval.long().map(|i| i as f64)).map(Num)
+        zval.double()
+            .or_else(|| zval.long().map(|i| i as f64))
+            .map(Num)
     }
 }
 
@@ -126,7 +128,10 @@ pub fn bools(v: Option<&Zval>, default: bool) -> PhpResult<Vec<bool>> {
                 Ok(vec![b])
             } else if let Some(ht) = v.array() {
                 ht.values()
-                    .map(|b| b.bool().ok_or_else(|| value_error("expected a bool or list of bools")))
+                    .map(|b| {
+                        b.bool()
+                            .ok_or_else(|| value_error("expected a bool or list of bools"))
+                    })
                     .collect()
             } else {
                 Err(value_error("expected a bool or list of bools"))
@@ -141,7 +146,9 @@ pub fn closed_interval(s: Option<String>) -> PhpResult<ClosedInterval> {
         "left" => Ok(ClosedInterval::Left),
         "right" => Ok(ClosedInterval::Right),
         "none" => Ok(ClosedInterval::None),
-        other => Err(value_error(format!("closed must be both, left, right or none, not '{other}'"))),
+        other => Err(value_error(format!(
+            "closed must be both, left, right or none, not '{other}'"
+        ))),
     }
 }
 
@@ -150,6 +157,8 @@ pub fn time_unit(s: Option<String>) -> PhpResult<TimeUnit> {
         "ns" => Ok(TimeUnit::Nanoseconds),
         "us" => Ok(TimeUnit::Microseconds),
         "ms" => Ok(TimeUnit::Milliseconds),
-        other => Err(value_error(format!("time unit must be ns, us or ms, not '{other}'"))),
+        other => Err(value_error(format!(
+            "time unit must be ns, us or ms, not '{other}'"
+        ))),
     }
 }

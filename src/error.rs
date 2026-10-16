@@ -49,13 +49,19 @@ pub fn polars_error(e: PolarsError) -> PhpException {
     match root(&e) {
         PolarsError::ColumnNotFound(_) => PhpException::from_class::<ColumnNotFoundError>(message),
         PolarsError::Duplicate(_) => PhpException::from_class::<DuplicateError>(message),
-        PolarsError::InvalidOperation(_) => PhpException::from_class::<InvalidOperationError>(message),
+        PolarsError::InvalidOperation(_) => {
+            PhpException::from_class::<InvalidOperationError>(message)
+        }
         PolarsError::NoData(_) => PhpException::from_class::<NoDataError>(message),
         PolarsError::OutOfBounds(_) => PhpException::from_class::<OutOfBoundsError>(message),
         PolarsError::SchemaMismatch(_) => PhpException::from_class::<SchemaError>(message),
-        PolarsError::SchemaFieldNotFound(_) => PhpException::from_class::<SchemaFieldNotFoundError>(message),
+        PolarsError::SchemaFieldNotFound(_) => {
+            PhpException::from_class::<SchemaFieldNotFoundError>(message)
+        }
         PolarsError::ShapeMismatch(_) => PhpException::from_class::<ShapeError>(message),
-        PolarsError::StructFieldNotFound(_) => PhpException::from_class::<StructFieldNotFoundError>(message),
+        PolarsError::StructFieldNotFound(_) => {
+            PhpException::from_class::<StructFieldNotFoundError>(message)
+        }
         _ => PhpException::from_class::<ComputeError>(message),
     }
 }

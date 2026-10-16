@@ -9,7 +9,9 @@ fn time_unit(s: &str) -> PhpResult<TimeUnit> {
         "ns" => Ok(TimeUnit::Nanoseconds),
         "us" | "μs" => Ok(TimeUnit::Microseconds),
         "ms" => Ok(TimeUnit::Milliseconds),
-        other => Err(value_error(format!("unknown time unit '{other}'; use ns, us or ms"))),
+        other => Err(value_error(format!(
+            "unknown time unit '{other}'; use ns, us or ms"
+        ))),
     }
 }
 
@@ -55,8 +57,13 @@ pub fn parse(s: &str) -> PhpResult<DataType> {
         ("Datetime", Some(a)) => {
             let mut parts = a.splitn(2, ',');
             let tu = time_unit(parts.next().unwrap_or("us"))?;
-            let tz = parts.next().map(|t| t.trim().trim_matches('\'').to_string());
-            DataType::Datetime(tu, TimeZone::opt_try_new(tz).map_err(crate::error::polars_error)?)
+            let tz = parts
+                .next()
+                .map(|t| t.trim().trim_matches('\'').to_string());
+            DataType::Datetime(
+                tu,
+                TimeZone::opt_try_new(tz).map_err(crate::error::polars_error)?,
+            )
         }
         ("Duration", None) => DataType::Duration(TimeUnit::Microseconds),
         ("Duration", Some(a)) => DataType::Duration(time_unit(a)?),
@@ -94,7 +101,9 @@ pub fn name(dtype: &DataType) -> String {
         DataType::Binary | DataType::BinaryOffset => "Binary".into(),
         DataType::Date => "Date".into(),
         DataType::Datetime(tu, None) => format!("Datetime({})", unit_name(*tu)),
-        DataType::Datetime(tu, Some(tz)) => format!("Datetime({}, {})", unit_name(*tu), tz.as_str()),
+        DataType::Datetime(tu, Some(tz)) => {
+            format!("Datetime({}, {})", unit_name(*tu), tz.as_str())
+        }
         DataType::Duration(tu) => format!("Duration({})", unit_name(*tu)),
         DataType::Time => "Time".into(),
         DataType::Array(inner, n) => format!("Array({}, {n})", name(inner)),

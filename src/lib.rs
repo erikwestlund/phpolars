@@ -1,4 +1,6 @@
 #![allow(non_snake_case)]
+// PHP methods mirror py-polars keyword parameters, so many take several options.
+#![allow(clippy::too_many_arguments)]
 use ext_php_rs::{
     flags::IniEntryPermission,
     prelude::*,
@@ -120,12 +122,24 @@ macro_rules! horizontal {
 
 use polars::lazy::dsl as pl_dsl;
 
-horizontal!("Phpolars\\sum_horizontal", sum_horizontal, |es| pl_dsl::sum_horizontal(es, true));
-horizontal!("Phpolars\\mean_horizontal", mean_horizontal, |es| pl_dsl::mean_horizontal(es, true));
-horizontal!("Phpolars\\min_horizontal", min_horizontal, |es| pl_dsl::min_horizontal(es));
-horizontal!("Phpolars\\max_horizontal", max_horizontal, |es| pl_dsl::max_horizontal(es));
-horizontal!("Phpolars\\all_horizontal", all_horizontal, |es| pl_dsl::all_horizontal(es));
-horizontal!("Phpolars\\any_horizontal", any_horizontal, |es| pl_dsl::any_horizontal(es));
+horizontal!("Phpolars\\sum_horizontal", sum_horizontal, |es| {
+    pl_dsl::sum_horizontal(es, true)
+});
+horizontal!("Phpolars\\mean_horizontal", mean_horizontal, |es| {
+    pl_dsl::mean_horizontal(es, true)
+});
+horizontal!("Phpolars\\min_horizontal", min_horizontal, |es| {
+    pl_dsl::min_horizontal(es)
+});
+horizontal!("Phpolars\\max_horizontal", max_horizontal, |es| {
+    pl_dsl::max_horizontal(es)
+});
+horizontal!("Phpolars\\all_horizontal", all_horizontal, |es| {
+    pl_dsl::all_horizontal(es)
+});
+horizontal!("Phpolars\\any_horizontal", any_horizontal, |es| {
+    pl_dsl::any_horizontal(es)
+});
 
 /// First non-null value across the expressions.
 #[php_function]
@@ -136,16 +150,26 @@ pub fn coalesce(exprs: &[&Zval]) -> PhpResult<PhpExpr> {
 
 #[php_function]
 #[php(name = "Phpolars\\concat_str")]
-pub fn concat_str(exprs: &Zval, separator: Option<String>, ignoreNulls: Option<bool>) -> PhpResult<PhpExpr> {
+pub fn concat_str(
+    exprs: &Zval,
+    separator: Option<String>,
+    ignoreNulls: Option<bool>,
+) -> PhpResult<PhpExpr> {
     let es = input::exprs(&[exprs])?;
-    Ok(wrap(polars::prelude::concat_str(es, &separator.unwrap_or_default(), ignoreNulls.unwrap_or(false))))
+    Ok(wrap(polars::prelude::concat_str(
+        es,
+        &separator.unwrap_or_default(),
+        ignoreNulls.unwrap_or(false),
+    )))
 }
 
 #[php_function]
 #[php(name = "Phpolars\\concat_list")]
 pub fn concat_list(exprs: &[&Zval]) -> PhpResult<PhpExpr> {
     use error::OrPhp;
-    polars::prelude::concat_list(input::exprs(exprs)?).php().map(wrap)
+    polars::prelude::concat_list(input::exprs(exprs)?)
+        .php()
+        .map(wrap)
 }
 
 /// Pack expressions into one struct column.
@@ -163,7 +187,12 @@ pub fn int_range(start: &Zval, end: Option<&Zval>, step: Option<i64>) -> PhpResu
         Some(e) => (input::into_expr(start)?, input::into_expr(e)?),
         None => (polars::prelude::lit(0i64), input::into_expr(start)?),
     };
-    Ok(wrap(polars::prelude::int_range(s, e, step.unwrap_or(1), polars::prelude::DataType::Int64)))
+    Ok(wrap(polars::prelude::int_range(
+        s,
+        e,
+        step.unwrap_or(1),
+        polars::prelude::DataType::Int64,
+    )))
 }
 
 // Aggregation shorthands: sum('a') == col('a')->sum().

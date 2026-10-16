@@ -1,7 +1,11 @@
 #![allow(non_snake_case)]
 //! Phpolars\Series. Most methods evaluate the matching Expr on a one-column
 //! frame, so Series and Expr share Polars' semantics exactly.
-use ext_php_rs::{boxed::ZBox, prelude::*, types::{ZendHashTable, Zval}};
+use ext_php_rs::{
+    boxed::ZBox,
+    prelude::*,
+    types::{ZendHashTable, Zval},
+};
 use polars::prelude::*;
 
 use crate::{
@@ -35,7 +39,11 @@ pub fn eval(s: &Series, e: Expr) -> PhpResult<Series> {
         .ok_or_else(|| value_error("expression produced no column"))?
         .as_materialized_series()
         .clone();
-    Ok(if col.name().as_str() == SELF { col.with_name(name) } else { col })
+    Ok(if col.name().as_str() == SELF {
+        col.with_name(name)
+    } else {
+        col
+    })
 }
 
 fn me() -> Expr {
@@ -67,7 +75,11 @@ fn rhs(other: &Zval) -> PhpResult<Expr> {
 #[php_impl]
 impl PhpSeries {
     /// new Series('name', [values], 'Int64')
-    pub fn __construct(name: Option<String>, values: Option<&ZendHashTable>, dtype: Option<String>) -> PhpResult<Self> {
+    pub fn __construct(
+        name: Option<String>,
+        values: Option<&ZendHashTable>,
+        dtype: Option<String>,
+    ) -> PhpResult<Self> {
         let dt = dtype.map(|d| dtype::parse(&d)).transpose()?;
         let name = name.unwrap_or_default();
         let s = match values {
@@ -118,7 +130,9 @@ impl PhpSeries {
             Some(n) => self.inner.clone().with_name(n.into()),
             None => self.inner.clone(),
         };
-        Ok(PhpDataFrame::wrap(DataFrame::new_infer_height(vec![s.into()]).php()?))
+        Ok(PhpDataFrame::wrap(
+            DataFrame::new_infer_height(vec![s.into()]).php()?,
+        ))
     }
 
     /// The value at a position; negative positions count from the end.
@@ -126,9 +140,9 @@ impl PhpSeries {
         let len = self.inner.len() as i64;
         let i = if index < 0 { len + index } else { index };
         if i < 0 || i >= len {
-            return Err(PhpException::from_class::<crate::error::OutOfBoundsError>(format!(
-                "index {index} is out of bounds for a series of length {len}"
-            )));
+            return Err(PhpException::from_class::<crate::error::OutOfBoundsError>(
+                format!("index {index} is out of bounds for a series of length {len}"),
+            ));
         }
         convert::scalar(&self.inner.slice(i, 1))
     }
@@ -136,7 +150,10 @@ impl PhpSeries {
     /// The single value of a length-1 series.
     pub fn item(&self) -> PhpResult<Zval> {
         if self.inner.len() != 1 {
-            return Err(value_error(format!("item() needs a series of length 1, not {}", self.inner.len())));
+            return Err(value_error(format!(
+                "item() needs a series of length 1, not {}",
+                self.inner.len()
+            )));
         }
         convert::scalar(&self.inner)
     }
@@ -150,7 +167,9 @@ impl PhpSeries {
     }
 
     pub fn slice(&self, offset: i64, length: Option<i64>) -> Self {
-        let len = length.map(|l| l.max(0) as usize).unwrap_or(self.inner.len());
+        let len = length
+            .map(|l| l.max(0) as usize)
+            .unwrap_or(self.inner.len());
         wrap(self.inner.slice(offset, len))
     }
 
@@ -184,8 +203,15 @@ impl PhpSeries {
         self.agg(me().var(ddof.unwrap_or(1) as u8))
     }
 
-    pub fn quantile(&self, quantile: crate::input::Num, interpolation: Option<String>) -> PhpResult<Zval> {
-        self.agg(me().quantile(lit(quantile.0), crate::expr::quantile_method(interpolation)?))
+    pub fn quantile(
+        &self,
+        quantile: crate::input::Num,
+        interpolation: Option<String>,
+    ) -> PhpResult<Zval> {
+        self.agg(me().quantile(
+            lit(quantile.0),
+            crate::expr::quantile_method(interpolation)?,
+        ))
     }
 
     pub fn product(&self) -> PhpResult<Zval> {
@@ -297,11 +323,18 @@ impl PhpSeries {
     }
 
     pub fn isIn(&self, other: &Zval, nullsEqual: Option<bool>) -> PhpResult<Self> {
-        self.apply(me().is_in(crate::input::collection(other)?, nullsEqual.unwrap_or(false)))
+        self.apply(me().is_in(
+            crate::input::collection(other)?,
+            nullsEqual.unwrap_or(false),
+        ))
     }
 
     pub fn isBetween(&self, lower: &Zval, upper: &Zval, closed: Option<String>) -> PhpResult<Self> {
-        self.apply(me().is_between(rhs(lower)?, rhs(upper)?, crate::input::closed_interval(closed)?))
+        self.apply(me().is_between(
+            rhs(lower)?,
+            rhs(upper)?,
+            crate::input::closed_interval(closed)?,
+        ))
     }
 
     pub fn isNull(&self) -> Self {
@@ -324,7 +357,12 @@ impl PhpSeries {
         self.apply(me().is_duplicated())
     }
 
-    pub fn fillNull(&self, value: Option<&Zval>, strategy: Option<String>, limit: Option<i64>) -> PhpResult<Self> {
+    pub fn fillNull(
+        &self,
+        value: Option<&Zval>,
+        strategy: Option<String>,
+        limit: Option<i64>,
+    ) -> PhpResult<Self> {
         self.apply(fill_null(me(), value, strategy, limit)?)
     }
 
@@ -378,10 +416,24 @@ impl PhpSeries {
         }
     }
 
-    pub fn valueCounts(&self, sort: Option<bool>, name: Option<String>, normalize: Option<bool>) -> PhpResult<PhpDataFrame> {
+    pub fn valueCounts(
+        &self,
+        sort: Option<bool>,
+        name: Option<String>,
+        normalize: Option<bool>,
+    ) -> PhpResult<PhpDataFrame> {
         let normalize = normalize.unwrap_or(false);
-        let name = name.unwrap_or_else(|| if normalize { "proportion".into() } else { "count".into() });
-        let s = eval(&self.inner, me().value_counts(sort.unwrap_or(false), true, &name, normalize))?;
+        let name = name.unwrap_or_else(|| {
+            if normalize {
+                "proportion".into()
+            } else {
+                "count".into()
+            }
+        });
+        let s = eval(
+            &self.inner,
+            me().value_counts(sort.unwrap_or(false), true, &name, normalize),
+        )?;
         let mut df = s.struct_().php()?.clone().unnest();
         if df.get_column_index(SELF).is_some() {
             df.rename(SELF, self.inner.name().clone()).php()?;
@@ -426,7 +478,10 @@ impl PhpSeries {
     }
 
     pub fn diff(&self, n: Option<i64>) -> PhpResult<Self> {
-        self.apply(me().diff(lit(n.unwrap_or(1)), polars_core::series::ops::NullBehavior::Ignore))
+        self.apply(me().diff(
+            lit(n.unwrap_or(1)),
+            polars_core::series::ops::NullBehavior::Ignore,
+        ))
     }
 
     pub fn shift(&self, n: Option<i64>) -> PhpResult<Self> {
@@ -437,7 +492,12 @@ impl PhpSeries {
         self.apply(me().pct_change(lit(n.unwrap_or(1))))
     }
 
-    pub fn rank(&self, method: Option<String>, descending: Option<bool>, seed: Option<i64>) -> PhpResult<Self> {
+    pub fn rank(
+        &self,
+        method: Option<String>,
+        descending: Option<bool>,
+        seed: Option<i64>,
+    ) -> PhpResult<Self> {
         let options = RankOptions {
             method: rank_method(method)?,
             descending: descending.unwrap_or(false),
@@ -455,8 +515,22 @@ impl PhpSeries {
         Ok(wrap(s))
     }
 
-    pub fn sample(&self, n: Option<i64>, fraction: Option<crate::input::Num>, withReplacement: Option<bool>, shuffle: Option<bool>, seed: Option<i64>) -> PhpResult<Self> {
-        self.apply(crate::expr::sample(me(), n, fraction, withReplacement, shuffle, seed)?)
+    pub fn sample(
+        &self,
+        n: Option<i64>,
+        fraction: Option<crate::input::Num>,
+        withReplacement: Option<bool>,
+        shuffle: Option<bool>,
+        seed: Option<i64>,
+    ) -> PhpResult<Self> {
+        self.apply(crate::expr::sample(
+            me(),
+            n,
+            fraction,
+            withReplacement,
+            shuffle,
+            seed,
+        )?)
     }
 
     pub fn str(&self) -> PhpStrNameSpace {

@@ -8,7 +8,9 @@ use crate::{
     dtype,
     error::{OrPhp, value_error},
     input::{bools, closed_interval, exprs, into_expr, operand},
-    namespace::{PhpDtNameSpace, PhpListNameSpace, PhpNameNameSpace, PhpStrNameSpace, PhpStructNameSpace},
+    namespace::{
+        PhpDtNameSpace, PhpListNameSpace, PhpNameNameSpace, PhpStrNameSpace, PhpStructNameSpace,
+    },
 };
 
 #[php_class]
@@ -60,7 +62,11 @@ fn fill_strategy(s: &str, limit: Option<i64>) -> PhpResult<FillNullStrategy> {
     })
 }
 
-fn rolling(windowSize: i64, minPeriods: Option<i64>, center: Option<bool>) -> RollingOptionsFixedWindow {
+fn rolling(
+    windowSize: i64,
+    minPeriods: Option<i64>,
+    center: Option<bool>,
+) -> RollingOptionsFixedWindow {
     RollingOptionsFixedWindow {
         window_size: windowSize as usize,
         min_periods: minPeriods.unwrap_or(windowSize) as usize,
@@ -69,7 +75,14 @@ fn rolling(windowSize: i64, minPeriods: Option<i64>, center: Option<bool>) -> Ro
     }
 }
 
-pub fn sample(e: Expr, n: Option<i64>, fraction: Option<crate::input::Num>, withReplacement: Option<bool>, shuffle: Option<bool>, seed: Option<i64>) -> PhpResult<Expr> {
+pub fn sample(
+    e: Expr,
+    n: Option<i64>,
+    fraction: Option<crate::input::Num>,
+    withReplacement: Option<bool>,
+    shuffle: Option<bool>,
+    seed: Option<i64>,
+) -> PhpResult<Expr> {
     let wr = withReplacement.unwrap_or(false);
     let sh = shuffle;
     let seed = seed.map(|s| s as u64);
@@ -81,8 +94,14 @@ pub fn sample(e: Expr, n: Option<i64>, fraction: Option<crate::input::Num>, with
 }
 
 pub fn clip(e: Expr, lowerBound: Option<&Zval>, upperBound: Option<&Zval>) -> PhpResult<Expr> {
-    let lo = lowerBound.filter(|v| !v.is_null()).map(operand).transpose()?;
-    let hi = upperBound.filter(|v| !v.is_null()).map(operand).transpose()?;
+    let lo = lowerBound
+        .filter(|v| !v.is_null())
+        .map(operand)
+        .transpose()?;
+    let hi = upperBound
+        .filter(|v| !v.is_null())
+        .map(operand)
+        .transpose()?;
     Ok(match (lo, hi) {
         (Some(lo), Some(hi)) => e.clip(lo, hi),
         (Some(lo), None) => e.clip_min(lo),
@@ -92,7 +111,12 @@ pub fn clip(e: Expr, lowerBound: Option<&Zval>, upperBound: Option<&Zval>) -> Ph
 }
 
 /// Fill null with a value, or with a strategy; shared by Expr and Series.
-pub fn fill_null(e: Expr, value: Option<&Zval>, strategy: Option<String>, limit: Option<i64>) -> PhpResult<Expr> {
+pub fn fill_null(
+    e: Expr,
+    value: Option<&Zval>,
+    strategy: Option<String>,
+    limit: Option<i64>,
+) -> PhpResult<Expr> {
     match (value, strategy) {
         (Some(v), None) if !v.is_null() => Ok(e.fill_null(operand(v)?)),
         (_, Some(s)) => Ok(e.fill_null_with_strategy(fill_strategy(&s, limit)?)),
@@ -177,12 +201,19 @@ impl PhpExpr {
     }
 
     pub fn isBetween(&self, lower: &Zval, upper: &Zval, closed: Option<String>) -> PhpResult<Self> {
-        Ok(wrap(self.inner.clone().is_between(operand(lower)?, operand(upper)?, closed_interval(closed)?)))
+        Ok(wrap(self.inner.clone().is_between(
+            operand(lower)?,
+            operand(upper)?,
+            closed_interval(closed)?,
+        )))
     }
 
     /// Membership in a list, Series or list-valued Expr.
     pub fn isIn(&self, other: &Zval, nullsEqual: Option<bool>) -> PhpResult<Self> {
-        Ok(wrap(self.inner.clone().is_in(crate::input::collection(other)?, nullsEqual.unwrap_or(false))))
+        Ok(wrap(self.inner.clone().is_in(
+            crate::input::collection(other)?,
+            nullsEqual.unwrap_or(false),
+        )))
     }
 
     // Boolean.
@@ -238,7 +269,12 @@ impl PhpExpr {
     }
 
     /// fillNull(value) or fillNull(strategy: 'forward'|'backward'|'mean'|'min'|'max'|'zero'|'one').
-    pub fn fillNull(&self, value: Option<&Zval>, strategy: Option<String>, limit: Option<i64>) -> PhpResult<Self> {
+    pub fn fillNull(
+        &self,
+        value: Option<&Zval>,
+        strategy: Option<String>,
+        limit: Option<i64>,
+    ) -> PhpResult<Self> {
         fill_null(self.inner.clone(), value, strategy, limit).map(wrap)
     }
 
@@ -247,11 +283,17 @@ impl PhpExpr {
     }
 
     pub fn forwardFill(&self, limit: Option<i64>) -> PhpResult<Self> {
-        Ok(wrap(self.inner.clone().fill_null_with_strategy(fill_strategy("forward", limit)?)))
+        Ok(wrap(
+            self.inner
+                .clone()
+                .fill_null_with_strategy(fill_strategy("forward", limit)?),
+        ))
     }
 
     pub fn backwardFill(&self, limit: Option<i64>) -> PhpResult<Self> {
-        Ok(wrap(self.inner.clone().fill_null_with_strategy(fill_strategy("backward", limit)?)))
+        Ok(wrap(self.inner.clone().fill_null_with_strategy(
+            fill_strategy("backward", limit)?,
+        )))
     }
 
     pub fn dropNulls(&self) -> Self {
@@ -354,7 +396,10 @@ impl PhpExpr {
     }
 
     pub fn quantile(&self, quantile: &Zval, interpolation: Option<String>) -> PhpResult<Self> {
-        Ok(wrap(self.inner.clone().quantile(operand(quantile)?, quantile_method(interpolation)?)))
+        Ok(wrap(self.inner.clone().quantile(
+            operand(quantile)?,
+            quantile_method(interpolation)?,
+        )))
     }
 
     pub fn product(&self) -> Self {
@@ -404,7 +449,11 @@ impl PhpExpr {
     }
 
     pub fn kurtosis(&self, fisher: Option<bool>, bias: Option<bool>) -> Self {
-        wrap(self.inner.clone().kurtosis(fisher.unwrap_or(true), bias.unwrap_or(true)))
+        wrap(
+            self.inner
+                .clone()
+                .kurtosis(fisher.unwrap_or(true), bias.unwrap_or(true)),
+        )
     }
 
     pub fn implode(&self) -> Self {
@@ -414,8 +463,19 @@ impl PhpExpr {
     // Windows and order-dependent operations.
 
     /// over('g', 'h', orderBy: 'x'): a window over partitions.
-    pub fn over(&self, partitionBy: &Zval, orderBy: Option<&Zval>, descending: Option<bool>, nullsLast: Option<bool>, mappingStrategy: Option<String>) -> PhpResult<Self> {
-        let partition = if partitionBy.is_null() { vec![] } else { exprs(&[partitionBy])? };
+    pub fn over(
+        &self,
+        partitionBy: &Zval,
+        orderBy: Option<&Zval>,
+        descending: Option<bool>,
+        nullsLast: Option<bool>,
+        mappingStrategy: Option<String>,
+    ) -> PhpResult<Self> {
+        let partition = if partitionBy.is_null() {
+            vec![]
+        } else {
+            exprs(&[partitionBy])?
+        };
         let order = match orderBy {
             Some(o) if !o.is_null() => Some((
                 exprs(&[o])?,
@@ -431,8 +491,16 @@ impl PhpExpr {
             "join" => WindowMapping::Join,
             other => return Err(value_error(format!("unknown mapping strategy '{other}'"))),
         };
-        let partition = if partition.is_empty() { None } else { Some(partition) };
-        self.inner.clone().over_with_options(partition, order, mapping).php().map(wrap)
+        let partition = if partition.is_empty() {
+            None
+        } else {
+            Some(partition)
+        };
+        self.inner
+            .clone()
+            .over_with_options(partition, order, mapping)
+            .php()
+            .map(wrap)
     }
 
     pub fn shift(&self, n: Option<i64>, fillValue: Option<&Zval>) -> PhpResult<Self> {
@@ -476,54 +544,131 @@ impl PhpExpr {
         wrap(self.inner.clone().cum_count(reverse.unwrap_or(false)))
     }
 
-    pub fn rank(&self, method: Option<String>, descending: Option<bool>, seed: Option<i64>) -> PhpResult<Self> {
+    pub fn rank(
+        &self,
+        method: Option<String>,
+        descending: Option<bool>,
+        seed: Option<i64>,
+    ) -> PhpResult<Self> {
         let options = RankOptions {
             method: rank_method(method)?,
             descending: descending.unwrap_or(false),
         };
-        Ok(wrap(self.inner.clone().rank(options, seed.map(|s| s as u64))))
+        Ok(wrap(
+            self.inner.clone().rank(options, seed.map(|s| s as u64)),
+        ))
     }
 
-    pub fn rollingMean(&self, windowSize: i64, minPeriods: Option<i64>, center: Option<bool>) -> Self {
-        wrap(self.inner.clone().rolling_mean(rolling(windowSize, minPeriods, center)))
+    pub fn rollingMean(
+        &self,
+        windowSize: i64,
+        minPeriods: Option<i64>,
+        center: Option<bool>,
+    ) -> Self {
+        wrap(
+            self.inner
+                .clone()
+                .rolling_mean(rolling(windowSize, minPeriods, center)),
+        )
     }
 
-    pub fn rollingSum(&self, windowSize: i64, minPeriods: Option<i64>, center: Option<bool>) -> Self {
-        wrap(self.inner.clone().rolling_sum(rolling(windowSize, minPeriods, center)))
+    pub fn rollingSum(
+        &self,
+        windowSize: i64,
+        minPeriods: Option<i64>,
+        center: Option<bool>,
+    ) -> Self {
+        wrap(
+            self.inner
+                .clone()
+                .rolling_sum(rolling(windowSize, minPeriods, center)),
+        )
     }
 
-    pub fn rollingMin(&self, windowSize: i64, minPeriods: Option<i64>, center: Option<bool>) -> Self {
-        wrap(self.inner.clone().rolling_min(rolling(windowSize, minPeriods, center)))
+    pub fn rollingMin(
+        &self,
+        windowSize: i64,
+        minPeriods: Option<i64>,
+        center: Option<bool>,
+    ) -> Self {
+        wrap(
+            self.inner
+                .clone()
+                .rolling_min(rolling(windowSize, minPeriods, center)),
+        )
     }
 
-    pub fn rollingMax(&self, windowSize: i64, minPeriods: Option<i64>, center: Option<bool>) -> Self {
-        wrap(self.inner.clone().rolling_max(rolling(windowSize, minPeriods, center)))
+    pub fn rollingMax(
+        &self,
+        windowSize: i64,
+        minPeriods: Option<i64>,
+        center: Option<bool>,
+    ) -> Self {
+        wrap(
+            self.inner
+                .clone()
+                .rolling_max(rolling(windowSize, minPeriods, center)),
+        )
     }
 
-    pub fn rollingMedian(&self, windowSize: i64, minPeriods: Option<i64>, center: Option<bool>) -> Self {
-        wrap(self.inner.clone().rolling_median(rolling(windowSize, minPeriods, center)))
+    pub fn rollingMedian(
+        &self,
+        windowSize: i64,
+        minPeriods: Option<i64>,
+        center: Option<bool>,
+    ) -> Self {
+        wrap(
+            self.inner
+                .clone()
+                .rolling_median(rolling(windowSize, minPeriods, center)),
+        )
     }
 
-    pub fn rollingStd(&self, windowSize: i64, minPeriods: Option<i64>, center: Option<bool>) -> Self {
-        wrap(self.inner.clone().rolling_std(rolling(windowSize, minPeriods, center)))
+    pub fn rollingStd(
+        &self,
+        windowSize: i64,
+        minPeriods: Option<i64>,
+        center: Option<bool>,
+    ) -> Self {
+        wrap(
+            self.inner
+                .clone()
+                .rolling_std(rolling(windowSize, minPeriods, center)),
+        )
     }
 
-    pub fn rollingVar(&self, windowSize: i64, minPeriods: Option<i64>, center: Option<bool>) -> Self {
-        wrap(self.inner.clone().rolling_var(rolling(windowSize, minPeriods, center)))
+    pub fn rollingVar(
+        &self,
+        windowSize: i64,
+        minPeriods: Option<i64>,
+        center: Option<bool>,
+    ) -> Self {
+        wrap(
+            self.inner
+                .clone()
+                .rolling_var(rolling(windowSize, minPeriods, center)),
+        )
     }
 
     // Sorting, selecting and reshaping.
 
     pub fn sort(&self, descending: Option<bool>, nullsLast: Option<bool>) -> Self {
-        wrap(self.inner.clone().sort(
-            SortOptions::default()
-                .with_order_descending(descending.unwrap_or(false))
-                .with_nulls_last(nullsLast.unwrap_or(false))
-                .with_maintain_order(true),
-        ))
+        wrap(
+            self.inner.clone().sort(
+                SortOptions::default()
+                    .with_order_descending(descending.unwrap_or(false))
+                    .with_nulls_last(nullsLast.unwrap_or(false))
+                    .with_maintain_order(true),
+            ),
+        )
     }
 
-    pub fn sortBy(&self, by: &Zval, descending: Option<&Zval>, nullsLast: Option<&Zval>) -> PhpResult<Self> {
+    pub fn sortBy(
+        &self,
+        by: &Zval,
+        descending: Option<&Zval>,
+        nullsLast: Option<&Zval>,
+    ) -> PhpResult<Self> {
         let by = exprs(&[by])?;
         let options = SortMultipleOptions::default()
             .with_order_descending_multi(bools(descending, false)?)
@@ -533,7 +678,11 @@ impl PhpExpr {
     }
 
     pub fn argSort(&self, descending: Option<bool>, nullsLast: Option<bool>) -> Self {
-        wrap(self.inner.clone().arg_sort(descending.unwrap_or(false), nullsLast.unwrap_or(false)))
+        wrap(
+            self.inner
+                .clone()
+                .arg_sort(descending.unwrap_or(false), nullsLast.unwrap_or(false)),
+        )
     }
 
     pub fn reverse(&self) -> Self {
@@ -574,15 +723,26 @@ impl PhpExpr {
 
     /// The value at a position; negative positions count from the end.
     pub fn get(&self, index: &Zval, nullOnOob: Option<bool>) -> PhpResult<Self> {
-        Ok(wrap(self.inner.clone().get(operand(index)?, nullOnOob.unwrap_or(false))))
+        Ok(wrap(
+            self.inner
+                .clone()
+                .get(operand(index)?, nullOnOob.unwrap_or(false)),
+        ))
     }
 
     pub fn gatherEvery(&self, n: i64, offset: Option<i64>) -> Self {
-        wrap(self.inner.clone().gather_every(n as usize, offset.unwrap_or(0) as usize))
+        wrap(
+            self.inner
+                .clone()
+                .gather_every(n as usize, offset.unwrap_or(0) as usize),
+        )
     }
 
     pub fn explode(&self) -> Self {
-        wrap(self.inner.clone().explode(ExplodeOptions { empty_as_null: true, keep_nulls: true }))
+        wrap(self.inner.clone().explode(ExplodeOptions {
+            empty_as_null: true,
+            keep_nulls: true,
+        }))
     }
 
     pub fn unique(&self, maintainOrder: Option<bool>) -> Self {
@@ -613,18 +773,48 @@ impl PhpExpr {
         wrap(self.inner.clone().is_last_distinct())
     }
 
-    pub fn valueCounts(&self, sort: Option<bool>, name: Option<String>, normalize: Option<bool>) -> Self {
+    pub fn valueCounts(
+        &self,
+        sort: Option<bool>,
+        name: Option<String>,
+        normalize: Option<bool>,
+    ) -> Self {
         let normalize = normalize.unwrap_or(false);
-        let name = name.unwrap_or_else(|| if normalize { "proportion".into() } else { "count".into() });
-        wrap(self.inner.clone().value_counts(sort.unwrap_or(false), true, &name, normalize))
+        let name = name.unwrap_or_else(|| {
+            if normalize {
+                "proportion".into()
+            } else {
+                "count".into()
+            }
+        });
+        wrap(
+            self.inner
+                .clone()
+                .value_counts(sort.unwrap_or(false), true, &name, normalize),
+        )
     }
 
     pub fn shuffle(&self, seed: Option<i64>) -> Self {
         wrap(self.inner.clone().shuffle(seed.map(|s| s as u64)))
     }
 
-    pub fn sample(&self, n: Option<i64>, fraction: Option<crate::input::Num>, withReplacement: Option<bool>, shuffle: Option<bool>, seed: Option<i64>) -> PhpResult<Self> {
-        sample(self.inner.clone(), n, fraction, withReplacement, shuffle, seed).map(wrap)
+    pub fn sample(
+        &self,
+        n: Option<i64>,
+        fraction: Option<crate::input::Num>,
+        withReplacement: Option<bool>,
+        shuffle: Option<bool>,
+        seed: Option<i64>,
+    ) -> PhpResult<Self> {
+        sample(
+            self.inner.clone(),
+            n,
+            fraction,
+            withReplacement,
+            shuffle,
+            seed,
+        )
+        .map(wrap)
     }
 
     pub fn repeatBy(&self, by: &Zval) -> PhpResult<Self> {
@@ -632,7 +822,11 @@ impl PhpExpr {
     }
 
     pub fn append(&self, other: &Zval, upcast: Option<bool>) -> PhpResult<Self> {
-        Ok(wrap(self.inner.clone().append(into_expr(other)?, upcast.unwrap_or(true))))
+        Ok(wrap(
+            self.inner
+                .clone()
+                .append(into_expr(other)?, upcast.unwrap_or(true)),
+        ))
     }
 
     /// replace(old, new) or replace([old => new, ...]).
@@ -641,14 +835,25 @@ impl PhpExpr {
         Ok(wrap(self.inner.clone().replace(o, n)))
     }
 
-    pub fn replaceStrict(&self, old: &Zval, new: Option<&Zval>, default: Option<&Zval>, returnDtype: Option<String>) -> PhpResult<Self> {
+    pub fn replaceStrict(
+        &self,
+        old: &Zval,
+        new: Option<&Zval>,
+        default: Option<&Zval>,
+        returnDtype: Option<String>,
+    ) -> PhpResult<Self> {
         let (o, n) = replace_args(old, new)?;
         let default = match default {
             Some(d) if !d.is_null() => Some(operand(d)?),
             _ => None,
         };
         let dt = returnDtype.map(|d| dtype::parse(&d)).transpose()?;
-        Ok(wrap(self.inner.clone().replace_strict(o, n, default, dt.map(DataTypeExpr::from))))
+        Ok(wrap(self.inner.clone().replace_strict(
+            o,
+            n,
+            default,
+            dt.map(DataTypeExpr::from),
+        )))
     }
 
     pub fn clip(&self, lowerBound: Option<&Zval>, upperBound: Option<&Zval>) -> PhpResult<Self> {
@@ -671,7 +876,9 @@ impl PhpExpr {
             "half_away_from_zero" => RoundMode::HalfAwayFromZero,
             other => return Err(value_error(format!("unknown round mode '{other}'"))),
         };
-        Ok(wrap(self.inner.clone().round(decimals.unwrap_or(0) as u32, mode)))
+        Ok(wrap(
+            self.inner.clone().round(decimals.unwrap_or(0) as u32, mode),
+        ))
     }
 
     pub fn roundSigFigs(&self, digits: i64) -> Self {
@@ -699,7 +906,11 @@ impl PhpExpr {
     }
 
     pub fn log(&self, base: Option<crate::input::Num>) -> Self {
-        wrap(self.inner.clone().log(lit(base.map_or(std::f64::consts::E, |b| b.0))))
+        wrap(
+            self.inner
+                .clone()
+                .log(lit(base.map_or(std::f64::consts::E, |b| b.0))),
+        )
     }
 
     pub fn log10(&self) -> Self {
@@ -814,7 +1025,9 @@ pub fn when_start(condition: &[&Zval]) -> PhpResult<PhpWhen> {
 /// Several when() conditions are combined with and, as in py.
 fn all_of(conditions: &[&Zval]) -> PhpResult<Expr> {
     let mut es = exprs(conditions)?.into_iter();
-    let first = es.next().ok_or_else(|| value_error("when() needs a condition"))?;
+    let first = es
+        .next()
+        .ok_or_else(|| value_error("when() needs a condition"))?;
     Ok(es.fold(first, |acc, e| acc.and(e)))
 }
 

@@ -121,7 +121,12 @@ impl PhpStrNameSpace {
     }
 
     /// Regex match unless literal: true.
-    pub fn contains(&self, pattern: &Zval, literal: Option<bool>, strict: Option<bool>) -> PhpResult<Zval> {
+    pub fn contains(
+        &self,
+        pattern: &Zval,
+        literal: Option<bool>,
+        strict: Option<bool>,
+    ) -> PhpResult<Zval> {
         let p = operand(pattern)?;
         self.finish(if literal.unwrap_or(false) {
             self.base().str().contains_literal(p)
@@ -130,7 +135,12 @@ impl PhpStrNameSpace {
         })
     }
 
-    pub fn find(&self, pattern: &Zval, literal: Option<bool>, strict: Option<bool>) -> PhpResult<Zval> {
+    pub fn find(
+        &self,
+        pattern: &Zval,
+        literal: Option<bool>,
+        strict: Option<bool>,
+    ) -> PhpResult<Zval> {
         let p = operand(pattern)?;
         self.finish(if literal.unwrap_or(false) {
             self.base().str().find_literal(p)
@@ -140,11 +150,21 @@ impl PhpStrNameSpace {
     }
 
     pub fn countMatches(&self, pattern: &Zval, literal: Option<bool>) -> PhpResult<Zval> {
-        self.finish(self.base().str().count_matches(operand(pattern)?, literal.unwrap_or(false)))
+        self.finish(
+            self.base()
+                .str()
+                .count_matches(operand(pattern)?, literal.unwrap_or(false)),
+        )
     }
 
     /// Replace the first n matches (default 1).
-    pub fn replace(&self, pattern: &Zval, value: &Zval, literal: Option<bool>, n: Option<i64>) -> PhpResult<Zval> {
+    pub fn replace(
+        &self,
+        pattern: &Zval,
+        value: &Zval,
+        literal: Option<bool>,
+        n: Option<i64>,
+    ) -> PhpResult<Zval> {
         self.finish(self.base().str().replace_n(
             operand(pattern)?,
             operand(value)?,
@@ -153,8 +173,17 @@ impl PhpStrNameSpace {
         ))
     }
 
-    pub fn replaceAll(&self, pattern: &Zval, value: &Zval, literal: Option<bool>) -> PhpResult<Zval> {
-        self.finish(self.base().str().replace_all(operand(pattern)?, operand(value)?, literal.unwrap_or(false)))
+    pub fn replaceAll(
+        &self,
+        pattern: &Zval,
+        value: &Zval,
+        literal: Option<bool>,
+    ) -> PhpResult<Zval> {
+        self.finish(self.base().str().replace_all(
+            operand(pattern)?,
+            operand(value)?,
+            literal.unwrap_or(false),
+        ))
     }
 
     /// Offset and length may be ints or expressions; a null length runs to the end.
@@ -188,11 +217,19 @@ impl PhpStrNameSpace {
     }
 
     pub fn padStart(&self, length: i64, fillChar: Option<String>) -> PhpResult<Zval> {
-        self.finish(self.base().str().pad_start(lit(length as u64), fill_char(fillChar)?))
+        self.finish(
+            self.base()
+                .str()
+                .pad_start(lit(length as u64), fill_char(fillChar)?),
+        )
     }
 
     pub fn padEnd(&self, length: i64, fillChar: Option<String>) -> PhpResult<Zval> {
-        self.finish(self.base().str().pad_end(lit(length as u64), fill_char(fillChar)?))
+        self.finish(
+            self.base()
+                .str()
+                .pad_end(lit(length as u64), fill_char(fillChar)?),
+        )
     }
 
     pub fn zfill(&self, length: i64) -> PhpResult<Zval> {
@@ -204,7 +241,11 @@ impl PhpStrNameSpace {
     }
 
     pub fn extract(&self, pattern: &Zval, groupIndex: Option<i64>) -> PhpResult<Zval> {
-        self.finish(self.base().str().extract(operand(pattern)?, groupIndex.unwrap_or(1) as usize))
+        self.finish(
+            self.base()
+                .str()
+                .extract(operand(pattern)?, groupIndex.unwrap_or(1) as usize),
+        )
     }
 
     pub fn extractAll(&self, pattern: &Zval) -> PhpResult<Zval> {
@@ -213,31 +254,75 @@ impl PhpStrNameSpace {
 
     /// Concatenate all values into one string.
     pub fn join(&self, delimiter: Option<String>, ignoreNulls: Option<bool>) -> PhpResult<Zval> {
-        self.finish(self.base().str().join(&delimiter.unwrap_or_default(), ignoreNulls.unwrap_or(true)))
+        self.finish(
+            self.base()
+                .str()
+                .join(&delimiter.unwrap_or_default(), ignoreNulls.unwrap_or(true)),
+        )
     }
 
-    pub fn toInteger(&self, base: Option<i64>, dtype: Option<String>, strict: Option<bool>) -> PhpResult<Zval> {
+    pub fn toInteger(
+        &self,
+        base: Option<i64>,
+        dtype: Option<String>,
+        strict: Option<bool>,
+    ) -> PhpResult<Zval> {
         let dt = dtype.map(|d| dtype::parse(&d)).transpose()?;
-        self.finish(self.base().str().to_integer(lit(base.unwrap_or(10) as u32), dt, strict.unwrap_or(true)))
+        self.finish(self.base().str().to_integer(
+            lit(base.unwrap_or(10) as u32),
+            dt,
+            strict.unwrap_or(true),
+        ))
     }
 
-    pub fn toDate(&self, format: Option<String>, strict: Option<bool>, exact: Option<bool>) -> PhpResult<Zval> {
+    pub fn toDate(
+        &self,
+        format: Option<String>,
+        strict: Option<bool>,
+        exact: Option<bool>,
+    ) -> PhpResult<Zval> {
         self.finish(self.base().str().to_date(strptime(format, strict, exact)))
     }
 
-    pub fn toDatetime(&self, format: Option<String>, timeUnit: Option<String>, timeZone: Option<String>, strict: Option<bool>, exact: Option<bool>) -> PhpResult<Zval> {
+    pub fn toDatetime(
+        &self,
+        format: Option<String>,
+        timeUnit: Option<String>,
+        timeZone: Option<String>,
+        strict: Option<bool>,
+        exact: Option<bool>,
+    ) -> PhpResult<Zval> {
         let tu = timeUnit.map(|t| time_unit(Some(t))).transpose()?;
         let tz = TimeZone::opt_try_new(timeZone).php()?;
-        self.finish(self.base().str().to_datetime(tu, tz, strptime(format, strict, exact), lit("raise")))
+        self.finish(self.base().str().to_datetime(
+            tu,
+            tz,
+            strptime(format, strict, exact),
+            lit("raise"),
+        ))
     }
 
     pub fn toTime(&self, format: Option<String>, strict: Option<bool>) -> PhpResult<Zval> {
-        self.finish(self.base().str().to_time(strptime(format, strict, Some(true))))
+        self.finish(
+            self.base()
+                .str()
+                .to_time(strptime(format, strict, Some(true))),
+        )
     }
 
-    pub fn strptime(&self, dtype: String, format: Option<String>, strict: Option<bool>, exact: Option<bool>) -> PhpResult<Zval> {
+    pub fn strptime(
+        &self,
+        dtype: String,
+        format: Option<String>,
+        strict: Option<bool>,
+        exact: Option<bool>,
+    ) -> PhpResult<Zval> {
         let dt = dtype::parse(&dtype)?;
-        self.finish(self.base().str().strptime(dt, strptime(format, strict, exact), lit("raise")))
+        self.finish(
+            self.base()
+                .str()
+                .strptime(dt, strptime(format, strict, exact), lit("raise")),
+        )
     }
 }
 
@@ -319,7 +404,11 @@ impl PhpDtNameSpace {
     /// Time since the epoch: 'ns', 'us', 'ms', 's' or 'd'.
     pub fn epoch(&self, timeUnit: Option<String>) -> PhpResult<Zval> {
         let e = match timeUnit.as_deref().unwrap_or("us") {
-            "s" => self.base().dt().timestamp(TimeUnit::Milliseconds).floor_div(lit(1000i64)),
+            "s" => self
+                .base()
+                .dt()
+                .timestamp(TimeUnit::Milliseconds)
+                .floor_div(lit(1000i64)),
             "d" => self.base().cast(DataType::Date).cast(DataType::Int32),
             other => self.base().dt().timestamp(time_unit(Some(other.into()))?),
         };
@@ -327,7 +416,11 @@ impl PhpDtNameSpace {
     }
 
     pub fn toString(&self, format: Option<String>) -> PhpResult<Zval> {
-        self.finish(self.base().dt().to_string(&format.unwrap_or_else(|| "iso".into())))
+        self.finish(
+            self.base()
+                .dt()
+                .to_string(&format.unwrap_or_else(|| "iso".into())),
+        )
     }
 
     pub fn strftime(&self, format: String) -> PhpResult<Zval> {
@@ -366,7 +459,11 @@ impl PhpDtNameSpace {
 
     pub fn replaceTimeZone(&self, timeZone: Option<String>) -> PhpResult<Zval> {
         let tz = TimeZone::opt_try_new(timeZone).php()?;
-        self.finish(self.base().dt().replace_time_zone(tz, lit("raise"), NonExistent::Raise))
+        self.finish(
+            self.base()
+                .dt()
+                .replace_time_zone(tz, lit("raise"), NonExistent::Raise),
+        )
     }
 
     pub fn totalDays(&self, fractional: Option<bool>) -> PhpResult<Zval> {
@@ -386,11 +483,19 @@ impl PhpDtNameSpace {
     }
 
     pub fn totalMilliseconds(&self, fractional: Option<bool>) -> PhpResult<Zval> {
-        self.finish(self.base().dt().total_milliseconds(fractional.unwrap_or(false)))
+        self.finish(
+            self.base()
+                .dt()
+                .total_milliseconds(fractional.unwrap_or(false)),
+        )
     }
 
     pub fn totalMicroseconds(&self, fractional: Option<bool>) -> PhpResult<Zval> {
-        self.finish(self.base().dt().total_microseconds(fractional.unwrap_or(false)))
+        self.finish(
+            self.base()
+                .dt()
+                .total_microseconds(fractional.unwrap_or(false)),
+        )
     }
 }
 
@@ -437,15 +542,27 @@ impl PhpListNameSpace {
     }
 
     pub fn get(&self, index: &Zval, nullOnOob: Option<bool>) -> PhpResult<Zval> {
-        self.finish(self.base().list().get(operand(index)?, nullOnOob.unwrap_or(false)))
+        self.finish(
+            self.base()
+                .list()
+                .get(operand(index)?, nullOnOob.unwrap_or(false)),
+        )
     }
 
     pub fn gather(&self, indices: &Zval, nullOnOob: Option<bool>) -> PhpResult<Zval> {
-        self.finish(self.base().list().gather(operand(indices)?, nullOnOob.unwrap_or(false)))
+        self.finish(
+            self.base()
+                .list()
+                .gather(operand(indices)?, nullOnOob.unwrap_or(false)),
+        )
     }
 
     pub fn contains(&self, item: &Zval, nullsEqual: Option<bool>) -> PhpResult<Zval> {
-        self.finish(self.base().list().contains(operand(item)?, nullsEqual.unwrap_or(true)))
+        self.finish(
+            self.base()
+                .list()
+                .contains(operand(item)?, nullsEqual.unwrap_or(true)),
+        )
     }
 
     pub fn countMatches(&self, element: &Zval) -> PhpResult<Zval> {
@@ -453,7 +570,11 @@ impl PhpListNameSpace {
     }
 
     pub fn join(&self, separator: &Zval, ignoreNulls: Option<bool>) -> PhpResult<Zval> {
-        self.finish(self.base().list().join(operand(separator)?, ignoreNulls.unwrap_or(true)))
+        self.finish(
+            self.base()
+                .list()
+                .join(operand(separator)?, ignoreNulls.unwrap_or(true)),
+        )
     }
 
     pub fn argMin(&self) -> PhpResult<Zval> {
@@ -476,7 +597,11 @@ impl PhpListNameSpace {
     }
 
     pub fn unique(&self, maintainOrder: Option<bool>) -> PhpResult<Zval> {
-        let u = if maintainOrder.unwrap_or(false) { element().unique_stable() } else { element().unique() };
+        let u = if maintainOrder.unwrap_or(false) {
+            element().unique_stable()
+        } else {
+            element().unique()
+        };
         self.finish(self.base().list().eval(u))
     }
 
@@ -505,7 +630,10 @@ impl PhpListNameSpace {
     }
 
     pub fn diff(&self, n: Option<i64>) -> PhpResult<Zval> {
-        self.finish(self.base().list().diff(n.unwrap_or(1), polars_core::series::ops::NullBehavior::Ignore))
+        self.finish(self.base().list().diff(
+            n.unwrap_or(1),
+            polars_core::series::ops::NullBehavior::Ignore,
+        ))
     }
 
     pub fn concat(&self, other: &Zval) -> PhpResult<Zval> {
@@ -531,16 +659,26 @@ impl PhpListNameSpace {
     }
 
     pub fn setSymmetricDifference(&self, other: &Zval) -> PhpResult<Zval> {
-        self.finish(self.base().list().set_symmetric_difference(into_expr(other)?))
+        self.finish(
+            self.base()
+                .list()
+                .set_symmetric_difference(into_expr(other)?),
+        )
     }
 
     pub fn explode(&self) -> PhpResult<Zval> {
-        self.finish(self.base().explode(ExplodeOptions { empty_as_null: true, keep_nulls: true }))
+        self.finish(self.base().explode(ExplodeOptions {
+            empty_as_null: true,
+            keep_nulls: true,
+        }))
     }
 
     pub fn toStruct(&self, fields: Option<&Zval>) -> PhpResult<Zval> {
         let names: Vec<PlSmallStr> = match crate::input::given(fields) {
-            Some(f) => crate::input::names(&[f])?.into_iter().map(Into::into).collect(),
+            Some(f) => crate::input::names(&[f])?
+                .into_iter()
+                .map(Into::into)
+                .collect(),
             None => return Err(value_error("toStruct() needs the field names")),
         };
         self.finish(self.base().list().to_struct(names.into()))
@@ -564,7 +702,9 @@ impl PhpStructNameSpace {
             self.finish(self.base().struct_().json_encode())
         }
         #[cfg(not(feature = "json"))]
-        Err(PhpException::from_class::<crate::error::ComputeError>("php_polars was built without the 'json' feature".into()))
+        Err(PhpException::from_class::<crate::error::ComputeError>(
+            "php_polars was built without the 'json' feature".into(),
+        ))
     }
 }
 
@@ -603,7 +743,17 @@ impl PhpNameNameSpace {
         wrap(self.e.clone().name().to_uppercase())
     }
 
-    pub fn replace(&self, pattern: String, value: String, literal: Option<bool>) -> crate::expr::PhpExpr {
-        wrap(self.e.clone().name().replace(&pattern, &value, literal.unwrap_or(false)))
+    pub fn replace(
+        &self,
+        pattern: String,
+        value: String,
+        literal: Option<bool>,
+    ) -> crate::expr::PhpExpr {
+        wrap(
+            self.e
+                .clone()
+                .name()
+                .replace(&pattern, &value, literal.unwrap_or(false)),
+        )
     }
 }
