@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Phibble\Frame;
+use Phpolars\Phibble\PolarsTable;
 
 // tidyr 1.3.2 reference cases from phibble's tests/fixtures/pivot/cases.json.
 
@@ -32,6 +33,7 @@ it('matches tidyr pivot specs on PolarsTable', function (string $name) {
     if (isset($args['idColumns'])) {
         $args['idColumns'] = (array) $args['idColumns'];
     }
+    $fallbacks = PolarsTable::$fallbacks;
     [$out, $warnings] = quietly(fn () => $case['kind'] === 'longer'
         ? $table->pivotLongerSpec($case['spec'], ...$args)
         : $table->pivotWiderSpec($case['spec'], ...$args));
@@ -39,7 +41,8 @@ it('matches tidyr pivot specs on PolarsTable', function (string $name) {
 
     expect($out)->toBeInstanceOf(Phpolars\Phibble\PolarsTable::class)
         ->and($out->columns())->toBe($case['columns'])
-        ->and($rows($out->toRows()))->toBe($rows($case['rows']));
+        ->and($rows($out->toRows()))->toBe($rows($case['rows']))
+        ->and(PolarsTable::$fallbacks)->toBe($fallbacks);
     if (isset($case['warning'])) {
         expect($warnings)->toContain($case['warning']);
     }

@@ -22,7 +22,7 @@ use Phpolars\Expr;
 use Phpolars\LazyFrame;
 use Phpolars\Series;
 
-use function Phpolars\{all, col, lit};
+use function Phpolars\{all, all_horizontal, any_horizontal, col, concat, lit, when};
 
 /**
  * A Phibble\Contracts\Table backed by a Polars DataFrame.
@@ -608,21 +608,186 @@ final class PolarsTable implements Table
     }
 
     /**
-     * tidyr's pivot_longer_spec(). Runs on an in-memory Frame for now; the
-     * result comes back to Polars.
+     * tidyr's pivot_longer_spec(), in Polars: one frame per name-part
+     * combination, stacked and stably sorted by (input row, combination).
      */
     public function pivotLongerSpec(array $spec, bool $dropNa = false): static
     {
-        return $this->viaFrame(fn (Frame $f) => $f->pivotLongerSpec($spec, $dropNa));
+        [$sources, $values, $parts, $combos] = self::readSpec($spec, 'longer');
+        $this->check(...$sources);
+        $ids = array_values(array_diff($this->columns(), $sources));
+        $feed = [];
+        foreach ($spec as $row) {
+            $feed[serialize(array_map(fn (string $p) => $row[$p], $parts))][$row['.value']] = $row['.name'];
+        }
+        $types = $this->types();
+        $schema = $this->df->schema();
+        $targets = [];
+        $factors = array_intersect_key($this->factors, array_flip($ids));
+        foreach ($values as $v) {
+            $present = array_values(array_unique(array_filter(array_map(fn (array $c) => $feed[serialize(array_values($c))][$v] ?? null, $combos))));
+            $targets[$v] = $this->combinedType($present, $types, $schema);
+            if ($present !== [] && array_all($present, fn (string $s) => isset($this->factors[$s]))) {
+                $levels = array_merge(...array_map(fn (string $s) => $this->factors[$s]['levels'], $present));
+                $factors[$v] = ['levels' => array_values(array_unique($levels)), 'ordered' => $this->factors[$present[0]]['ordered']];
+            }
+        }
+        $indexed = $this->df->withRowIndex('__row');
+        $frames = [];
+        foreach ($combos as $c => $combo) {
+            $select = ['__row' => col('__row'), '__combo' => lit($c)];
+            foreach ($ids as $id) {
+                $select[$id] = col($id);
+            }
+            foreach ($parts as $p) {
+                $select[$p] = lit($combo[$p]);
+            }
+            foreach ($values as $v) {
+                $source = $feed[serialize(array_values($combo))][$v] ?? null;
+                $select[$v] = ($source === null ? lit(null) : col($source))->cast($targets[$v]);
+            }
+            $frames[] = $indexed->select($select);
+        }
+        $out = concat($frames, how: 'vertical_relaxed')->sort(['__row', '__combo'], maintainOrder: true);
+        if ($dropNa) {
+            $out = $out->filter(all_horizontal(...array_map(fn (string $v) => col($v)->isNull(), $values))->not());
+        }
+
+        return $this->with($out->drop('__row', '__combo'), array_values(array_intersect($this->groups, $ids)), factors: $factors);
     }
 
     /**
-     * tidyr's pivot_wider_spec(). Runs on an in-memory Frame for now; the
-     * result comes back to Polars.
+     * The Polars type for a pivoted value column fed by $sources, with vctrs'
+     * rules: numbers combine to the widest, dates and datetimes to datetime.
+     *
+     * @param list<string> $sources
+     */
+    private function combinedType(array $sources, array $types, array $schema): string
+    {
+        if ($sources === []) {
+            return 'Boolean';
+        }
+        $kinds = array_values(array_unique(array_map(fn (string $s) => $types[$s]->value, $sources)));
+        if (count($kinds) === 1) {
+            return $schema[$sources[0]];
+        }
+        if (array_diff($kinds, ['bool', 'int', 'float']) === []) {
+            return in_array('float', $kinds, true) ? 'Float64' : 'Int64';
+        }
+        if (array_diff($kinds, ['date', 'datetime']) === []) {
+            return 'Datetime(us)';
+        }
+        $first = $sources[0];
+        $last = $sources[array_key_last($sources)];
+
+        throw new InvalidArgumentException(sprintf(
+            "Can't combine `%s` <%s> and `%s` <%s>.",
+            $first, $types[$first]->abbreviation(), $last, $types[$last]->abbreviation(),
+        ));
+    }
+
+    /**
+     * tidyr's pivot_wider_spec(), in Polars: one aggregate per spec row over
+     * the id groups, in first-appearance order. Duplicate cells make every new
+     * column a list-column, with tidyr's warning.
      */
     public function pivotWiderSpec(array $spec, ?array $idColumns = null, array $valuesFill = []): static
     {
-        return $this->viaFrame(fn (Frame $f) => $f->pivotWiderSpec($spec, $idColumns, $valuesFill));
+        [, $values, $from] = self::readSpec($spec, 'wider');
+        $this->check(...$values, ...$from);
+        $idColumns ??= array_values(array_diff($this->columns(), $from, $values));
+        $this->check(...$idColumns);
+
+        // Names-from values compare as labels, as phibble's FactorColumn::label() does.
+        $label = fn (mixed $v): ?string => match (true) {
+            $v === null => null,
+            is_bool($v) => $v ? 'TRUE' : 'FALSE',
+            default => (string) $v,
+        };
+        $matches = function (array $row) use ($from, $label) {
+            $conds = array_map(function (string $f) use ($row, $label) {
+                $want = $label($row[$f]);
+
+                return $want === null ? col($f)->isNull() : col($f)->cast('String')->eq($want);
+            }, $from);
+
+            return count($conds) === 1 ? $conds[0] : all_horizontal(...$conds);
+        };
+        $keyed = $this->df->withColumns(['__in_spec' => any_horizontal(...array_map(fn (array $r) => $matches($r)->fillNull(false), $spec))]);
+        $counts = $keyed->filter(col('__in_spec'))->groupBy([...$idColumns, ...$from])->len();
+        $duplicates = $counts->height() > 0 && $counts->select(col('len')->max())->item() > 1;
+
+        $aggs = [];
+        $factors = array_intersect_key($this->factors, array_flip($idColumns));
+        foreach ($spec as $row) {
+            $name = (string) $row['.name'];
+            $cell = col($row['.value'])->filter($matches($row)->fillNull(false));
+            if ($duplicates) {
+                $aggs[$name] = when($cell->len()->eq(0))->then(lit(null))->otherwise($cell->implode());
+
+                continue;
+            }
+            $first = $cell->first();
+            $aggs[$name] = array_key_exists($row['.value'], $valuesFill)
+                ? when($cell->len()->eq(0))->then(lit($valuesFill[$row['.value']]))->otherwise($first)
+                : $first;
+            if (isset($this->factors[$row['.value']])) {
+                $factors[$name] = $this->factors[$row['.value']];
+            }
+        }
+        $out = $this->df->groupBy($idColumns, maintainOrder: true)->agg($aggs);
+        if ($duplicates) {
+            $by = implode(', ', [...$idColumns, ...$from]);
+            trigger_error(
+                "Values from `{$values[0]}` are not uniquely identified; output will contain list-cols.\n"
+                ."• Use `values_fn = list` to suppress this warning.\n"
+                ."• Use `values_fn = {summary_fun}` to summarise duplicates.\n"
+                ."• Use the following dplyr code to identify duplicates.\n"
+                ."  {data} |>\n"
+                ."  dplyr::summarise(n = dplyr::n(), .by = c({$by})) |>\n"
+                .'  dplyr::filter(n > 1L)',
+                E_USER_WARNING,
+            );
+        }
+
+        return $this->with($out, array_values(array_intersect($this->groups, $idColumns)), factors: $factors);
+    }
+
+    /**
+     * Validate a pivot spec as phibble does.
+     *
+     * @return array{0: list<string>, 1: list<string>, 2: list<string>, 3?: list<array<string, mixed>>}
+     */
+    private static function readSpec(array $spec, string $kind): array
+    {
+        if ($spec === [] || ! array_is_list($spec)) {
+            throw new InvalidArgumentException('A pivot spec is a non-empty list of rows.');
+        }
+        $keys = array_keys($spec[0]);
+        foreach ($spec as $row) {
+            if (! isset($row['.name'], $row['.value']) || array_keys($row) !== $keys) {
+                throw new InvalidArgumentException('Every spec row needs .name, .value and the same name columns, in the same order.');
+            }
+        }
+        $names = array_map(fn (array $r) => (string) $r['.name'], $spec);
+        if (count(array_unique($names)) !== count($names)) {
+            throw new InvalidArgumentException('Spec .name values must be unique.');
+        }
+        $values = array_values(array_unique(array_map(fn (array $r) => (string) $r['.value'], $spec)));
+        $parts = array_values(array_diff($keys, ['.name', '.value']));
+        if ($kind === 'wider') {
+            return [$names, $values, $parts];
+        }
+        $combos = [];
+        foreach ($spec as $row) {
+            $combo = [];
+            foreach ($parts as $p) {
+                $combo[$p] = $row[$p];
+            }
+            $combos[serialize($combo)] = $combo;
+        }
+
+        return [$names, $values, $parts, array_values($combos)];
     }
 
     /** @internal Factor metadata for Joiner. */
