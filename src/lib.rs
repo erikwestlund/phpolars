@@ -12,6 +12,7 @@ use std::{
     sync::atomic::{AtomicU32, Ordering},
 };
 
+mod config;
 mod convert;
 mod dtype;
 mod error;
@@ -1163,6 +1164,7 @@ pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
         module.name("php_polars"),
     ))))
     .class::<dtype::PhpDataType>()
+    .class::<config::PhpConfig>()
     .class::<PhpExpr>()
     .class::<PhpWhen>()
     .class::<PhpThen>()

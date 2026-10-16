@@ -181,3 +181,12 @@ same('profile timings', in_array('node', $timings->columns(), true), true);
 same('newFromIndex', $sv->newFromIndex(-1, 2)->toList(), [3, 3]);
 same('shape', $sv->shape(), [3]);
 same('UInt64 beyond int64 stays per value', (new Series('u', [1, 2], 'Int64'))->cast('UInt64')->extend((new Series('u', [-1], 'Int64'))->reinterpret(signed: false))->toList(), [1, 2, 18446744073709551615.0]);
+
+// Config
+$long = new DataFrame(['a' => range(1, 30)]);
+Phpolars\Config::setTblRows(4);
+Phpolars\Config::setTblHideDataframeShape(true);
+same('Config rows and shape', [count(explode("\n", trim((string) $long))), str_contains((string) $long, 'shape')], [11, false]);
+Phpolars\Config::restoreDefaults();
+same('Config restoreDefaults', str_starts_with((string) $long, 'shape: (30, 1)'), true);
+throws('Config bad alignment', fn () => Phpolars\Config::setTblCellAlignment('UP'), ValueError::class, 'LEFT, CENTER, or RIGHT');

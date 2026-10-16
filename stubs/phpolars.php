@@ -46,6 +46,31 @@ namespace Phpolars {
         public function __construct() {}
     }
 
+    class Config
+    {
+        public static function setTblRows(?int $n = null): void {}
+        public static function setTblCols(?int $n = null): void {}
+        public static function setFmtStrLengths(?int $n = null): void {}
+        public static function setFmtTableCellListLen(?int $n = null): void {}
+        public static function setTblWidthChars(?int $n = null): void {}
+        public static function setTblFormatting(?string $format = null, ?bool $roundedCorners = null): void {}
+        public static function setTblHideColumnDataTypes(?bool $active = null): void {}
+        public static function setTblHideColumnNames(?bool $active = null): void {}
+        public static function setTblHideDtypeSeparator(?bool $active = null): void {}
+        public static function setTblHideDataframeShape(?bool $active = null): void {}
+        public static function setTblColumnDataTypeInline(?bool $active = null): void {}
+        public static function setTblDataframeShapeBelow(?bool $active = null): void {}
+        public static function setTblCellAlignment(?string $format = null): void {}
+        public static function setTblCellNumericAlignment(?string $format = null): void {}
+        public static function setFloatPrecision(?int $precision = null): void {}
+        public static function setFmtFloat(?string $fmt = null): void {}
+        public static function setThousandsSeparator(?string $separator = null): void {}
+        public static function setDecimalSeparator(?string $separator = null): void {}
+        public static function setTrimDecimalZeros(?bool $active = null): void {}
+        public static function restoreDefaults(): void {}
+        public function __construct() {}
+    }
+
     class Expr
     {
         public function add(mixed $other): Phpolars\Expr {}
