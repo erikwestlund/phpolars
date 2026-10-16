@@ -69,13 +69,13 @@ fn rolling(windowSize: i64, minPeriods: Option<i64>, center: Option<bool>) -> Ro
     }
 }
 
-pub fn sample(e: Expr, n: Option<i64>, fraction: Option<f64>, withReplacement: Option<bool>, shuffle: Option<bool>, seed: Option<i64>) -> PhpResult<Expr> {
+pub fn sample(e: Expr, n: Option<i64>, fraction: Option<crate::input::Num>, withReplacement: Option<bool>, shuffle: Option<bool>, seed: Option<i64>) -> PhpResult<Expr> {
     let wr = withReplacement.unwrap_or(false);
     let sh = shuffle;
     let seed = seed.map(|s| s as u64);
     Ok(match (n, fraction) {
         (Some(_), Some(_)) => return Err(value_error("sample() takes n or fraction, not both")),
-        (_, Some(f)) => e.sample_frac(lit(f), wr, sh, seed),
+        (_, Some(f)) => e.sample_frac(lit(f.0), wr, sh, seed),
         (n, None) => e.sample_n(lit(n.unwrap_or(1) as u64), wr, sh, seed),
     })
 }
@@ -572,8 +572,9 @@ impl PhpExpr {
         Ok(wrap(self.inner.clone().gather(operand(indices)?, false)))
     }
 
-    pub fn get(&self, index: &Zval) -> PhpResult<Self> {
-        Ok(wrap(self.inner.clone().get(operand(index)?, false)))
+    /// The value at a position; negative positions count from the end.
+    pub fn get(&self, index: &Zval, nullOnOob: Option<bool>) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().get(operand(index)?, nullOnOob.unwrap_or(false))))
     }
 
     pub fn gatherEvery(&self, n: i64, offset: Option<i64>) -> Self {
@@ -622,7 +623,7 @@ impl PhpExpr {
         wrap(self.inner.clone().shuffle(seed.map(|s| s as u64)))
     }
 
-    pub fn sample(&self, n: Option<i64>, fraction: Option<f64>, withReplacement: Option<bool>, shuffle: Option<bool>, seed: Option<i64>) -> PhpResult<Self> {
+    pub fn sample(&self, n: Option<i64>, fraction: Option<crate::input::Num>, withReplacement: Option<bool>, shuffle: Option<bool>, seed: Option<i64>) -> PhpResult<Self> {
         sample(self.inner.clone(), n, fraction, withReplacement, shuffle, seed).map(wrap)
     }
 
@@ -673,6 +674,10 @@ impl PhpExpr {
         Ok(wrap(self.inner.clone().round(decimals.unwrap_or(0) as u32, mode)))
     }
 
+    pub fn roundSigFigs(&self, digits: i64) -> Self {
+        wrap(self.inner.clone().round_sig_figs(digits as i32))
+    }
+
     pub fn floor(&self) -> Self {
         wrap(self.inner.clone().floor())
     }
@@ -693,8 +698,8 @@ impl PhpExpr {
         wrap(self.inner.clone().exp())
     }
 
-    pub fn log(&self, base: Option<f64>) -> Self {
-        wrap(self.inner.clone().log(lit(base.unwrap_or(std::f64::consts::E))))
+    pub fn log(&self, base: Option<crate::input::Num>) -> Self {
+        wrap(self.inner.clone().log(lit(base.map_or(std::f64::consts::E, |b| b.0))))
     }
 
     pub fn log10(&self) -> Self {

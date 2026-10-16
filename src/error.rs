@@ -39,7 +39,7 @@ errors! {
 
 fn root(e: &PolarsError) -> &PolarsError {
     match e {
-        PolarsError::Context { error, .. } => root(error),
+        PolarsError::Context { error, .. } | PolarsError::ExprContext { error, .. } => root(error),
         e => e,
     }
 }

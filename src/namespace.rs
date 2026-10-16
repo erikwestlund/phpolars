@@ -157,8 +157,13 @@ impl PhpStrNameSpace {
         self.finish(self.base().str().replace_all(operand(pattern)?, operand(value)?, literal.unwrap_or(false)))
     }
 
-    pub fn slice(&self, offset: i64, length: Option<i64>) -> PhpResult<Zval> {
-        self.finish(self.base().str().slice(lit(offset), opt_len(length)))
+    /// Offset and length may be ints or expressions; a null length runs to the end.
+    pub fn slice(&self, offset: &Zval, length: Option<&Zval>) -> PhpResult<Zval> {
+        let length = match crate::input::given(length) {
+            Some(l) => operand(l)?,
+            None => lit(Null {}),
+        };
+        self.finish(self.base().str().slice(operand(offset)?, length))
     }
 
     pub fn head(&self, n: i64) -> PhpResult<Zval> {

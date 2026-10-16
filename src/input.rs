@@ -1,5 +1,5 @@
 //! Reading PHP arguments the way py-polars reads Python ones.
-use ext_php_rs::{prelude::*, types::Zval};
+use ext_php_rs::{convert::FromZval, flags::DataType as PhpType, prelude::*, types::Zval};
 use polars::prelude::*;
 
 use crate::{
@@ -8,6 +8,19 @@ use crate::{
     expr::{PhpExpr, PhpThen},
     series::PhpSeries,
 };
+
+/// A PHP int or float argument. ext-php-rs does not coerce int to f64 the
+/// way PHP's own parameter parsing does, so float parameters use this.
+#[derive(Clone, Copy, Debug)]
+pub struct Num(pub f64);
+
+impl<'a> FromZval<'a> for Num {
+    const TYPE: PhpType = PhpType::Double;
+
+    fn from_zval(zval: &'a Zval) -> Option<Self> {
+        zval.double().or_else(|| zval.long().map(|i| i as f64)).map(Num)
+    }
+}
 
 /// Omitted named arguments and explicit nulls both mean "not given".
 pub fn given(v: Option<&Zval>) -> Option<&Zval> {

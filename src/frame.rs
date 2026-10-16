@@ -213,9 +213,26 @@ macro_rules! frame_verbs {
                 })
             }
 
+            /// A value fills only the columns it fits, as in py: numbers fill
+            /// numeric columns, strings fill String columns. A strategy fills all.
             pub fn fillNull(&self, value: Option<&Zval>, strategy: Option<String>, limit: Option<i64>) -> PhpResult<Self> {
-                let e = fill_null(all().as_expr(), value, strategy, limit)?;
-                Self::out(self.lf().with_columns([e]))
+                let schema = self.schema_ref()?;
+                let fits = |dt: &DataType| -> bool {
+                    match given(value) {
+                        None => true,
+                        Some(v) if v.is_long() || v.is_double() => dt.is_primitive_numeric() || matches!(dt, DataType::Decimal(..)),
+                        Some(v) if v.is_string() => dt.is_string() || matches!(dt, DataType::Categorical(..)),
+                        Some(v) if v.is_bool() => dt.is_bool(),
+                        Some(_) => true,
+                    }
+                };
+                let mut exprs = Vec::new();
+                for (name, dt) in schema.iter() {
+                    if dt.is_null() || fits(dt) {
+                        exprs.push(fill_null(col(name.clone()), value, strategy.clone(), limit)?);
+                    }
+                }
+                Self::out(self.lf().with_columns(exprs))
             }
 
             pub fn fillNan(&self, value: &Zval) -> PhpResult<Self> {
@@ -263,7 +280,7 @@ macro_rules! frame_verbs {
 
             /// join($other, on: 'id', how: 'left') or leftOn/rightOn; how is
             /// inner, left, right, full, semi, anti or cross.
-            pub fn join(&self, other: &Zval, on: Option<&Zval>, how: Option<String>, leftOn: Option<&Zval>, rightOn: Option<&Zval>, suffix: Option<String>, coalesce: Option<bool>, maintainOrder: Option<String>) -> PhpResult<Self> {
+            pub fn join(&self, other: &Zval, on: Option<&Zval>, how: Option<String>, leftOn: Option<&Zval>, rightOn: Option<&Zval>, suffix: Option<String>, coalesce: Option<bool>, maintainOrder: Option<String>, nullsEqual: Option<bool>) -> PhpResult<Self> {
                 let other = other_frame(other)?;
                 let how = join_type(how)?;
                 let (left, right) = match (given(on), given(leftOn), given(rightOn)) {
@@ -292,6 +309,7 @@ macro_rules! frame_verbs {
                     .with_suffix(Some(suffix.unwrap_or_else(|| "_right".into()).into()))
                     .with_coalesce(coalesce);
                 args.maintain_order = order;
+                args.nulls_equal = nullsEqual.unwrap_or(false);
                 Self::out(self.lf().join(other, left, right, args))
             }
 
@@ -309,33 +327,31 @@ macro_rules! frame_verbs {
             }
 
             pub fn sum(&self) -> PhpResult<Self> {
-                Self::out(frame_agg(self.lf(), |e| e.sum()))
+                Self::out(self.lf().sum())
             }
 
             pub fn mean(&self) -> PhpResult<Self> {
-                Self::out(frame_agg(self.lf(), |e| e.mean()))
+                Self::out(self.lf().mean())
             }
 
             pub fn median(&self) -> PhpResult<Self> {
-                Self::out(frame_agg(self.lf(), |e| e.median()))
+                Self::out(self.lf().median())
             }
 
             pub fn min(&self) -> PhpResult<Self> {
-                Self::out(frame_agg(self.lf(), |e| e.min()))
+                Self::out(self.lf().min())
             }
 
             pub fn max(&self) -> PhpResult<Self> {
-                Self::out(frame_agg(self.lf(), |e| e.max()))
+                Self::out(self.lf().max())
             }
 
             pub fn std(&self, ddof: Option<i64>) -> PhpResult<Self> {
-                let d = ddof.unwrap_or(1) as u8;
-                Self::out(frame_agg(self.lf(), |e| e.std(d)))
+                Self::out(self.lf().std(ddof.unwrap_or(1) as u8))
             }
 
             pub fn var(&self, ddof: Option<i64>) -> PhpResult<Self> {
-                let d = ddof.unwrap_or(1) as u8;
-                Self::out(frame_agg(self.lf(), |e| e.var(d)))
+                Self::out(self.lf().var(ddof.unwrap_or(1) as u8))
             }
 
             pub fn count(&self) -> PhpResult<Self> {
@@ -554,8 +570,8 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
     }
 
     /// Summary statistics per column, as py's describe().
-    pub fn describe(&self, percentiles: Option<Vec<f64>>) -> PhpResult<Self> {
-        describe(&self.inner, percentiles.unwrap_or_else(|| vec![0.25, 0.5, 0.75]))
+    pub fn describe(&self, percentiles: Option<Vec<crate::input::Num>>) -> PhpResult<Self> {
+        describe(&self.inner, percentiles.map_or_else(|| vec![0.25, 0.5, 0.75], |p| p.into_iter().map(|n| n.0).collect()))
     }
 
     /// pivot(on: 'k', index: 'id', values: 'v', aggregateFunction: 'sum')
@@ -624,12 +640,12 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
         df.transpose(keep, new_names).php().map(Self::wrap)
     }
 
-    pub fn sample(&self, n: Option<i64>, fraction: Option<f64>, withReplacement: Option<bool>, shuffle: Option<bool>, seed: Option<i64>) -> PhpResult<Self> {
+    pub fn sample(&self, n: Option<i64>, fraction: Option<crate::input::Num>, withReplacement: Option<bool>, shuffle: Option<bool>, seed: Option<i64>) -> PhpResult<Self> {
         let wr = withReplacement.unwrap_or(false);
         let seed = seed.map(|s| s as u64);
         let out = match (n, fraction) {
             (Some(_), Some(_)) => return Err(value_error("sample() takes n or fraction, not both")),
-            (_, Some(f)) => self.inner.sample_frac(&Series::new("frac".into(), [f]), wr, shuffle, seed),
+            (_, Some(f)) => self.inner.sample_frac(&Series::new("frac".into(), [f.0]), wr, shuffle, seed),
             (n, None) => self.inner.sample_n_literal(n.unwrap_or(1).max(0) as usize, wr, shuffle, seed),
         };
         out.php().map(Self::wrap)
@@ -875,56 +891,63 @@ pub fn concat(items: &ZendHashTable, how: Option<String>) -> PhpResult<Zval> {
     }
 }
 
-/// py describe(): count, null_count, mean, std, min, percentiles, and max per
-/// column. Numeric columns give floats; any other column turns the table into
-/// strings, as in py.
+/// py describe(): count, null_count, mean, std, min, percentiles, and max.
+/// Numeric and Boolean columns give floats. Other columns give strings:
+/// temporal columns get a mean, min, max, and percentiles; strings get min
+/// and max; nested columns only counts.
 fn describe(df: &DataFrame, percentiles: Vec<f64>) -> PhpResult<PhpDataFrame> {
     let mut stats: Vec<String> = vec!["count".into(), "null_count".into(), "mean".into(), "std".into(), "min".into()];
     for p in &percentiles {
         stats.push(format!("{}%", p * 100.0));
     }
     stats.push("max".into());
+    let none = || lit(Null {});
     let mut exprs = Vec::new();
-    let mut numeric = Vec::new();
     for c in df.columns() {
         let name = c.name().as_str();
-        let is_num = c.dtype().is_primitive_numeric() || c.dtype().is_bool();
-        numeric.push(is_num);
-        let x = if c.dtype().is_bool() { col(name).cast(DataType::Float64) } else { col(name) };
-        let nan = || lit(Null {});
-        let mut row = vec![
-            col(name).count().cast(DataType::Float64),
-            col(name).null_count().cast(DataType::Float64),
-            if is_num { x.clone().mean() } else { nan() },
-            if is_num { x.clone().std(1) } else { nan() },
-            if c.dtype().is_nested() { nan() } else { x.clone().min() },
-        ];
+        let dt = c.dtype();
+        let numeric = dt.is_primitive_numeric();
+        let boolean = dt.is_bool();
+        let temporal = dt.is_temporal();
+        let ordered = !dt.is_nested() && !dt.is_null();
+        let x = || col(name);
+        let mut row = vec![x().count(), x().null_count()];
+        row.push(if numeric || boolean || temporal { x().mean() } else { none() });
+        row.push(if numeric { x().std(1) } else { none() });
+        row.push(if ordered { x().min() } else { none() });
         for p in &percentiles {
-            row.push(if is_num { x.clone().quantile(lit(*p), QuantileMethod::Nearest) } else { nan() });
+            row.push(match (numeric, temporal) {
+                (true, _) => x().quantile(lit(*p), QuantileMethod::Nearest),
+                (_, true) => x().quantile(lit(*p), QuantileMethod::Nearest).cast(dt.clone()),
+                _ => none(),
+            });
         }
-        row.push(if c.dtype().is_nested() { nan() } else { x.clone().max() });
+        row.push(if ordered { x().max() } else { none() });
         for (i, e) in row.into_iter().enumerate() {
-            let e = if is_num { e.cast(DataType::Float64) } else { e.cast(DataType::String) };
+            let e = if numeric || boolean {
+                e.cast(DataType::Float64)
+            } else {
+                // Trim a zero fraction so temporal means read like py's.
+                e.cast(DataType::String).str().replace(lit("\\.0+$"), lit(""), false)
+            };
             exprs.push(e.alias(format!("{name}\u{0}{i}")));
         }
     }
     init_threads();
     let one = df.clone().lazy().select(exprs).collect().php()?;
-    let any_text = numeric.iter().any(|n| !n);
     let mut columns: Vec<Column> = vec![Series::new("statistic".into(), stats.clone()).into()];
-    for (ci, c) in df.columns().iter().enumerate() {
-        let mut vals = Vec::with_capacity(stats.len());
+    for c in df.columns() {
+        let mut out: Option<Series> = None;
         for i in 0..stats.len() {
             let s = one.column(&format!("{}\u{0}{i}", c.name())).php()?.as_materialized_series().clone();
-            let s = if any_text { s.cast(&DataType::String).php()? } else { s };
-            vals.push(s);
+            match out.as_mut() {
+                None => out = Some(s),
+                Some(o) => {
+                    o.append(&s).php()?;
+                }
+            }
         }
-        let mut out = vals[0].clone();
-        for v in &vals[1..] {
-            out.append(v).php()?;
-        }
-        let _ = ci;
-        columns.push(out.with_name(c.name().clone()).into());
+        columns.push(out.unwrap().with_name(c.name().clone()).into());
     }
     DataFrame::new_infer_height(columns).php().map(PhpDataFrame::wrap)
 }

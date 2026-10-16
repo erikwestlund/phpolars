@@ -136,7 +136,7 @@ namespace Phpolars {
         public function bottomK(?int $k = null): Phpolars\Expr {}
         public function filter(mixed $predicate): Phpolars\Expr {}
         public function gather(mixed $indices): Phpolars\Expr {}
-        public function get(mixed $index): Phpolars\Expr {}
+        public function get(mixed $index, ?bool $nullOnOob = null): Phpolars\Expr {}
         public function gatherEvery(int $n, ?int $offset = null): Phpolars\Expr {}
         public function explode(): Phpolars\Expr {}
         public function unique(?bool $maintainOrder = null): Phpolars\Expr {}
@@ -156,6 +156,7 @@ namespace Phpolars {
         public function dot(mixed $other): Phpolars\Expr {}
         public function abs(): Phpolars\Expr {}
         public function round(?int $decimals = null, ?string $mode = null): Phpolars\Expr {}
+        public function roundSigFigs(int $digits): Phpolars\Expr {}
         public function floor(): Phpolars\Expr {}
         public function ceil(): Phpolars\Expr {}
         public function sqrt(): Phpolars\Expr {}
@@ -207,7 +208,7 @@ namespace Phpolars {
         public function countMatches(mixed $pattern, ?bool $literal = null): mixed {}
         public function replace(mixed $pattern, mixed $value, ?bool $literal = null, ?int $n = null): mixed {}
         public function replaceAll(mixed $pattern, mixed $value, ?bool $literal = null): mixed {}
-        public function slice(int $offset, ?int $length = null): mixed {}
+        public function slice(mixed $offset, mixed $length = null): mixed {}
         public function head(int $n): mixed {}
         public function tail(int $n): mixed {}
         public function split(mixed $by, ?bool $inclusive = null): mixed {}
@@ -445,6 +446,10 @@ namespace Phpolars {
         public function toDict(?bool $asSeries = null): array {}
         public function toColumns(): array {}
         public function toPhibble(): mixed {}
+        public function describe(?array $percentiles = null): Phpolars\DataFrame {}
+        public function pivot(mixed $on, mixed $index = null, mixed $values = null, mixed $aggregateFunction = null, ?bool $sortColumns = null, ?string $separator = null, ?bool $maintainOrder = null): Phpolars\DataFrame {}
+        public function transpose(?bool $includeHeader = null, ?string $headerName = null, mixed $columnNames = null): Phpolars\DataFrame {}
+        public function sample(?int $n = null, ?float $fraction = null, ?bool $withReplacement = null, ?bool $shuffle = null, ?int $seed = null): Phpolars\DataFrame {}
         public function writeCsv(string $file, ?bool $includeHeader = null, ?string $separator = null, ?string $nullValue = null): void {}
         public function writeParquet(string $file): void {}
         public function writeIpc(string $file): void {}
@@ -477,7 +482,7 @@ namespace Phpolars {
         public function cast(mixed $dtypes, ?bool $strict = null): Phpolars\DataFrame {}
         public function explode(mixed ...$columns): Phpolars\DataFrame {}
         public function unnest(mixed ...$columns): Phpolars\DataFrame {}
-        public function join(mixed $other, mixed $on = null, ?string $how = null, mixed $leftOn = null, mixed $rightOn = null, ?string $suffix = null, ?bool $coalesce = null, ?string $maintainOrder = null): Phpolars\DataFrame {}
+        public function join(mixed $other, mixed $on = null, ?string $how = null, mixed $leftOn = null, mixed $rightOn = null, ?string $suffix = null, ?bool $coalesce = null, ?string $maintainOrder = null, ?bool $nullsEqual = null): Phpolars\DataFrame {}
         public function groupBy(mixed $by, ?bool $maintainOrder = null): Phpolars\GroupBy {}
         public function sum(): Phpolars\DataFrame {}
         public function mean(): Phpolars\DataFrame {}
@@ -527,7 +532,7 @@ namespace Phpolars {
         public function cast(mixed $dtypes, ?bool $strict = null): Phpolars\LazyFrame {}
         public function explode(mixed ...$columns): Phpolars\LazyFrame {}
         public function unnest(mixed ...$columns): Phpolars\LazyFrame {}
-        public function join(mixed $other, mixed $on = null, ?string $how = null, mixed $leftOn = null, mixed $rightOn = null, ?string $suffix = null, ?bool $coalesce = null, ?string $maintainOrder = null): Phpolars\LazyFrame {}
+        public function join(mixed $other, mixed $on = null, ?string $how = null, mixed $leftOn = null, mixed $rightOn = null, ?string $suffix = null, ?bool $coalesce = null, ?string $maintainOrder = null, ?bool $nullsEqual = null): Phpolars\LazyFrame {}
         public function groupBy(mixed $by, ?bool $maintainOrder = null): Phpolars\LazyGroupBy {}
         public function sum(): Phpolars\LazyFrame {}
         public function mean(): Phpolars\LazyFrame {}

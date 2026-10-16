@@ -1,0 +1,7107 @@
+{
+ "polars_version": "1.43.2",
+ "cases": {
+  "select_arith": {
+   "columns": [
+    "id",
+    "add",
+    "sub",
+    "mul",
+    "truediv",
+    "floordiv",
+    "mod",
+    "pow",
+    "neg"
+   ],
+   "dtypes": [
+    "Int64",
+    "Int64",
+    "Int64",
+    "Float64",
+    "Float64",
+    "Int64",
+    "Int64",
+    "Int64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     1,
+     4,
+     2,
+     4.5,
+     1.5,
+     1,
+     0,
+     9,
+     -1.5
+    ],
+    [
+     2,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     -2.25
+    ],
+    [
+     3,
+     2,
+     -2,
+     null,
+     0.5,
+     0,
+     1,
+     1,
+     null
+    ],
+    [
+     4,
+     8,
+     3,
+     -3.5,
+     3.5,
+     3,
+     1,
+     49,
+     0.5
+    ],
+    [
+     5,
+     3,
+     -3,
+     20.0,
+     1.0,
+     1,
+     2,
+     4,
+     -10.0
+    ],
+    [
+     6,
+     6,
+     -1,
+     15.0,
+     2.5,
+     2,
+     2,
+     25,
+     -3.0
+    ]
+   ]
+  },
+  "select_float_specials": {
+   "columns": [
+    "div0",
+    "idiv0",
+    "ifloordiv0",
+    "nan"
+   ],
+   "dtypes": [
+    "Float64",
+    "Float64",
+    "Int64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     {
+      "$float": "INF"
+     },
+     {
+      "$float": "INF"
+     },
+     null,
+     {
+      "$float": "NaN"
+     }
+    ],
+    [
+     {
+      "$float": "INF"
+     },
+     null,
+     null,
+     {
+      "$float": "NaN"
+     }
+    ],
+    [
+     null,
+     {
+      "$float": "INF"
+     },
+     null,
+     null
+    ],
+    [
+     {
+      "$float": "-INF"
+     },
+     {
+      "$float": "INF"
+     },
+     null,
+     {
+      "$float": "NaN"
+     }
+    ],
+    [
+     {
+      "$float": "INF"
+     },
+     {
+      "$float": "INF"
+     },
+     null,
+     {
+      "$float": "NaN"
+     }
+    ],
+    [
+     {
+      "$float": "INF"
+     },
+     {
+      "$float": "INF"
+     },
+     null,
+     {
+      "$float": "NaN"
+     }
+    ]
+   ]
+  },
+  "select_int_div_neg": {
+   "columns": [
+    "fd",
+    "m",
+    "td"
+   ],
+   "dtypes": [
+    "Int64",
+    "Int64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     3,
+     1,
+     3.5
+    ],
+    [
+     -4,
+     1,
+     -3.5
+    ],
+    [
+     -4,
+     -1,
+     -3.5
+    ],
+    [
+     3,
+     -1,
+     3.5
+    ]
+   ]
+  },
+  "select_literals": {
+   "columns": [
+    "i",
+    "f",
+    "s",
+    "t",
+    "n"
+   ],
+   "dtypes": [
+    "Int32",
+    "Float64",
+    "String",
+    "Boolean",
+    "Null"
+   ],
+   "rows": [
+    [
+     1,
+     2.5,
+     "k",
+     true,
+     null
+    ]
+   ]
+  },
+  "select_literal_broadcast": {
+   "columns": [
+    "id",
+    "z",
+    "xf"
+   ],
+   "dtypes": [
+    "Int64",
+    "Int32",
+    "Float64"
+   ],
+   "rows": [
+    [
+     1,
+     0,
+     3.5
+    ],
+    [
+     2,
+     0,
+     null
+    ],
+    [
+     3,
+     0,
+     1.5
+    ],
+    [
+     4,
+     0,
+     7.5
+    ],
+    [
+     5,
+     0,
+     2.5
+    ],
+    [
+     6,
+     0,
+     5.5
+    ]
+   ]
+  },
+  "int32_plus_literal": {
+   "columns": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "dtypes": [
+    "Int32",
+    "Int64",
+    "UInt8",
+    "Float32"
+   ],
+   "rows": [
+    [
+     4,
+     4,
+     6,
+     3.0
+    ],
+    [
+     null,
+     null,
+     null,
+     4.5
+    ],
+    [
+     2,
+     4,
+     2,
+     null
+    ],
+    [
+     8,
+     11,
+     14,
+     -1.0
+    ],
+    [
+     3,
+     7,
+     4,
+     20.0
+    ],
+    [
+     6,
+     11,
+     10,
+     6.0
+    ]
+   ]
+  },
+  "with_columns_compare": {
+   "columns": [
+    "id",
+    "x",
+    "y",
+    "g",
+    "gt",
+    "ge",
+    "lt",
+    "le",
+    "eq",
+    "ne",
+    "eqm",
+    "nem",
+    "cross"
+   ],
+   "dtypes": [
+    "Int64",
+    "Int64",
+    "Float64",
+    "String",
+    "Boolean",
+    "Boolean",
+    "Boolean",
+    "Boolean",
+    "Boolean",
+    "Boolean",
+    "Boolean",
+    "Boolean",
+    "Boolean"
+   ],
+   "rows": [
+    [
+     1,
+     3,
+     1.5,
+     "a",
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     false,
+     false,
+     true
+    ],
+    [
+     2,
+     null,
+     2.25,
+     "b",
+     null,
+     null,
+     false,
+     true,
+     false,
+     true,
+     true,
+     true,
+     null
+    ],
+    [
+     3,
+     1,
+     null,
+     "a",
+     false,
+     false,
+     null,
+     null,
+     true,
+     false,
+     false,
+     false,
+     null
+    ],
+    [
+     4,
+     7,
+     -0.5,
+     "c",
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     false,
+     true,
+     true
+    ],
+    [
+     5,
+     2,
+     10.0,
+     null,
+     false,
+     false,
+     false,
+     false,
+     null,
+     null,
+     false,
+     true,
+     false
+    ],
+    [
+     6,
+     5,
+     3.0,
+     "b",
+     true,
+     true,
+     false,
+     false,
+     false,
+     true,
+     false,
+     true,
+     true
+    ]
+   ]
+  },
+  "with_columns_overwrite": {
+   "columns": [
+    "id",
+    "x",
+    "g",
+    "g2"
+   ],
+   "dtypes": [
+    "Int64",
+    "Int64",
+    "String",
+    "String"
+   ],
+   "rows": [
+    [
+     1,
+     30,
+     "a",
+     "a"
+    ],
+    [
+     2,
+     null,
+     "b",
+     "b"
+    ],
+    [
+     3,
+     10,
+     "a",
+     "a"
+    ],
+    [
+     4,
+     70,
+     "c",
+     "c"
+    ],
+    [
+     5,
+     20,
+     null,
+     null
+    ],
+    [
+     6,
+     50,
+     "b",
+     "b"
+    ]
+   ]
+  },
+  "bool_logic": {
+   "columns": [
+    "b",
+    "and",
+    "or",
+    "not",
+    "xor"
+   ],
+   "dtypes": [
+    "Boolean",
+    "Boolean",
+    "Boolean",
+    "Boolean",
+    "Boolean"
+   ],
+   "rows": [
+    [
+     true,
+     true,
+     true,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     null,
+     true,
+     null
+    ],
+    [
+     null,
+     false,
+     null,
+     null,
+     null
+    ],
+    [
+     true,
+     true,
+     true,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false,
+     true,
+     false
+    ],
+    [
+     true,
+     true,
+     true,
+     false,
+     false
+    ]
+   ]
+  },
+  "horizontal_fns": {
+   "columns": [
+    "sum",
+    "mean",
+    "min",
+    "max",
+    "coal",
+    "cs",
+    "csi"
+   ],
+   "dtypes": [
+    "Float64",
+    "Float64",
+    "Float64",
+    "Int64",
+    "Int64",
+    "String",
+    "String"
+   ],
+   "rows": [
+    [
+     4.5,
+     2.25,
+     1.5,
+     3,
+     3,
+     "a-3",
+     "a-3"
+    ],
+    [
+     2.25,
+     2.25,
+     2.25,
+     1,
+     1,
+     null,
+     "b"
+    ],
+    [
+     1.0,
+     1.0,
+     1.0,
+     2,
+     1,
+     "a-1",
+     "a-1"
+    ],
+    [
+     6.5,
+     3.25,
+     -0.5,
+     7,
+     7,
+     "c-7",
+     "c-7"
+    ],
+    [
+     12.0,
+     6.0,
+     2.0,
+     3,
+     2,
+     null,
+     "2"
+    ],
+    [
+     8.0,
+     4.0,
+     3.0,
+     5,
+     5,
+     "b-5",
+     "b-5"
+    ]
+   ]
+  },
+  "filter_gt": {
+   "columns": [
+    "id",
+    "x"
+   ],
+   "dtypes": [
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     1,
+     3
+    ],
+    [
+     4,
+     7
+    ],
+    [
+     6,
+     5
+    ]
+   ]
+  },
+  "filter_multi": {
+   "columns": [
+    "id",
+    "g",
+    "x"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "Int64"
+   ],
+   "rows": [
+    [
+     6,
+     "b",
+     5
+    ]
+   ]
+  },
+  "filter_or_null": {
+   "columns": [
+    "id",
+    "g",
+    "y"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "Float64"
+   ],
+   "rows": [
+    [
+     4,
+     "c",
+     -0.5
+    ],
+    [
+     5,
+     null,
+     10.0
+    ]
+   ]
+  },
+  "filter_bool_col": {
+   "columns": [
+    "id",
+    "b"
+   ],
+   "dtypes": [
+    "Int64",
+    "Boolean"
+   ],
+   "rows": [
+    [
+     1,
+     true
+    ],
+    [
+     4,
+     true
+    ],
+    [
+     6,
+     true
+    ]
+   ]
+  },
+  "filter_date": {
+   "columns": [
+    "id",
+    "d"
+   ],
+   "dtypes": [
+    "Int64",
+    "Date"
+   ],
+   "rows": [
+    [
+     2,
+     "2024-02-29"
+    ],
+    [
+     5,
+     "2024-07-04"
+    ],
+    [
+     6,
+     "2025-03-09"
+    ]
+   ]
+  },
+  "filter_datetime": {
+   "columns": [
+    "id",
+    "t"
+   ],
+   "dtypes": [
+    "Int64",
+    "Datetime(us)"
+   ],
+   "rows": [
+    [
+     2,
+     "2024-02-29T23:59:59.000000"
+    ],
+    [
+     5,
+     "2024-07-04T12:00:00.000000"
+    ],
+    [
+     6,
+     "2025-03-09T06:15:30.000000"
+    ]
+   ]
+  },
+  "sort_single": {
+   "columns": [
+    "id",
+    "x"
+   ],
+   "dtypes": [
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     2,
+     null
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     5,
+     2
+    ],
+    [
+     1,
+     3
+    ],
+    [
+     6,
+     5
+    ],
+    [
+     4,
+     7
+    ]
+   ]
+  },
+  "sort_desc_nulls_last": {
+   "columns": [
+    "id",
+    "y"
+   ],
+   "dtypes": [
+    "Int64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     5,
+     10.0
+    ],
+    [
+     6,
+     3.0
+    ],
+    [
+     2,
+     2.25
+    ],
+    [
+     1,
+     1.5
+    ],
+    [
+     4,
+     -0.5
+    ],
+    [
+     3,
+     null
+    ]
+   ]
+  },
+  "sort_multi": {
+   "columns": [
+    "id",
+    "g",
+    "x"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "Int64"
+   ],
+   "rows": [
+    [
+     5,
+     null,
+     2
+    ],
+    [
+     1,
+     "a",
+     3
+    ],
+    [
+     3,
+     "a",
+     1
+    ],
+    [
+     2,
+     "b",
+     null
+    ],
+    [
+     6,
+     "b",
+     5
+    ],
+    [
+     4,
+     "c",
+     7
+    ]
+   ]
+  },
+  "sort_multi_nulls_last": {
+   "columns": [
+    "id",
+    "g",
+    "k"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "Int64"
+   ],
+   "rows": [
+    [
+     1,
+     "a",
+     2
+    ],
+    [
+     3,
+     "a",
+     2
+    ],
+    [
+     2,
+     "b",
+     1
+    ],
+    [
+     6,
+     "b",
+     1
+    ],
+    [
+     4,
+     "c",
+     null
+    ],
+    [
+     5,
+     null,
+     3
+    ]
+   ]
+  },
+  "sort_multi_mixed_nulls_last": {
+   "columns": [
+    "id",
+    "g",
+    "k"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "Int64"
+   ],
+   "rows": [
+    [
+     4,
+     "c",
+     null
+    ],
+    [
+     2,
+     "b",
+     1
+    ],
+    [
+     6,
+     "b",
+     1
+    ],
+    [
+     1,
+     "a",
+     2
+    ],
+    [
+     3,
+     "a",
+     2
+    ],
+    [
+     5,
+     null,
+     3
+    ]
+   ]
+  },
+  "sort_expr": {
+   "columns": [
+    "id",
+    "s"
+   ],
+   "dtypes": [
+    "Int64",
+    "String"
+   ],
+   "rows": [
+    [
+     3,
+     null
+    ],
+    [
+     6,
+     "elder_7 berry"
+    ],
+    [
+     1,
+     "apple pie"
+    ],
+    [
+     4,
+     "cherry-42"
+    ],
+    [
+     5,
+     "  date  "
+    ],
+    [
+     2,
+     "Bänana"
+    ]
+   ]
+  },
+  "sort_date_desc": {
+   "columns": [
+    "id",
+    "d"
+   ],
+   "dtypes": [
+    "Int64",
+    "Date"
+   ],
+   "rows": [
+    [
+     3,
+     null
+    ],
+    [
+     6,
+     "2025-03-09"
+    ],
+    [
+     5,
+     "2024-07-04"
+    ],
+    [
+     2,
+     "2024-02-29"
+    ],
+    [
+     1,
+     "2024-01-15"
+    ],
+    [
+     4,
+     "2023-12-31"
+    ]
+   ]
+  },
+  "sort_string": {
+   "columns": [
+    "id",
+    "s"
+   ],
+   "dtypes": [
+    "Int64",
+    "String"
+   ],
+   "rows": [
+    [
+     3,
+     null
+    ],
+    [
+     5,
+     "  date  "
+    ],
+    [
+     2,
+     "Bänana"
+    ],
+    [
+     1,
+     "apple pie"
+    ],
+    [
+     4,
+     "cherry-42"
+    ],
+    [
+     6,
+     "elder_7 berry"
+    ]
+   ]
+  },
+  "sort_bool": {
+   "columns": [
+    "id",
+    "b"
+   ],
+   "dtypes": [
+    "Int64",
+    "Boolean"
+   ],
+   "rows": [
+    [
+     3,
+     null
+    ],
+    [
+     2,
+     false
+    ],
+    [
+     5,
+     false
+    ],
+    [
+     1,
+     true
+    ],
+    [
+     4,
+     true
+    ],
+    [
+     6,
+     true
+    ]
+   ]
+  },
+  "gb_sum_mean": {
+   "columns": [
+    "g",
+    "sx",
+    "sy",
+    "mx",
+    "my"
+   ],
+   "dtypes": [
+    "String",
+    "Int64",
+    "Float64",
+    "Float64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     "a",
+     4,
+     1.5,
+     2.0,
+     1.5
+    ],
+    [
+     "b",
+     5,
+     5.25,
+     5.0,
+     2.625
+    ],
+    [
+     "c",
+     7,
+     -0.5,
+     7.0,
+     -0.5
+    ],
+    [
+     null,
+     2,
+     10.0,
+     2.0,
+     10.0
+    ]
+   ]
+  },
+  "gb_median_min_max": {
+   "columns": [
+    "g",
+    "med",
+    "min",
+    "max",
+    "smin",
+    "dmax",
+    "tmin"
+   ],
+   "dtypes": [
+    "String",
+    "Float64",
+    "Int64",
+    "Int64",
+    "String",
+    "Date",
+    "Datetime(us)"
+   ],
+   "rows": [
+    [
+     "a",
+     2.0,
+     1,
+     3,
+     "apple pie",
+     "2024-01-15",
+     "2023-06-01T00:00:01.000000"
+    ],
+    [
+     "b",
+     5.0,
+     5,
+     5,
+     "Bänana",
+     "2025-03-09",
+     "2024-02-29T23:59:59.000000"
+    ],
+    [
+     "c",
+     7.0,
+     7,
+     7,
+     "cherry-42",
+     "2023-12-31",
+     null
+    ],
+    [
+     null,
+     2.0,
+     2,
+     2,
+     "  date  ",
+     "2024-07-04",
+     "2024-07-04T12:00:00.000000"
+    ]
+   ]
+  },
+  "gb_std_var": {
+   "columns": [
+    "g",
+    "std",
+    "var",
+    "std0"
+   ],
+   "dtypes": [
+    "String",
+    "Float64",
+    "Float64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     "a",
+     null,
+     null,
+     1.0
+    ],
+    [
+     "b",
+     0.5303300858899106,
+     0.28125,
+     0.0
+    ],
+    [
+     "c",
+     null,
+     null,
+     0.0
+    ],
+    [
+     null,
+     null,
+     null,
+     0.0
+    ]
+   ]
+  },
+  "gb_count_len": {
+   "columns": [
+    "g",
+    "count",
+    "len",
+    "nulls"
+   ],
+   "dtypes": [
+    "String",
+    "UInt32",
+    "UInt32",
+    "UInt32"
+   ],
+   "rows": [
+    [
+     "a",
+     2,
+     2,
+     0
+    ],
+    [
+     "b",
+     1,
+     2,
+     1
+    ],
+    [
+     "c",
+     1,
+     1,
+     0
+    ],
+    [
+     null,
+     1,
+     1,
+     0
+    ]
+   ]
+  },
+  "gb_n_unique_first_last": {
+   "columns": [
+    "b",
+    "nu",
+    "first",
+    "last"
+   ],
+   "dtypes": [
+    "Boolean",
+    "UInt32",
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     true,
+     3,
+     3,
+     5
+    ],
+    [
+     false,
+     2,
+     null,
+     2
+    ],
+    [
+     null,
+     1,
+     1,
+     1
+    ]
+   ]
+  },
+  "gb_quantile": {
+   "columns": [
+    "b",
+    "nearest",
+    "linear",
+    "lower",
+    "higher",
+    "midpoint"
+   ],
+   "dtypes": [
+    "Boolean",
+    "Float64",
+    "Float64",
+    "Float64",
+    "Float64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     true,
+     4.0,
+     3.4000000000000004,
+     1.0,
+     4.0,
+     2.5
+    ],
+    [
+     false,
+     2.0,
+     3.2,
+     2.0,
+     5.0,
+     3.5
+    ],
+    [
+     null,
+     3.0,
+     3.0,
+     3.0,
+     3.0,
+     3.0
+    ]
+   ]
+  },
+  "gb_multi_key": {
+   "columns": [
+    "g",
+    "b",
+    "ids"
+   ],
+   "dtypes": [
+    "String",
+    "Boolean",
+    "Int64"
+   ],
+   "rows": [
+    [
+     "a",
+     true,
+     1
+    ],
+    [
+     "b",
+     false,
+     2
+    ],
+    [
+     "a",
+     null,
+     3
+    ],
+    [
+     "c",
+     true,
+     4
+    ],
+    [
+     null,
+     false,
+     5
+    ],
+    [
+     "b",
+     true,
+     6
+    ]
+   ]
+  },
+  "gb_expr_key": {
+   "columns": [
+    "big",
+    "ids",
+    "y"
+   ],
+   "dtypes": [
+    "Boolean",
+    "List(Int64)",
+    "Float64"
+   ],
+   "rows": [
+    [
+     true,
+     [
+      1,
+      4,
+      6
+     ],
+     3.0
+    ],
+    [
+     null,
+     [
+      2
+     ],
+     2.25
+    ],
+    [
+     false,
+     [
+      3,
+      5
+     ],
+     10.0
+    ]
+   ]
+  },
+  "gb_implicit_list": {
+   "columns": [
+    "g",
+    "x",
+    "s1"
+   ],
+   "dtypes": [
+    "String",
+    "List(Int64)",
+    "String"
+   ],
+   "rows": [
+    [
+     "a",
+     [
+      3,
+      1
+     ],
+     null
+    ],
+    [
+     "b",
+     [
+      null,
+      5
+     ],
+     "Bänana"
+    ],
+    [
+     "c",
+     [
+      7
+     ],
+     "cherry-42"
+    ],
+    [
+     null,
+     [
+      2
+     ],
+     "  date  "
+    ]
+   ]
+  },
+  "gb_filter_sortby": {
+   "columns": [
+    "g",
+    "fs",
+    "top"
+   ],
+   "dtypes": [
+    "String",
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     "a",
+     3,
+     3
+    ],
+    [
+     "b",
+     5,
+     6
+    ],
+    [
+     "c",
+     0,
+     4
+    ],
+    [
+     null,
+     2,
+     5
+    ]
+   ]
+  },
+  "gb_len_method": {
+   "columns": [
+    "g",
+    "len"
+   ],
+   "dtypes": [
+    "String",
+    "UInt32"
+   ],
+   "rows": [
+    [
+     "a",
+     2
+    ],
+    [
+     "b",
+     2
+    ],
+    [
+     "c",
+     1
+    ],
+    [
+     null,
+     1
+    ]
+   ]
+  },
+  "gb_sum_method": {
+   "columns": [
+    "g",
+    "x",
+    "y"
+   ],
+   "dtypes": [
+    "String",
+    "Int64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     "a",
+     4,
+     1.5
+    ],
+    [
+     "b",
+     5,
+     5.25
+    ],
+    [
+     "c",
+     7,
+     -0.5
+    ],
+    [
+     null,
+     2,
+     10.0
+    ]
+   ]
+  },
+  "gb_mean_method": {
+   "columns": [
+    "b",
+    "x",
+    "y"
+   ],
+   "dtypes": [
+    "Boolean",
+    "Float64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     true,
+     5.0,
+     1.3333333333333333
+    ],
+    [
+     false,
+     2.0,
+     6.125
+    ],
+    [
+     null,
+     1.0,
+     null
+    ]
+   ]
+  },
+  "gb_head": {
+   "columns": [
+    "g",
+    "id"
+   ],
+   "dtypes": [
+    "String",
+    "Int64"
+   ],
+   "rows": [
+    [
+     "a",
+     1
+    ],
+    [
+     "b",
+     2
+    ],
+    [
+     "c",
+     4
+    ],
+    [
+     null,
+     5
+    ]
+   ]
+  },
+  "join_inner": {
+   "columns": [
+    "id",
+    "g",
+    "x",
+    "z",
+    "x_r"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "Int64",
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     1,
+     "a",
+     3,
+     10,
+     100
+    ],
+    [
+     3,
+     "a",
+     1,
+     10,
+     100
+    ],
+    [
+     4,
+     "c",
+     7,
+     30,
+     300
+    ]
+   ]
+  },
+  "join_left": {
+   "columns": [
+    "id",
+    "g",
+    "x",
+    "z"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     1,
+     "a",
+     3,
+     10
+    ],
+    [
+     2,
+     "b",
+     null,
+     null
+    ],
+    [
+     3,
+     "a",
+     1,
+     10
+    ],
+    [
+     4,
+     "c",
+     7,
+     30
+    ],
+    [
+     5,
+     null,
+     2,
+     null
+    ],
+    [
+     6,
+     "b",
+     5,
+     null
+    ]
+   ]
+  },
+  "join_full": {
+   "columns": [
+    "id",
+    "g",
+    "x",
+    "g_right",
+    "z"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "Int64",
+    "String",
+    "Int64"
+   ],
+   "rows": [
+    [
+     null,
+     null,
+     null,
+     "d",
+     40
+    ],
+    [
+     null,
+     null,
+     null,
+     null,
+     99
+    ],
+    [
+     1,
+     "a",
+     3,
+     "a",
+     10
+    ],
+    [
+     2,
+     "b",
+     null,
+     null,
+     null
+    ],
+    [
+     3,
+     "a",
+     1,
+     "a",
+     10
+    ],
+    [
+     4,
+     "c",
+     7,
+     "c",
+     30
+    ],
+    [
+     5,
+     null,
+     2,
+     null,
+     null
+    ],
+    [
+     6,
+     "b",
+     5,
+     null,
+     null
+    ]
+   ]
+  },
+  "join_full_coalesce": {
+   "columns": [
+    "id",
+    "g",
+    "x",
+    "z"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     null,
+     "d",
+     null,
+     40
+    ],
+    [
+     null,
+     null,
+     null,
+     99
+    ],
+    [
+     1,
+     "a",
+     3,
+     10
+    ],
+    [
+     2,
+     "b",
+     null,
+     null
+    ],
+    [
+     3,
+     "a",
+     1,
+     10
+    ],
+    [
+     4,
+     "c",
+     7,
+     30
+    ],
+    [
+     5,
+     null,
+     2,
+     null
+    ],
+    [
+     6,
+     "b",
+     5,
+     null
+    ]
+   ]
+  },
+  "join_semi": {
+   "columns": [
+    "id",
+    "g",
+    "x"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "Int64"
+   ],
+   "rows": [
+    [
+     1,
+     "a",
+     3
+    ],
+    [
+     3,
+     "a",
+     1
+    ],
+    [
+     4,
+     "c",
+     7
+    ]
+   ]
+  },
+  "join_anti": {
+   "columns": [
+    "id",
+    "g",
+    "x"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "Int64"
+   ],
+   "rows": [
+    [
+     2,
+     "b",
+     null
+    ],
+    [
+     5,
+     null,
+     2
+    ],
+    [
+     6,
+     "b",
+     5
+    ]
+   ]
+  },
+  "join_nulls_equal": {
+   "columns": [
+    "id",
+    "g",
+    "x",
+    "z",
+    "x_right"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "Int64",
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     1,
+     "a",
+     3,
+     10,
+     100
+    ],
+    [
+     2,
+     "b",
+     null,
+     null,
+     null
+    ],
+    [
+     3,
+     "a",
+     1,
+     10,
+     100
+    ],
+    [
+     4,
+     "c",
+     7,
+     30,
+     300
+    ],
+    [
+     5,
+     null,
+     2,
+     99,
+     999
+    ],
+    [
+     6,
+     "b",
+     5,
+     null,
+     null
+    ]
+   ]
+  },
+  "join_cross": {
+   "columns": [
+    "id",
+    "g",
+    "x",
+    "z"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     1,
+     "a",
+     3,
+     10
+    ],
+    [
+     1,
+     "a",
+     3,
+     30
+    ],
+    [
+     1,
+     "a",
+     3,
+     40
+    ],
+    [
+     2,
+     "b",
+     null,
+     10
+    ],
+    [
+     2,
+     "b",
+     null,
+     30
+    ],
+    [
+     2,
+     "b",
+     null,
+     40
+    ]
+   ]
+  },
+  "join_suffix": {
+   "columns": [
+    "id",
+    "g",
+    "x",
+    "z",
+    "x_r"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "Int64",
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     1,
+     "a",
+     3,
+     10,
+     100
+    ],
+    [
+     3,
+     "a",
+     1,
+     10,
+     100
+    ],
+    [
+     4,
+     "c",
+     7,
+     30,
+     300
+    ]
+   ]
+  },
+  "join_left_on_right_on": {
+   "columns": [
+    "id",
+    "g",
+    "x",
+    "z",
+    "x_right"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "Int64",
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     1,
+     "a",
+     3,
+     10,
+     100
+    ],
+    [
+     2,
+     "b",
+     null,
+     null,
+     null
+    ],
+    [
+     3,
+     "a",
+     1,
+     10,
+     100
+    ],
+    [
+     4,
+     "c",
+     7,
+     30,
+     300
+    ],
+    [
+     5,
+     null,
+     2,
+     null,
+     null
+    ],
+    [
+     6,
+     "b",
+     5,
+     null,
+     null
+    ]
+   ]
+  },
+  "join_multi_key": {
+   "columns": [
+    "id",
+    "g",
+    "b",
+    "w"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "Boolean",
+    "Float64"
+   ],
+   "rows": [
+    [
+     1,
+     "a",
+     true,
+     1.5
+    ],
+    [
+     2,
+     "b",
+     false,
+     null
+    ],
+    [
+     3,
+     "a",
+     null,
+     null
+    ],
+    [
+     4,
+     "c",
+     true,
+     3.5
+    ],
+    [
+     5,
+     null,
+     false,
+     null
+    ],
+    [
+     6,
+     "b",
+     true,
+     2.5
+    ]
+   ]
+  },
+  "unique_subset_first": {
+   "columns": [
+    "id",
+    "g"
+   ],
+   "dtypes": [
+    "Int64",
+    "String"
+   ],
+   "rows": [
+    [
+     1,
+     "a"
+    ],
+    [
+     2,
+     "b"
+    ],
+    [
+     4,
+     "c"
+    ],
+    [
+     5,
+     null
+    ]
+   ]
+  },
+  "unique_keep_last": {
+   "columns": [
+    "id",
+    "g"
+   ],
+   "dtypes": [
+    "Int64",
+    "String"
+   ],
+   "rows": [
+    [
+     3,
+     "a"
+    ],
+    [
+     4,
+     "c"
+    ],
+    [
+     5,
+     null
+    ],
+    [
+     6,
+     "b"
+    ]
+   ]
+  },
+  "unique_keep_none": {
+   "columns": [
+    "id",
+    "g"
+   ],
+   "dtypes": [
+    "Int64",
+    "String"
+   ],
+   "rows": [
+    [
+     4,
+     "c"
+    ],
+    [
+     5,
+     null
+    ]
+   ]
+  },
+  "unique_rows": {
+   "columns": [
+    "id",
+    "k"
+   ],
+   "dtypes": [
+    "Int64",
+    "String"
+   ],
+   "rows": [
+    [
+     1,
+     "p"
+    ],
+    [
+     1,
+     "q"
+    ],
+    [
+     2,
+     "p"
+    ],
+    [
+     2,
+     "q"
+    ],
+    [
+     3,
+     "p"
+    ]
+   ]
+  },
+  "fill_null_value_frame": {
+   "columns": [
+    "g",
+    "x",
+    "y",
+    "b"
+   ],
+   "dtypes": [
+    "String",
+    "Int64",
+    "Float64",
+    "Boolean"
+   ],
+   "rows": [
+    [
+     "a",
+     3,
+     1.5,
+     true
+    ],
+    [
+     "b",
+     0,
+     2.25,
+     false
+    ],
+    [
+     "a",
+     1,
+     0.0,
+     null
+    ],
+    [
+     "c",
+     7,
+     -0.5,
+     true
+    ],
+    [
+     null,
+     2,
+     10.0,
+     false
+    ],
+    [
+     "b",
+     5,
+     3.0,
+     true
+    ]
+   ]
+  },
+  "fill_null_string": {
+   "columns": [
+    "g",
+    "s"
+   ],
+   "dtypes": [
+    "String",
+    "String"
+   ],
+   "rows": [
+    [
+     "a",
+     "apple pie"
+    ],
+    [
+     "b",
+     "Bänana"
+    ],
+    [
+     "a",
+     "none"
+    ],
+    [
+     "c",
+     "cherry-42"
+    ],
+    [
+     "?",
+     "  date  "
+    ],
+    [
+     "b",
+     "elder_7 berry"
+    ]
+   ]
+  },
+  "fill_null_strategies": {
+   "columns": [
+    "fwd",
+    "bwd",
+    "min",
+    "max",
+    "mean",
+    "ymean",
+    "zero",
+    "one"
+   ],
+   "dtypes": [
+    "Int64",
+    "Float64",
+    "Int64",
+    "Int64",
+    "Int64",
+    "Float64",
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     3,
+     1.5,
+     3,
+     3,
+     3,
+     1.5,
+     3,
+     3
+    ],
+    [
+     3,
+     2.25,
+     1,
+     7,
+     3,
+     2.25,
+     0,
+     1
+    ],
+    [
+     1,
+     -0.5,
+     1,
+     1,
+     1,
+     3.25,
+     1,
+     1
+    ],
+    [
+     7,
+     -0.5,
+     7,
+     7,
+     7,
+     -0.5,
+     7,
+     7
+    ],
+    [
+     2,
+     10.0,
+     2,
+     2,
+     2,
+     10.0,
+     2,
+     2
+    ],
+    [
+     5,
+     3.0,
+     5,
+     5,
+     5,
+     3.0,
+     5,
+     5
+    ]
+   ]
+  },
+  "fill_null_limit": {
+   "columns": [
+    "f1",
+    "b2"
+   ],
+   "dtypes": [
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     1,
+     1
+    ],
+    [
+     1,
+     null
+    ],
+    [
+     null,
+     5
+    ],
+    [
+     null,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     null
+    ]
+   ]
+  },
+  "fill_null_frame_forward": {
+   "columns": [
+    "g",
+    "x",
+    "d"
+   ],
+   "dtypes": [
+    "String",
+    "Int64",
+    "Date"
+   ],
+   "rows": [
+    [
+     "a",
+     3,
+     "2024-01-15"
+    ],
+    [
+     "b",
+     3,
+     "2024-02-29"
+    ],
+    [
+     "a",
+     1,
+     "2024-02-29"
+    ],
+    [
+     "c",
+     7,
+     "2023-12-31"
+    ],
+    [
+     "c",
+     2,
+     "2024-07-04"
+    ],
+    [
+     "b",
+     5,
+     "2025-03-09"
+    ]
+   ]
+  },
+  "drop_nulls_all": {
+   "columns": [
+    "id",
+    "g",
+    "x",
+    "y"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "Int64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     1,
+     "a",
+     3,
+     1.5
+    ],
+    [
+     4,
+     "c",
+     7,
+     -0.5
+    ],
+    [
+     6,
+     "b",
+     5,
+     3.0
+    ]
+   ]
+  },
+  "drop_nulls_subset": {
+   "columns": [
+    "id",
+    "g",
+    "x",
+    "y"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "Int64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     1,
+     "a",
+     3,
+     1.5
+    ],
+    [
+     3,
+     "a",
+     1,
+     null
+    ],
+    [
+     4,
+     "c",
+     7,
+     -0.5
+    ],
+    [
+     6,
+     "b",
+     5,
+     3.0
+    ]
+   ]
+  },
+  "null_count": {
+   "columns": [
+    "id",
+    "g",
+    "x",
+    "y",
+    "k",
+    "b",
+    "s",
+    "d",
+    "t",
+    "l"
+   ],
+   "dtypes": [
+    "UInt32",
+    "UInt32",
+    "UInt32",
+    "UInt32",
+    "UInt32",
+    "UInt32",
+    "UInt32",
+    "UInt32",
+    "UInt32",
+    "UInt32"
+   ],
+   "rows": [
+    [
+     0,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1
+    ]
+   ]
+  },
+  "interpolate": {
+   "columns": [
+    "a",
+    "i"
+   ],
+   "dtypes": [
+    "Float64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     1.0,
+     1.0
+    ],
+    [
+     2.0,
+     2.0
+    ],
+    [
+     3.0,
+     3.0
+    ],
+    [
+     4.0,
+     4.0
+    ],
+    [
+     null,
+     5.0
+    ]
+   ]
+  },
+  "unpivot": {
+   "columns": [
+    "id",
+    "variable",
+    "value"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "Int64"
+   ],
+   "rows": [
+    [
+     1,
+     "x",
+     3
+    ],
+    [
+     2,
+     "x",
+     null
+    ],
+    [
+     3,
+     "x",
+     1
+    ],
+    [
+     4,
+     "x",
+     7
+    ],
+    [
+     5,
+     "x",
+     2
+    ],
+    [
+     6,
+     "x",
+     5
+    ],
+    [
+     1,
+     "k",
+     2
+    ],
+    [
+     2,
+     "k",
+     1
+    ],
+    [
+     3,
+     "k",
+     2
+    ],
+    [
+     4,
+     "k",
+     null
+    ],
+    [
+     5,
+     "k",
+     3
+    ],
+    [
+     6,
+     "k",
+     1
+    ]
+   ]
+  },
+  "unpivot_mixed_names": {
+   "columns": [
+    "id",
+    "var",
+    "val"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "Float64"
+   ],
+   "rows": [
+    [
+     1,
+     "x",
+     3.0
+    ],
+    [
+     2,
+     "x",
+     null
+    ],
+    [
+     3,
+     "x",
+     1.0
+    ],
+    [
+     4,
+     "x",
+     7.0
+    ],
+    [
+     5,
+     "x",
+     2.0
+    ],
+    [
+     6,
+     "x",
+     5.0
+    ],
+    [
+     1,
+     "y",
+     1.5
+    ],
+    [
+     2,
+     "y",
+     2.25
+    ],
+    [
+     3,
+     "y",
+     null
+    ],
+    [
+     4,
+     "y",
+     -0.5
+    ],
+    [
+     5,
+     "y",
+     10.0
+    ],
+    [
+     6,
+     "y",
+     3.0
+    ]
+   ]
+  },
+  "pivot_first": {
+   "columns": [
+    "id",
+    "p",
+    "q"
+   ],
+   "dtypes": [
+    "Int64",
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     1,
+     10,
+     20
+    ],
+    [
+     2,
+     30,
+     null
+    ],
+    [
+     3,
+     50,
+     null
+    ]
+   ]
+  },
+  "pivot_sum": {
+   "columns": [
+    "id",
+    "p",
+    "q"
+   ],
+   "dtypes": [
+    "Int64",
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     1,
+     15,
+     20
+    ],
+    [
+     2,
+     30,
+     0
+    ],
+    [
+     3,
+     50,
+     0
+    ]
+   ]
+  },
+  "pivot_mean": {
+   "columns": [
+    "id",
+    "p",
+    "q"
+   ],
+   "dtypes": [
+    "Int64",
+    "Float64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     1,
+     7.5,
+     20.0
+    ],
+    [
+     2,
+     30.0,
+     null
+    ],
+    [
+     3,
+     50.0,
+     null
+    ]
+   ]
+  },
+  "pivot_len": {
+   "columns": [
+    "id",
+    "p",
+    "q"
+   ],
+   "dtypes": [
+    "Int64",
+    "UInt32",
+    "UInt32"
+   ],
+   "rows": [
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     2,
+     1,
+     1
+    ],
+    [
+     3,
+     1,
+     0
+    ]
+   ]
+  },
+  "explode_single": {
+   "columns": [
+    "id",
+    "l"
+   ],
+   "dtypes": [
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     1,
+     1
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     1,
+     3
+    ],
+    [
+     2,
+     null
+    ],
+    [
+     3,
+     null
+    ],
+    [
+     4,
+     4
+    ],
+    [
+     4,
+     null
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     7
+    ]
+   ]
+  },
+  "explode_two": {
+   "columns": [
+    "a",
+    "b",
+    "c"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "Int64"
+   ],
+   "rows": [
+    [
+     1,
+     "x",
+     0
+    ],
+    [
+     2,
+     "y",
+     0
+    ],
+    [
+     3,
+     "z",
+     1
+    ]
+   ]
+  },
+  "transpose": {
+   "columns": [
+    "column",
+    "column_0",
+    "column_1",
+    "column_2"
+   ],
+   "dtypes": [
+    "String",
+    "Int64",
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     "x",
+     3,
+     null,
+     1
+    ],
+    [
+     "k",
+     2,
+     1,
+     2
+    ]
+   ]
+  },
+  "with_row_index": {
+   "columns": [
+    "i",
+    "g"
+   ],
+   "dtypes": [
+    "UInt32",
+    "String"
+   ],
+   "rows": [
+    [
+     10,
+     "a"
+    ],
+    [
+     11,
+     "b"
+    ],
+    [
+     12,
+     "a"
+    ],
+    [
+     13,
+     "c"
+    ],
+    [
+     14,
+     null
+    ],
+    [
+     15,
+     "b"
+    ]
+   ]
+  },
+  "concat_vertical": {
+   "columns": [
+    "a",
+    "b"
+   ],
+   "dtypes": [
+    "Int64",
+    "String"
+   ],
+   "rows": [
+    [
+     1,
+     "x"
+    ],
+    [
+     2,
+     "y"
+    ],
+    [
+     3,
+     "z"
+    ]
+   ]
+  },
+  "concat_horizontal": {
+   "columns": [
+    "a",
+    "b",
+    "b2",
+    "c"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "String",
+    "Float64"
+   ],
+   "rows": [
+    [
+     1,
+     "x",
+     "v",
+     1.5
+    ],
+    [
+     2,
+     "y",
+     "w",
+     null
+    ]
+   ]
+  },
+  "concat_diagonal": {
+   "columns": [
+    "a",
+    "b",
+    "c"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "Float64"
+   ],
+   "rows": [
+    [
+     1,
+     "x",
+     null
+    ],
+    [
+     2,
+     "y",
+     null
+    ],
+    [
+     null,
+     "w",
+     1.5
+    ]
+   ]
+  },
+  "concat_vertical_relaxed": {
+   "columns": [
+    "a",
+    "b"
+   ],
+   "dtypes": [
+    "Float64",
+    "String"
+   ],
+   "rows": [
+    [
+     1.0,
+     "x"
+    ],
+    [
+     2.0,
+     "y"
+    ],
+    [
+     1.5,
+     "q"
+    ]
+   ]
+  },
+  "concat_diagonal_relaxed": {
+   "columns": [
+    "a",
+    "b",
+    "c"
+   ],
+   "dtypes": [
+    "Float64",
+    "String",
+    "Boolean"
+   ],
+   "rows": [
+    [
+     1.0,
+     "x",
+     null
+    ],
+    [
+     2.0,
+     "y",
+     null
+    ],
+    [
+     0.5,
+     null,
+     true
+    ]
+   ]
+  },
+  "describe_numeric": {
+   "columns": [
+    "statistic",
+    "x",
+    "y"
+   ],
+   "dtypes": [
+    "String",
+    "Float64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     "count",
+     5.0,
+     5.0
+    ],
+    [
+     "null_count",
+     1.0,
+     1.0
+    ],
+    [
+     "mean",
+     3.6,
+     3.25
+    ],
+    [
+     "std",
+     2.4083189157584592,
+     3.992179855667828
+    ],
+    [
+     "min",
+     1.0,
+     -0.5
+    ],
+    [
+     "25%",
+     2.0,
+     1.5
+    ],
+    [
+     "50%",
+     3.0,
+     2.25
+    ],
+    [
+     "75%",
+     5.0,
+     3.0
+    ],
+    [
+     "max",
+     7.0,
+     10.0
+    ]
+   ]
+  },
+  "describe_mixed": {
+   "columns": [
+    "statistic",
+    "x",
+    "g",
+    "b",
+    "d"
+   ],
+   "dtypes": [
+    "String",
+    "Float64",
+    "String",
+    "Float64",
+    "String"
+   ],
+   "rows": [
+    [
+     "count",
+     5.0,
+     "5",
+     5.0,
+     "5"
+    ],
+    [
+     "null_count",
+     1.0,
+     "1",
+     1.0,
+     "1"
+    ],
+    [
+     "mean",
+     3.6,
+     null,
+     0.6,
+     "2024-05-18 00:00:00"
+    ],
+    [
+     "std",
+     2.4083189157584592,
+     null,
+     null,
+     null
+    ],
+    [
+     "min",
+     1.0,
+     "a",
+     0.0,
+     "2023-12-31"
+    ],
+    [
+     "25%",
+     2.0,
+     null,
+     null,
+     "2024-01-15"
+    ],
+    [
+     "50%",
+     3.0,
+     null,
+     null,
+     "2024-02-29"
+    ],
+    [
+     "75%",
+     5.0,
+     null,
+     null,
+     "2024-07-04"
+    ],
+    [
+     "max",
+     7.0,
+     "c",
+     1.0,
+     "2025-03-09"
+    ]
+   ]
+  },
+  "describe_percentiles": {
+   "columns": [
+    "statistic",
+    "y"
+   ],
+   "dtypes": [
+    "String",
+    "Float64"
+   ],
+   "rows": [
+    [
+     "count",
+     5.0
+    ],
+    [
+     "null_count",
+     1.0
+    ],
+    [
+     "mean",
+     3.25
+    ],
+    [
+     "std",
+     3.992179855667828
+    ],
+    [
+     "min",
+     -0.5
+    ],
+    [
+     "10%",
+     -0.5
+    ],
+    [
+     "90%",
+     10.0
+    ],
+    [
+     "max",
+     10.0
+    ]
+   ]
+  },
+  "frame_sum": {
+   "columns": [
+    "g",
+    "x",
+    "y",
+    "b"
+   ],
+   "dtypes": [
+    "String",
+    "Int64",
+    "Float64",
+    "UInt32"
+   ],
+   "rows": [
+    [
+     null,
+     18,
+     16.25,
+     3
+    ]
+   ]
+  },
+  "frame_mean": {
+   "columns": [
+    "x",
+    "y",
+    "b"
+   ],
+   "dtypes": [
+    "Float64",
+    "Float64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     3.6,
+     3.25,
+     0.6
+    ]
+   ]
+  },
+  "frame_min_max": {
+   "columns": [
+    "g",
+    "x",
+    "y",
+    "d"
+   ],
+   "dtypes": [
+    "String",
+    "Int64",
+    "Float64",
+    "Date"
+   ],
+   "rows": [
+    [
+     "a",
+     1,
+     -0.5,
+     "2023-12-31"
+    ],
+    [
+     "c",
+     7,
+     10.0,
+     "2025-03-09"
+    ]
+   ]
+  },
+  "frame_std_var": {
+   "columns": [
+    "x",
+    "y"
+   ],
+   "dtypes": [
+    "Float64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     2.4083189157584592,
+     3.992179855667828
+    ],
+    [
+     4.64,
+     12.75
+    ]
+   ]
+  },
+  "frame_median": {
+   "columns": [
+    "x",
+    "y"
+   ],
+   "dtypes": [
+    "Float64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     3.0,
+     2.25
+    ]
+   ]
+  },
+  "frame_n_unique": {
+   "columns": [
+    "g",
+    "x",
+    "b"
+   ],
+   "dtypes": [
+    "UInt32",
+    "UInt32",
+    "UInt32"
+   ],
+   "rows": [
+    [
+     4,
+     6,
+     3
+    ]
+   ]
+  },
+  "over_sum": {
+   "columns": [
+    "id",
+    "sx"
+   ],
+   "dtypes": [
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     1,
+     4
+    ],
+    [
+     2,
+     5
+    ],
+    [
+     3,
+     4
+    ],
+    [
+     4,
+     7
+    ],
+    [
+     5,
+     2
+    ],
+    [
+     6,
+     5
+    ]
+   ]
+  },
+  "over_multi": {
+   "columns": [
+    "id",
+    "m",
+    "n"
+   ],
+   "dtypes": [
+    "Int64",
+    "Float64",
+    "UInt32"
+   ],
+   "rows": [
+    [
+     1,
+     1.5,
+     2
+    ],
+    [
+     2,
+     2.25,
+     2
+    ],
+    [
+     3,
+     null,
+     2
+    ],
+    [
+     4,
+     -0.5,
+     1
+    ],
+    [
+     5,
+     10.0,
+     1
+    ],
+    [
+     6,
+     3.0,
+     2
+    ]
+   ]
+  },
+  "over_order_by": {
+   "columns": [
+    "id",
+    "cs"
+   ],
+   "dtypes": [
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     1,
+     3
+    ],
+    [
+     2,
+     null
+    ],
+    [
+     3,
+     4
+    ],
+    [
+     4,
+     7
+    ],
+    [
+     5,
+     2
+    ],
+    [
+     6,
+     5
+    ]
+   ]
+  },
+  "over_order_by_desc": {
+   "columns": [
+    "id",
+    "f"
+   ],
+   "dtypes": [
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     1,
+     1
+    ],
+    [
+     2,
+     6
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     4,
+     4
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     6,
+     6
+    ]
+   ]
+  },
+  "over_rank": {
+   "columns": [
+    "id",
+    "r"
+   ],
+   "dtypes": [
+    "Int64",
+    "UInt32"
+   ],
+   "rows": [
+    [
+     1,
+     2
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     3,
+     null
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     5,
+     2
+    ],
+    [
+     6,
+     3
+    ]
+   ]
+  },
+  "cum_fns": {
+   "columns": [
+    "sum",
+    "prod",
+    "min",
+    "max",
+    "count",
+    "rsum"
+   ],
+   "dtypes": [
+    "Int64",
+    "Int64",
+    "Float64",
+    "Float64",
+    "UInt32",
+    "Int64"
+   ],
+   "rows": [
+    [
+     3,
+     3,
+     1.5,
+     1.5,
+     1,
+     18
+    ],
+    [
+     null,
+     null,
+     1.5,
+     2.25,
+     1,
+     null
+    ],
+    [
+     4,
+     3,
+     null,
+     null,
+     2,
+     15
+    ],
+    [
+     11,
+     21,
+     -0.5,
+     2.25,
+     3,
+     14
+    ],
+    [
+     13,
+     42,
+     -0.5,
+     10.0,
+     4,
+     7
+    ],
+    [
+     18,
+     210,
+     -0.5,
+     10.0,
+     5,
+     5
+    ]
+   ]
+  },
+  "shift": {
+   "columns": [
+    "s1",
+    "sm2",
+    "sf",
+    "sd"
+   ],
+   "dtypes": [
+    "Int64",
+    "Int64",
+    "String",
+    "Date"
+   ],
+   "rows": [
+    [
+     null,
+     1,
+     "-",
+     null
+    ],
+    [
+     3,
+     7,
+     "a",
+     "2024-01-15"
+    ],
+    [
+     null,
+     2,
+     "b",
+     "2024-02-29"
+    ],
+    [
+     1,
+     5,
+     "a",
+     null
+    ],
+    [
+     7,
+     null,
+     "c",
+     "2023-12-31"
+    ],
+    [
+     2,
+     null,
+     null,
+     "2024-07-04"
+    ]
+   ]
+  },
+  "diff": {
+   "columns": [
+    "d1",
+    "d2",
+    "dt"
+   ],
+   "dtypes": [
+    "Int64",
+    "Float64",
+    "Duration(us)"
+   ],
+   "rows": [
+    [
+     null,
+     null,
+     null
+    ],
+    [
+     null,
+     null,
+     3936599000000
+    ],
+    [
+     null,
+     null,
+     -23673598000000
+    ],
+    [
+     6,
+     -2.75,
+     null
+    ],
+    [
+     -5,
+     null,
+     null
+    ],
+    [
+     3,
+     3.5,
+     21406530000000
+    ]
+   ]
+  },
+  "pct_change": {
+   "columns": [
+    "p"
+   ],
+   "dtypes": [
+    "Float64"
+   ],
+   "rows": [
+    [
+     null
+    ],
+    [
+     0.5
+    ],
+    [
+     null
+    ],
+    [
+     null
+    ],
+    [
+     -21.0
+    ],
+    [
+     -0.7
+    ]
+   ]
+  },
+  "rank_methods": {
+   "columns": [
+    "k",
+    "avg",
+    "min",
+    "max",
+    "dense",
+    "ord",
+    "dd"
+   ],
+   "dtypes": [
+    "Int64",
+    "Float64",
+    "UInt32",
+    "UInt32",
+    "UInt32",
+    "UInt32",
+    "UInt32"
+   ],
+   "rows": [
+    [
+     2,
+     3.5,
+     3,
+     4,
+     2,
+     3,
+     2
+    ],
+    [
+     1,
+     1.5,
+     1,
+     2,
+     1,
+     1,
+     3
+    ],
+    [
+     2,
+     3.5,
+     3,
+     4,
+     2,
+     4,
+     2
+    ],
+    [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     3,
+     5.0,
+     5,
+     5,
+     3,
+     5,
+     1
+    ],
+    [
+     1,
+     1.5,
+     1,
+     2,
+     1,
+     2,
+     3
+    ]
+   ]
+  },
+  "rolling": {
+   "columns": [
+    "m2",
+    "m3",
+    "mc",
+    "s3",
+    "min2",
+    "max2",
+    "std3"
+   ],
+   "dtypes": [
+    "Float64",
+    "Float64",
+    "Float64",
+    "Int64",
+    "Int64",
+    "Int64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     null,
+     3.0,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     null,
+     3.0,
+     null,
+     null,
+     1,
+     2,
+     null
+    ],
+    [
+     null,
+     2.0,
+     null,
+     6,
+     2,
+     3,
+     1.0
+    ],
+    [
+     4.0,
+     4.0,
+     null,
+     9,
+     3,
+     4,
+     1.0
+    ],
+    [
+     4.5,
+     3.3333333333333335,
+     4.166666666666667,
+     12,
+     4,
+     5,
+     1.0
+    ],
+    [
+     3.5,
+     4.666666666666667,
+     null,
+     15,
+     5,
+     6,
+     1.0
+    ]
+   ]
+  },
+  "when_basic": {
+   "columns": [
+    "id",
+    "w"
+   ],
+   "dtypes": [
+    "Int64",
+    "String"
+   ],
+   "rows": [
+    [
+     1,
+     "big"
+    ],
+    [
+     2,
+     "small"
+    ],
+    [
+     3,
+     "small"
+    ],
+    [
+     4,
+     "big"
+    ],
+    [
+     5,
+     "small"
+    ],
+    [
+     6,
+     "big"
+    ]
+   ]
+  },
+  "when_chain": {
+   "columns": [
+    "id",
+    "w"
+   ],
+   "dtypes": [
+    "Int64",
+    "Int32"
+   ],
+   "rows": [
+    [
+     1,
+     2
+    ],
+    [
+     2,
+     3
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     4,
+     3
+    ],
+    [
+     5,
+     2
+    ],
+    [
+     6,
+     3
+    ]
+   ]
+  },
+  "when_no_otherwise": {
+   "columns": [
+    "id",
+    "w"
+   ],
+   "dtypes": [
+    "Int64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     1,
+     1.5
+    ],
+    [
+     2,
+     null
+    ],
+    [
+     3,
+     null
+    ],
+    [
+     4,
+     null
+    ],
+    [
+     5,
+     null
+    ],
+    [
+     6,
+     null
+    ]
+   ]
+  },
+  "when_multi_cond": {
+   "columns": [
+    "id",
+    "w"
+   ],
+   "dtypes": [
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     1,
+     3
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     3,
+     2
+    ],
+    [
+     4,
+     7
+    ],
+    [
+     5,
+     3
+    ],
+    [
+     6,
+     5
+    ]
+   ]
+  },
+  "when_supertype": {
+   "columns": [
+    "id",
+    "w"
+   ],
+   "dtypes": [
+    "Int64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     1,
+     3.0
+    ],
+    [
+     2,
+     2.25
+    ],
+    [
+     3,
+     null
+    ],
+    [
+     4,
+     7.0
+    ],
+    [
+     5,
+     10.0
+    ],
+    [
+     6,
+     5.0
+    ]
+   ]
+  },
+  "str_contains": {
+   "columns": [
+    "re",
+    "lit",
+    "digits",
+    "ci",
+    "dot"
+   ],
+   "dtypes": [
+    "Boolean",
+    "Boolean",
+    "Boolean",
+    "Boolean",
+    "Boolean"
+   ],
+   "rows": [
+    [
+     true,
+     false,
+     false,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false,
+     false,
+     false
+    ],
+    [
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     false,
+     true,
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     true,
+     false,
+     false
+    ]
+   ]
+  },
+  "str_replace": {
+   "columns": [
+    "r1",
+    "ra",
+    "grp",
+    "lit",
+    "ws"
+   ],
+   "dtypes": [
+    "String",
+    "String",
+    "String",
+    "String",
+    "String"
+   ],
+   "rows": [
+    [
+     "Apple pie",
+     "Apple pie",
+     "apple pie",
+     "apple pie",
+     "apple_pie"
+    ],
+    [
+     "BänAna",
+     "BänAnA",
+     "Bänana",
+     "Bänana",
+     "Bänana"
+    ],
+    [
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "cherry-42",
+     "cherry-42",
+     "42-cherry",
+     "cherry-42",
+     "cherry-42"
+    ],
+    [
+     "  dAte  ",
+     "  dAte  ",
+     "  date  ",
+     "  date  ",
+     "_date_"
+    ],
+    [
+     "elder_7 berry",
+     "elder_7 berry",
+     "elder_7 berry",
+     "elder_7 berry",
+     "elder_7_berry"
+    ]
+   ]
+  },
+  "str_slice": {
+   "columns": [
+    "a",
+    "b",
+    "h",
+    "t"
+   ],
+   "dtypes": [
+    "String",
+    "String",
+    "String",
+    "String"
+   ],
+   "rows": [
+    [
+     "ppl",
+     "pie",
+     "ap",
+     "ie"
+    ],
+    [
+     "äna",
+     "ana",
+     "Bä",
+     "na"
+    ],
+    [
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "her",
+     "-42",
+     "ch",
+     "42"
+    ],
+    [
+     " da",
+     "e  ",
+     "  ",
+     "  "
+    ],
+    [
+     "lde",
+     "rry",
+     "el",
+     "ry"
+    ]
+   ]
+  },
+  "str_split": {
+   "columns": [
+    "sp",
+    "inc"
+   ],
+   "dtypes": [
+    "List(String)",
+    "List(String)"
+   ],
+   "rows": [
+    [
+     [
+      "apple",
+      "pie"
+     ],
+     [
+      "apple pie"
+     ]
+    ],
+    [
+     [
+      "Bänana"
+     ],
+     [
+      "Bänana"
+     ]
+    ],
+    [
+     null,
+     null
+    ],
+    [
+     [
+      "cherry-42"
+     ],
+     [
+      "cherry-",
+      "42"
+     ]
+    ],
+    [
+     [
+      "",
+      "",
+      "date",
+      "",
+      ""
+     ],
+     [
+      "  date  "
+     ]
+    ],
+    [
+     [
+      "elder_7",
+      "berry"
+     ],
+     [
+      "elder_7 berry"
+     ]
+    ]
+   ]
+  },
+  "str_strip": {
+   "columns": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "dtypes": [
+    "String",
+    "String",
+    "String",
+    "String"
+   ],
+   "rows": [
+    [
+     "apple pie",
+     "pple pi",
+     "apple pie",
+     "apple pie"
+    ],
+    [
+     "Bänana",
+     "Bänan",
+     "Bänana",
+     "Bänana"
+    ],
+    [
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "cherry-42",
+     "cherry-42",
+     "cherry-42",
+     "cherry-42"
+    ],
+    [
+     "date",
+     "dat",
+     "date  ",
+     "  date  "
+    ],
+    [
+     "elder_7 berry",
+     "lder_7 berry",
+     "elder_7 berry",
+     "elder_7 berr"
+    ]
+   ]
+  },
+  "str_case": {
+   "columns": [
+    "u",
+    "l"
+   ],
+   "dtypes": [
+    "String",
+    "String"
+   ],
+   "rows": [
+    [
+     "APPLE PIE",
+     "apple pie"
+    ],
+    [
+     "BÄNANA",
+     "bänana"
+    ],
+    [
+     null,
+     null
+    ],
+    [
+     "CHERRY-42",
+     "cherry-42"
+    ],
+    [
+     "  DATE  ",
+     "  date  "
+    ],
+    [
+     "ELDER_7 BERRY",
+     "elder_7 berry"
+    ]
+   ]
+  },
+  "str_len": {
+   "columns": [
+    "chars",
+    "bytes"
+   ],
+   "dtypes": [
+    "UInt32",
+    "UInt32"
+   ],
+   "rows": [
+    [
+     9,
+     9
+    ],
+    [
+     6,
+     7
+    ],
+    [
+     null,
+     null
+    ],
+    [
+     9,
+     9
+    ],
+    [
+     8,
+     8
+    ],
+    [
+     13,
+     13
+    ]
+   ]
+  },
+  "str_pad": {
+   "columns": [
+    "ps",
+    "pe",
+    "z"
+   ],
+   "dtypes": [
+    "String",
+    "String",
+    "String"
+   ],
+   "rows": [
+    [
+     "*apple pie",
+     "apple pie ",
+     "003"
+    ],
+    [
+     "****Bänana",
+     "Bänana    ",
+     null
+    ],
+    [
+     null,
+     null,
+     "001"
+    ],
+    [
+     "*cherry-42",
+     "cherry-42 ",
+     "007"
+    ],
+    [
+     "**  date  ",
+     "  date    ",
+     "002"
+    ],
+    [
+     "elder_7 berry",
+     "elder_7 berry",
+     "005"
+    ]
+   ]
+  },
+  "str_extract": {
+   "columns": [
+    "num",
+    "second",
+    "vowels"
+   ],
+   "dtypes": [
+    "String",
+    "String",
+    "List(String)"
+   ],
+   "rows": [
+    [
+     null,
+     "p",
+     [
+      "a",
+      "e",
+      "i",
+      "e"
+     ]
+    ],
+    [
+     null,
+     "ä",
+     [
+      "a",
+      "a"
+     ]
+    ],
+    [
+     null,
+     null,
+     null
+    ],
+    [
+     "42",
+     "h",
+     [
+      "e"
+     ]
+    ],
+    [
+     null,
+     null,
+     [
+      "a",
+      "e"
+     ]
+    ],
+    [
+     "7",
+     "l",
+     [
+      "e",
+      "e",
+      "e"
+     ]
+    ]
+   ]
+  },
+  "str_count_matches": {
+   "columns": [
+    "e",
+    "dots",
+    "words"
+   ],
+   "dtypes": [
+    "UInt32",
+    "UInt32",
+    "UInt32"
+   ],
+   "rows": [
+    [
+     2,
+     0,
+     2
+    ],
+    [
+     0,
+     0,
+     1
+    ],
+    [
+     null,
+     null,
+     null
+    ],
+    [
+     1,
+     0,
+     2
+    ],
+    [
+     1,
+     0,
+     1
+    ],
+    [
+     3,
+     0,
+     2
+    ]
+   ]
+  },
+  "str_starts_ends": {
+   "columns": [
+    "sw",
+    "ew"
+   ],
+   "dtypes": [
+    "Boolean",
+    "Boolean"
+   ],
+   "rows": [
+    [
+     true,
+     false
+    ],
+    [
+     false,
+     false
+    ],
+    [
+     null,
+     null
+    ],
+    [
+     false,
+     false
+    ],
+    [
+     false,
+     false
+    ],
+    [
+     false,
+     true
+    ]
+   ]
+  },
+  "str_to_integer": {
+   "columns": [
+    "i"
+   ],
+   "dtypes": [
+    "Int64"
+   ],
+   "rows": [
+    [
+     1
+    ],
+    [
+     20
+    ],
+    [
+     -3
+    ],
+    [
+     null
+    ],
+    [
+     null
+    ],
+    [
+     7
+    ]
+   ]
+  },
+  "str_to_integer_base": {
+   "columns": [
+    "h"
+   ],
+   "dtypes": [
+    "Int64"
+   ],
+   "rows": [
+    [
+     255
+    ],
+    [
+     16
+    ],
+    [
+     127
+    ]
+   ]
+  },
+  "str_find_reverse": {
+   "columns": [
+    "f",
+    "r"
+   ],
+   "dtypes": [
+    "UInt32",
+    "String"
+   ],
+   "rows": [
+    [
+     4,
+     "eip elppa"
+    ],
+    [
+     null,
+     "ananäB"
+    ],
+    [
+     null,
+     null
+    ],
+    [
+     2,
+     "24-yrrehc"
+    ],
+    [
+     5,
+     "  etad  "
+    ],
+    [
+     0,
+     "yrreb 7_redle"
+    ]
+   ]
+  },
+  "str_join_agg": {
+   "columns": [
+    "j",
+    "jn"
+   ],
+   "dtypes": [
+    "String",
+    "String"
+   ],
+   "rows": [
+    [
+     "apple pie|Bänana|cherry-42|  date  |elder_7 berry",
+     null
+    ]
+   ]
+  },
+  "str_to_date_datetime": {
+   "columns": [
+    "a",
+    "b"
+   ],
+   "dtypes": [
+    "Date",
+    "Datetime(us)"
+   ],
+   "rows": [
+    [
+     "2024-03-05",
+     "2024-03-05T13:14:00.000000"
+    ],
+    [
+     "2021-12-31",
+     "2021-12-31T00:00:00.000000"
+    ]
+   ]
+  },
+  "dt_parts": {
+   "columns": [
+    "y",
+    "m",
+    "d",
+    "wd",
+    "h",
+    "mi",
+    "s",
+    "od",
+    "q",
+    "w"
+   ],
+   "dtypes": [
+    "Int32",
+    "Int8",
+    "Int8",
+    "Int8",
+    "Int8",
+    "Int8",
+    "Int8",
+    "Int16",
+    "Int8",
+    "Int8"
+   ],
+   "rows": [
+    [
+     2024,
+     1,
+     15,
+     1,
+     10,
+     30,
+     0,
+     15,
+     1,
+     3
+    ],
+    [
+     2024,
+     2,
+     29,
+     4,
+     23,
+     59,
+     59,
+     60,
+     1,
+     9
+    ],
+    [
+     2023,
+     6,
+     1,
+     4,
+     0,
+     0,
+     1,
+     152,
+     2,
+     22
+    ],
+    [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     2024,
+     7,
+     4,
+     4,
+     12,
+     0,
+     0,
+     186,
+     3,
+     27
+    ],
+    [
+     2025,
+     3,
+     9,
+     7,
+     6,
+     15,
+     30,
+     68,
+     1,
+     10
+    ]
+   ]
+  },
+  "date_parts": {
+   "columns": [
+    "y",
+    "m",
+    "dd",
+    "wd",
+    "leap"
+   ],
+   "dtypes": [
+    "Int32",
+    "Int8",
+    "Int8",
+    "Int8",
+    "Boolean"
+   ],
+   "rows": [
+    [
+     2024,
+     1,
+     15,
+     1,
+     true
+    ],
+    [
+     2024,
+     2,
+     29,
+     4,
+     true
+    ],
+    [
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     2023,
+     12,
+     31,
+     7,
+     false
+    ],
+    [
+     2024,
+     7,
+     4,
+     4,
+     true
+    ],
+    [
+     2025,
+     3,
+     9,
+     7,
+     false
+    ]
+   ]
+  },
+  "dt_strftime": {
+   "columns": [
+    "a",
+    "b",
+    "c"
+   ],
+   "dtypes": [
+    "String",
+    "String",
+    "String"
+   ],
+   "rows": [
+    [
+     "2024/01/15 10:30",
+     "15 Jan 2024",
+     "10-30-00"
+    ],
+    [
+     "2024/02/29 23:59",
+     "29 Feb 2024",
+     "23-59-59"
+    ],
+    [
+     "2023/06/01 00:00",
+     null,
+     "00-00-01"
+    ],
+    [
+     null,
+     "31 Dec 2023",
+     null
+    ],
+    [
+     "2024/07/04 12:00",
+     "04 Jul 2024",
+     "12-00-00"
+    ],
+    [
+     "2025/03/09 06:15",
+     "09 Mar 2025",
+     "06-15-30"
+    ]
+   ]
+  },
+  "dt_truncate": {
+   "columns": [
+    "mo",
+    "w",
+    "d",
+    "h",
+    "dmo"
+   ],
+   "dtypes": [
+    "Datetime(us)",
+    "Datetime(us)",
+    "Datetime(us)",
+    "Datetime(us)",
+    "Date"
+   ],
+   "rows": [
+    [
+     "2024-01-01T00:00:00.000000",
+     "2024-01-15T00:00:00.000000",
+     "2024-01-15T00:00:00.000000",
+     "2024-01-15T10:00:00.000000",
+     "2024-01-01"
+    ],
+    [
+     "2024-02-01T00:00:00.000000",
+     "2024-02-26T00:00:00.000000",
+     "2024-02-29T00:00:00.000000",
+     "2024-02-29T23:00:00.000000",
+     "2024-02-01"
+    ],
+    [
+     "2023-06-01T00:00:00.000000",
+     "2023-05-29T00:00:00.000000",
+     "2023-06-01T00:00:00.000000",
+     "2023-06-01T00:00:00.000000",
+     null
+    ],
+    [
+     null,
+     null,
+     null,
+     null,
+     "2023-12-01"
+    ],
+    [
+     "2024-07-01T00:00:00.000000",
+     "2024-07-01T00:00:00.000000",
+     "2024-07-04T00:00:00.000000",
+     "2024-07-04T12:00:00.000000",
+     "2024-07-01"
+    ],
+    [
+     "2025-03-01T00:00:00.000000",
+     "2025-03-03T00:00:00.000000",
+     "2025-03-09T00:00:00.000000",
+     "2025-03-09T06:00:00.000000",
+     "2025-03-01"
+    ]
+   ]
+  },
+  "dt_round": {
+   "columns": [
+    "h"
+   ],
+   "dtypes": [
+    "Datetime(us)"
+   ],
+   "rows": [
+    [
+     "2024-01-15T11:00:00.000000"
+    ],
+    [
+     "2024-03-01T00:00:00.000000"
+    ],
+    [
+     "2023-06-01T00:00:00.000000"
+    ],
+    [
+     null
+    ],
+    [
+     "2024-07-04T12:00:00.000000"
+    ],
+    [
+     "2025-03-09T06:00:00.000000"
+    ]
+   ]
+  },
+  "dt_epoch": {
+   "columns": [
+    "s",
+    "ms",
+    "us",
+    "days",
+    "ts"
+   ],
+   "dtypes": [
+    "Int64",
+    "Int64",
+    "Int64",
+    "Int32",
+    "Int64"
+   ],
+   "rows": [
+    [
+     1705314600,
+     1705314600000,
+     1705314600000000,
+     19737,
+     1705314600000
+    ],
+    [
+     1709251199,
+     1709251199000,
+     1709251199000000,
+     19782,
+     1709251199000
+    ],
+    [
+     1685577601,
+     1685577601000,
+     1685577601000000,
+     null,
+     1685577601000
+    ],
+    [
+     null,
+     null,
+     null,
+     19722,
+     null
+    ],
+    [
+     1720094400,
+     1720094400000,
+     1720094400000000,
+     19908,
+     1720094400000
+    ],
+    [
+     1741500930,
+     1741500930000,
+     1741500930000000,
+     20156,
+     1741500930000
+    ]
+   ]
+  },
+  "dt_date_time": {
+   "columns": [
+    "date",
+    "time",
+    "ms",
+    "me"
+   ],
+   "dtypes": [
+    "Date",
+    "Time",
+    "Date",
+    "Date"
+   ],
+   "rows": [
+    [
+     "2024-01-15",
+     "10:30:00.000000",
+     "2024-01-01",
+     "2024-01-31"
+    ],
+    [
+     "2024-02-29",
+     "23:59:59.000000",
+     "2024-02-01",
+     "2024-02-29"
+    ],
+    [
+     "2023-06-01",
+     "00:00:01.000000",
+     null,
+     null
+    ],
+    [
+     null,
+     null,
+     "2023-12-01",
+     "2023-12-31"
+    ],
+    [
+     "2024-07-04",
+     "12:00:00.000000",
+     "2024-07-01",
+     "2024-07-31"
+    ],
+    [
+     "2025-03-09",
+     "06:15:30.000000",
+     "2025-03-01",
+     "2025-03-31"
+    ]
+   ]
+  },
+  "dt_offset_by": {
+   "columns": [
+    "a",
+    "b",
+    "c"
+   ],
+   "dtypes": [
+    "Date",
+    "Datetime(us)",
+    "Date"
+   ],
+   "rows": [
+    [
+     "2024-02-15",
+     "2024-01-13T10:30:00.000000",
+     "2025-01-15"
+    ],
+    [
+     "2024-03-29",
+     "2024-02-27T23:59:59.000000",
+     "2025-02-28"
+    ],
+    [
+     null,
+     "2023-05-30T00:00:01.000000",
+     null
+    ],
+    [
+     "2024-01-31",
+     null,
+     "2024-12-31"
+    ],
+    [
+     "2024-08-04",
+     "2024-07-02T12:00:00.000000",
+     "2025-07-04"
+    ],
+    [
+     "2025-04-09",
+     "2025-03-07T06:15:30.000000",
+     "2026-03-09"
+    ]
+   ]
+  },
+  "dt_duration": {
+   "columns": [
+    "dur",
+    "hrs",
+    "days"
+   ],
+   "dtypes": [
+    "Duration(us)",
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     19736999000000,
+     5482,
+     15
+    ],
+    [
+     23673598000000,
+     6575,
+     60
+    ],
+    [
+     0,
+     0,
+     null
+    ],
+    [
+     null,
+     null,
+     0
+    ],
+    [
+     34516799000000,
+     9587,
+     186
+    ],
+    [
+     55923329000000,
+     15534,
+     434
+    ]
+   ]
+  },
+  "dt_cast_time_unit": {
+   "columns": [
+    "ms"
+   ],
+   "dtypes": [
+    "Datetime(ms)"
+   ],
+   "rows": [
+    [
+     "2024-01-15T10:30:00.000000"
+    ],
+    [
+     "2024-02-29T23:59:59.000000"
+    ],
+    [
+     "2023-06-01T00:00:01.000000"
+    ],
+    [
+     null
+    ],
+    [
+     "2024-07-04T12:00:00.000000"
+    ],
+    [
+     "2025-03-09T06:15:30.000000"
+    ]
+   ]
+  },
+  "dt_time_zone": {
+   "columns": [
+    "h",
+    "utc"
+   ],
+   "dtypes": [
+    "Int8",
+    "Datetime(us, UTC)"
+   ],
+   "rows": [
+    [
+     19,
+     "2024-01-15T10:30:00.000000+0000"
+    ],
+    [
+     8,
+     "2024-02-29T23:59:59.000000+0000"
+    ],
+    [
+     9,
+     "2023-06-01T00:00:01.000000+0000"
+    ],
+    [
+     null,
+     null
+    ],
+    [
+     21,
+     "2024-07-04T12:00:00.000000+0000"
+    ],
+    [
+     15,
+     "2025-03-09T06:15:30.000000+0000"
+    ]
+   ]
+  },
+  "list_aggs": {
+   "columns": [
+    "len",
+    "sum",
+    "mean",
+    "min",
+    "max"
+   ],
+   "dtypes": [
+    "UInt32",
+    "Int64",
+    "Float64",
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     3,
+     6,
+     2.0,
+     1,
+     3
+    ],
+    [
+     0,
+     0,
+     null,
+     null,
+     null
+    ],
+    [
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     2,
+     4,
+     4.0,
+     4,
+     4
+    ],
+    [
+     1,
+     5,
+     5.0,
+     5,
+     5
+    ],
+    [
+     2,
+     13,
+     6.5,
+     6,
+     7
+    ]
+   ]
+  },
+  "list_get": {
+   "columns": [
+    "g0",
+    "gl",
+    "f",
+    "la"
+   ],
+   "dtypes": [
+    "Int64",
+    "Int64",
+    "Int64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     1,
+     3,
+     1,
+     3
+    ],
+    [
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     4,
+     null,
+     4,
+     null
+    ],
+    [
+     5,
+     5,
+     5,
+     5
+    ],
+    [
+     6,
+     7,
+     6,
+     7
+    ]
+   ]
+  },
+  "list_contains": {
+   "columns": [
+    "c2",
+    "cn"
+   ],
+   "dtypes": [
+    "Boolean",
+    "Boolean"
+   ],
+   "rows": [
+    [
+     true,
+     false
+    ],
+    [
+     false,
+     false
+    ],
+    [
+     null,
+     null
+    ],
+    [
+     false,
+     true
+    ],
+    [
+     false,
+     false
+    ],
+    [
+     false,
+     false
+    ]
+   ]
+  },
+  "list_join": {
+   "columns": [
+    "j"
+   ],
+   "dtypes": [
+    "String"
+   ],
+   "rows": [
+    [
+     "apple+pie"
+    ],
+    [
+     "Bänana"
+    ],
+    [
+     null
+    ],
+    [
+     "cherry-42"
+    ],
+    [
+     "++date++"
+    ],
+    [
+     "elder_7+berry"
+    ]
+   ]
+  },
+  "list_eval": {
+   "columns": [
+    "x10",
+    "rank"
+   ],
+   "dtypes": [
+    "List(Int64)",
+    "List(Float64)"
+   ],
+   "rows": [
+    [
+     [
+      10,
+      20,
+      30
+     ],
+     [
+      1.0,
+      2.0,
+      3.0
+     ]
+    ],
+    [
+     [],
+     []
+    ],
+    [
+     null,
+     null
+    ],
+    [
+     [
+      40,
+      null
+     ],
+     [
+      1.0,
+      null
+     ]
+    ],
+    [
+     [
+      50
+     ],
+     [
+      1.0
+     ]
+    ],
+    [
+     [
+      60,
+      70
+     ],
+     [
+      1.0,
+      2.0
+     ]
+    ]
+   ]
+  },
+  "list_sort_unique": {
+   "columns": [
+    "sd",
+    "rv",
+    "sl",
+    "h"
+   ],
+   "dtypes": [
+    "List(Int64)",
+    "List(Int64)",
+    "List(Int64)",
+    "List(Int64)"
+   ],
+   "rows": [
+    [
+     [
+      3,
+      2,
+      1
+     ],
+     [
+      3,
+      2,
+      1
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      1
+     ]
+    ],
+    [
+     [],
+     [],
+     [],
+     []
+    ],
+    [
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     [
+      null,
+      4
+     ],
+     [
+      null,
+      4
+     ],
+     [
+      null
+     ],
+     [
+      4
+     ]
+    ],
+    [
+     [
+      5
+     ],
+     [
+      5
+     ],
+     [],
+     [
+      5
+     ]
+    ],
+    [
+     [
+      7,
+      6
+     ],
+     [
+      7,
+      6
+     ],
+     [
+      7
+     ],
+     [
+      6
+     ]
+    ]
+   ]
+  },
+  "list_unique": {
+   "columns": [
+    "a",
+    "nu"
+   ],
+   "dtypes": [
+    "List(Int64)",
+    "UInt32"
+   ],
+   "rows": [
+    [
+     [
+      3,
+      1,
+      2
+     ],
+     3
+    ],
+    [
+     [
+      null
+     ],
+     1
+    ]
+   ]
+  },
+  "list_concat_list": {
+   "columns": [
+    "cl"
+   ],
+   "dtypes": [
+    "List(Int64)"
+   ],
+   "rows": [
+    [
+     [
+      3,
+      2
+     ]
+    ],
+    [
+     [
+      null,
+      1
+     ]
+    ],
+    [
+     [
+      1,
+      2
+     ]
+    ],
+    [
+     [
+      7,
+      null
+     ]
+    ],
+    [
+     [
+      2,
+      3
+     ]
+    ],
+    [
+     [
+      5,
+      1
+     ]
+    ]
+   ]
+  },
+  "cast_numeric": {
+   "columns": [
+    "xf",
+    "yi",
+    "y32",
+    "b8",
+    "xb"
+   ],
+   "dtypes": [
+    "Float64",
+    "Int64",
+    "Int32",
+    "Int8",
+    "Boolean"
+   ],
+   "rows": [
+    [
+     3.0,
+     1,
+     1,
+     1,
+     true
+    ],
+    [
+     null,
+     2,
+     2,
+     0,
+     null
+    ],
+    [
+     1.0,
+     null,
+     null,
+     null,
+     true
+    ],
+    [
+     7.0,
+     0,
+     0,
+     1,
+     true
+    ],
+    [
+     2.0,
+     10,
+     10,
+     0,
+     true
+    ],
+    [
+     5.0,
+     3,
+     3,
+     1,
+     true
+    ]
+   ]
+  },
+  "cast_to_string": {
+   "columns": [
+    "xs",
+    "ys",
+    "bs",
+    "ds",
+    "ts"
+   ],
+   "dtypes": [
+    "String",
+    "String",
+    "String",
+    "String",
+    "String"
+   ],
+   "rows": [
+    [
+     "3",
+     "1.5",
+     "true",
+     "2024-01-15",
+     "2024-01-15 10:30:00.000000"
+    ],
+    [
+     null,
+     "2.25",
+     "false",
+     "2024-02-29",
+     "2024-02-29 23:59:59.000000"
+    ],
+    [
+     "1",
+     null,
+     null,
+     null,
+     "2023-06-01 00:00:01.000000"
+    ],
+    [
+     "7",
+     "-0.5",
+     "true",
+     "2023-12-31",
+     null
+    ],
+    [
+     "2",
+     "10.0",
+     "false",
+     "2024-07-04",
+     "2024-07-04 12:00:00.000000"
+    ],
+    [
+     "5",
+     "3.0",
+     "true",
+     "2025-03-09",
+     "2025-03-09 06:15:30.000000"
+    ]
+   ]
+  },
+  "cast_temporal": {
+   "columns": [
+    "dt",
+    "date",
+    "di"
+   ],
+   "dtypes": [
+    "Datetime(us)",
+    "Date",
+    "Int32"
+   ],
+   "rows": [
+    [
+     "2024-01-15T00:00:00.000000",
+     "2024-01-15",
+     19737
+    ],
+    [
+     "2024-02-29T00:00:00.000000",
+     "2024-02-29",
+     19782
+    ],
+    [
+     null,
+     "2023-06-01",
+     null
+    ],
+    [
+     "2023-12-31T00:00:00.000000",
+     null,
+     19722
+    ],
+    [
+     "2024-07-04T00:00:00.000000",
+     "2024-07-04",
+     19908
+    ],
+    [
+     "2025-03-09T00:00:00.000000",
+     "2025-03-09",
+     20156
+    ]
+   ]
+  },
+  "cast_strict_fails": {
+   "error": "InvalidOperationError",
+   "message": "conversion from `str` to `i64` failed in column 's' for 5 out of 6 values: [\"apple pie\", \"Bänana\", … \"elder_7 berry\"]"
+  },
+  "cast_non_strict": {
+   "columns": [
+    "si",
+    "u8"
+   ],
+   "dtypes": [
+    "Int64",
+    "UInt8"
+   ],
+   "rows": [
+    [
+     null,
+     150
+    ],
+    [
+     null,
+     null
+    ],
+    [
+     null,
+     50
+    ],
+    [
+     null,
+     null
+    ],
+    [
+     null,
+     100
+    ],
+    [
+     null,
+     250
+    ]
+   ]
+  },
+  "cast_overflow_strict_fails": {
+   "error": "InvalidOperationError",
+   "message": "conversion from `i64` to `u8` failed in column 'x' for 1 out of 6 values: [350]"
+  },
+  "cast_string_to_float": {
+   "columns": [
+    "a"
+   ],
+   "dtypes": [
+    "Float64"
+   ],
+   "rows": [
+    [
+     1.5
+    ],
+    [
+     -2.0
+    ],
+    [
+     1000.0
+    ],
+    [
+     null
+    ],
+    [
+     null
+    ]
+   ]
+  },
+  "cast_frame_map": {
+   "columns": [
+    "x",
+    "y",
+    "k"
+   ],
+   "dtypes": [
+    "Float32",
+    "Float64",
+    "String"
+   ],
+   "rows": [
+    [
+     3.0,
+     1.5,
+     "2"
+    ],
+    [
+     null,
+     2.25,
+     "1"
+    ],
+    [
+     1.0,
+     null,
+     "2"
+    ],
+    [
+     7.0,
+     -0.5,
+     null
+    ],
+    [
+     2.0,
+     10.0,
+     "3"
+    ],
+    [
+     5.0,
+     3.0,
+     "1"
+    ]
+   ]
+  },
+  "is_in": {
+   "columns": [
+    "x",
+    "g",
+    "gn",
+    "y"
+   ],
+   "dtypes": [
+    "Boolean",
+    "Boolean",
+    "Boolean",
+    "Boolean"
+   ],
+   "rows": [
+    [
+     true,
+     true,
+     true,
+     true
+    ],
+    [
+     null,
+     false,
+     false,
+     false
+    ],
+    [
+     true,
+     true,
+     true,
+     null
+    ],
+    [
+     false,
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     null,
+     true,
+     false
+    ],
+    [
+     false,
+     false,
+     false,
+     true
+    ]
+   ]
+  },
+  "is_between": {
+   "columns": [
+    "both",
+    "left",
+    "right",
+    "none",
+    "f"
+   ],
+   "dtypes": [
+    "Boolean",
+    "Boolean",
+    "Boolean",
+    "Boolean",
+    "Boolean"
+   ],
+   "rows": [
+    [
+     true,
+     true,
+     true,
+     true,
+     true
+    ],
+    [
+     null,
+     null,
+     null,
+     null,
+     true
+    ],
+    [
+     false,
+     false,
+     false,
+     false,
+     null
+    ],
+    [
+     false,
+     false,
+     false,
+     false,
+     false
+    ],
+    [
+     true,
+     true,
+     false,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     true,
+     false,
+     false
+    ]
+   ]
+  },
+  "is_between_dates": {
+   "columns": [
+    "t"
+   ],
+   "dtypes": [
+    "Boolean"
+   ],
+   "rows": [
+    [
+     true
+    ],
+    [
+     true
+    ],
+    [
+     false
+    ],
+    [
+     null
+    ],
+    [
+     true
+    ],
+    [
+     false
+    ]
+   ]
+  },
+  "clip": {
+   "columns": [
+    "both",
+    "lo",
+    "hi",
+    "fb"
+   ],
+   "dtypes": [
+    "Int64",
+    "Float64",
+    "Float64",
+    "Int64"
+   ],
+   "rows": [
+    [
+     3,
+     1.5,
+     1.5,
+     3
+    ],
+    [
+     null,
+     2.25,
+     2.0,
+     null
+    ],
+    [
+     2,
+     null,
+     null,
+     1
+    ],
+    [
+     5,
+     0.0,
+     -0.5,
+     4
+    ],
+    [
+     2,
+     10.0,
+     2.0,
+     2
+    ],
+    [
+     5,
+     3.0,
+     2.0,
+     4
+    ]
+   ]
+  },
+  "round": {
+   "columns": [
+    "r0",
+    "r1",
+    "r2",
+    "away",
+    "floor",
+    "ceil"
+   ],
+   "dtypes": [
+    "Float64",
+    "Float64",
+    "Float64",
+    "Float64",
+    "Float64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     0.0,
+     0.5,
+     0.5,
+     1.0,
+     0.0,
+     1.0
+    ],
+    [
+     2.0,
+     1.5,
+     1.5,
+     2.0,
+     1.0,
+     2.0
+    ],
+    [
+     2.0,
+     2.5,
+     2.5,
+     3.0,
+     2.0,
+     3.0
+    ],
+    [
+     -0.0,
+     -0.5,
+     -0.5,
+     -1.0,
+     -1.0,
+     -0.0
+    ],
+    [
+     -2.0,
+     -1.5,
+     -1.5,
+     -2.0,
+     -2.0,
+     -1.0
+    ],
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0,
+     1.0,
+     2.0
+    ],
+    [
+     3.0,
+     2.7,
+     2.68,
+     3.0,
+     2.0,
+     3.0
+    ],
+    [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   ]
+  },
+  "math": {
+   "columns": [
+    "abs",
+    "sqrt",
+    "ln",
+    "log2",
+    "exp",
+    "sign"
+   ],
+   "dtypes": [
+    "Float64",
+    "Float64",
+    "Float64",
+    "Float64",
+    "Float64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     1.5,
+     1.7320508075688772,
+     1.0986122886681098,
+     1.5849625007211563,
+     20.085536923187668,
+     1.0
+    ],
+    [
+     2.25,
+     null,
+     null,
+     null,
+     null,
+     1.0
+    ],
+    [
+     null,
+     1.0,
+     0.0,
+     0.0,
+     2.718281828459045,
+     null
+    ],
+    [
+     0.5,
+     2.6457513110645907,
+     1.9459101490553132,
+     2.807354922057604,
+     1096.6331584284585,
+     -1.0
+    ],
+    [
+     10.0,
+     1.4142135623730951,
+     0.6931471805599453,
+     1.0,
+     7.38905609893065,
+     1.0
+    ],
+    [
+     3.0,
+     2.23606797749979,
+     1.6094379124341003,
+     2.321928094887362,
+     148.4131591025766,
+     1.0
+    ]
+   ]
+  },
+  "value_counts_expr": {
+   "columns": [
+    "g",
+    "count"
+   ],
+   "dtypes": [
+    "String",
+    "UInt32"
+   ],
+   "rows": [
+    [
+     "a",
+     2
+    ],
+    [
+     "b",
+     2
+    ],
+    [
+     "c",
+     1
+    ],
+    [
+     null,
+     1
+    ]
+   ]
+  },
+  "value_counts_series": {
+   "columns": [
+    "k",
+    "count"
+   ],
+   "dtypes": [
+    "Int64",
+    "UInt32"
+   ],
+   "rows": [
+    [
+     1,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     null,
+     1
+    ]
+   ]
+  },
+  "value_counts_normalize": {
+   "columns": [
+    "b",
+    "share"
+   ],
+   "dtypes": [
+    "Boolean",
+    "Float64"
+   ],
+   "rows": [
+    [
+     null,
+     0.16666666666666666
+    ],
+    [
+     false,
+     0.3333333333333333
+    ],
+    [
+     true,
+     0.5
+    ]
+   ]
+  },
+  "series_int_aggs": {
+   "columns": [
+    "sum",
+    "mean",
+    "median",
+    "min",
+    "max",
+    "std",
+    "var",
+    "product",
+    "count",
+    "len",
+    "null_count",
+    "n_unique",
+    "first",
+    "last",
+    "arg_min",
+    "arg_max"
+   ],
+   "dtypes": [
+    "int",
+    "float",
+    "float",
+    "int",
+    "int",
+    "float",
+    "float",
+    "int",
+    "int",
+    "int",
+    "int",
+    "int",
+    "int",
+    "int",
+    "int",
+    "int"
+   ],
+   "rows": [
+    [
+     18,
+     3.6,
+     3.0,
+     1,
+     7,
+     2.4083189157584592,
+     5.8,
+     210,
+     5,
+     6,
+     1,
+     6,
+     3,
+     5,
+     2,
+     3
+    ]
+   ],
+   "scalar": true
+  },
+  "series_float_aggs": {
+   "columns": [
+    "sum",
+    "mean",
+    "median",
+    "min",
+    "max",
+    "std",
+    "std0",
+    "var",
+    "product",
+    "q25",
+    "q25_linear",
+    "q75_nearest",
+    "first",
+    "last"
+   ],
+   "dtypes": [
+    "float",
+    "float",
+    "float",
+    "float",
+    "float",
+    "float",
+    "float",
+    "float",
+    "float",
+    "float",
+    "float",
+    "float",
+    "float",
+    "float"
+   ],
+   "rows": [
+    [
+     16.25,
+     3.25,
+     2.25,
+     -0.5,
+     10.0,
+     3.992179855667828,
+     3.570714214271425,
+     15.9375,
+     -50.625,
+     1.5,
+     1.5,
+     3.0,
+     1.5,
+     3.0
+    ]
+   ],
+   "scalar": true
+  },
+  "series_quantile_int_arg": {
+   "columns": [
+    "q0",
+    "q1"
+   ],
+   "dtypes": [
+    "float",
+    "float"
+   ],
+   "rows": [
+    [
+     -0.5,
+     10.0
+    ]
+   ],
+   "scalar": true
+  },
+  "series_str_aggs": {
+   "columns": [
+    "min",
+    "max",
+    "n_unique",
+    "count",
+    "first",
+    "last"
+   ],
+   "dtypes": [
+    "string",
+    "string",
+    "int",
+    "int",
+    "string",
+    "string"
+   ],
+   "rows": [
+    [
+     "a",
+     "c",
+     4,
+     5,
+     "a",
+     "b"
+    ]
+   ],
+   "scalar": true
+  },
+  "series_bool_aggs": {
+   "columns": [
+    "any",
+    "all",
+    "all_nulls",
+    "sum",
+    "mean"
+   ],
+   "dtypes": [
+    "bool",
+    "bool",
+    "bool",
+    "int",
+    "float"
+   ],
+   "rows": [
+    [
+     true,
+     false,
+     false,
+     3,
+     0.6
+    ]
+   ],
+   "scalar": true
+  },
+  "series_ops": {
+   "columns": [
+    "mul",
+    "cs",
+    "diff",
+    "shift",
+    "rank",
+    "clip",
+    "isin",
+    "round"
+   ],
+   "dtypes": [
+    "Int64",
+    "Int64",
+    "Int64",
+    "Int64",
+    "Float64",
+    "Int64",
+    "Boolean",
+    "Float64"
+   ],
+   "rows": [
+    [
+     6,
+     3,
+     null,
+     null,
+     3.0,
+     3,
+     false,
+     1.5
+    ],
+    [
+     null,
+     null,
+     null,
+     3,
+     null,
+     null,
+     null,
+     2.2
+    ],
+    [
+     2,
+     4,
+     null,
+     null,
+     1.0,
+     2,
+     true,
+     null
+    ],
+    [
+     14,
+     11,
+     6,
+     1,
+     5.0,
+     5,
+     true,
+     -0.5
+    ],
+    [
+     4,
+     13,
+     -5,
+     7,
+     2.0,
+     2,
+     false,
+     10.0
+    ],
+    [
+     10,
+     18,
+     3,
+     2,
+     4.0,
+     5,
+     false,
+     3.0
+    ]
+   ]
+  },
+  "series_sort": {
+   "columns": [
+    "x"
+   ],
+   "dtypes": [
+    "Int64"
+   ],
+   "rows": [
+    [
+     7
+    ],
+    [
+     5
+    ],
+    [
+     3
+    ],
+    [
+     2
+    ],
+    [
+     1
+    ],
+    [
+     null
+    ]
+   ]
+  },
+  "series_unique": {
+   "columns": [
+    "g"
+   ],
+   "dtypes": [
+    "String"
+   ],
+   "rows": [
+    [
+     "a"
+    ],
+    [
+     "b"
+    ],
+    [
+     "c"
+    ],
+    [
+     null
+    ]
+   ]
+  },
+  "series_empty_aggs": {
+   "columns": [
+    "sum",
+    "mean",
+    "min",
+    "max",
+    "std"
+   ],
+   "dtypes": [
+    "int",
+    "null",
+    "null",
+    "null",
+    "null"
+   ],
+   "rows": [
+    [
+     0,
+     null,
+     null,
+     null,
+     null
+    ]
+   ],
+   "scalar": true
+  },
+  "head_tail_slice": {
+   "columns": [
+    "id"
+   ],
+   "dtypes": [
+    "Int64"
+   ],
+   "rows": [
+    [
+     1
+    ],
+    [
+     2
+    ],
+    [
+     6
+    ],
+    [
+     4
+    ],
+    [
+     5
+    ]
+   ]
+  },
+  "rename_drop_reverse": {
+   "columns": [
+    "id",
+    "group"
+   ],
+   "dtypes": [
+    "Int64",
+    "String"
+   ],
+   "rows": [
+    [
+     6,
+     "b"
+    ],
+    [
+     5,
+     null
+    ],
+    [
+     4,
+     "c"
+    ],
+    [
+     3,
+     "a"
+    ],
+    [
+     2,
+     "b"
+    ],
+    [
+     1,
+     "a"
+    ]
+   ]
+  },
+  "struct_pack_field": {
+   "columns": [
+    "st",
+    "sx"
+   ],
+   "dtypes": [
+    "Struct(g: String, x: Int64)",
+    "Int64"
+   ],
+   "rows": [
+    [
+     {
+      "g": "a",
+      "x": 3
+     },
+     3
+    ],
+    [
+     {
+      "g": "b",
+      "x": null
+     },
+     null
+    ],
+    [
+     {
+      "g": "a",
+      "x": 1
+     },
+     1
+    ],
+    [
+     {
+      "g": "c",
+      "x": 7
+     },
+     7
+    ],
+    [
+     {
+      "g": null,
+      "x": 2
+     },
+     2
+    ],
+    [
+     {
+      "g": "b",
+      "x": 5
+     },
+     5
+    ]
+   ]
+  },
+  "unique_counts_mode": {
+   "columns": [
+    "mode"
+   ],
+   "dtypes": [
+    "Int64"
+   ],
+   "rows": [
+    [
+     1
+    ],
+    [
+     2
+    ]
+   ]
+  },
+  "top_bottom_k": {
+   "columns": [
+    "top",
+    "bottom"
+   ],
+   "dtypes": [
+    "Float64",
+    "Float64"
+   ],
+   "rows": [
+    [
+     10.0,
+     -0.5
+    ],
+    [
+     3.0,
+     1.5
+    ]
+   ]
+  }
+ }
+}

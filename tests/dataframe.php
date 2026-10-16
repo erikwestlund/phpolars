@@ -115,4 +115,4 @@ same('sample seeded', $w->sample(2, seed: 1)->toDicts(), $w->sample(2, seed: 1)-
 $d = $w->select('id', 'v')->describe();
 same('describe stats', $d->getColumn('statistic')->toList(), ['count', 'null_count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max']);
 same('describe numeric', $d->getColumn('v')->toList(), [3.0, 1.0, 20.0, 10.0, 10.0, 20.0, 20.0, 30.0, 30.0]);
-same('describe mixed is strings', $w->describe()->dtypes(), ['String', 'String', 'String', 'String']);
+same('describe keeps numeric columns float', $w->describe()->dtypes(), ['String', 'Float64', 'String', 'Float64']);

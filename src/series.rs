@@ -184,8 +184,8 @@ impl PhpSeries {
         self.agg(me().var(ddof.unwrap_or(1) as u8))
     }
 
-    pub fn quantile(&self, quantile: f64, interpolation: Option<String>) -> PhpResult<Zval> {
-        self.agg(me().quantile(lit(quantile), crate::expr::quantile_method(interpolation)?))
+    pub fn quantile(&self, quantile: crate::input::Num, interpolation: Option<String>) -> PhpResult<Zval> {
+        self.agg(me().quantile(lit(quantile.0), crate::expr::quantile_method(interpolation)?))
     }
 
     pub fn product(&self) -> PhpResult<Zval> {
@@ -401,8 +401,8 @@ impl PhpSeries {
         self.apply(me().sqrt())
     }
 
-    pub fn log(&self, base: Option<f64>) -> PhpResult<Self> {
-        self.apply(me().log(lit(base.unwrap_or(std::f64::consts::E))))
+    pub fn log(&self, base: Option<crate::input::Num>) -> PhpResult<Self> {
+        self.apply(me().log(lit(base.map_or(std::f64::consts::E, |b| b.0))))
     }
 
     pub fn exp(&self) -> PhpResult<Self> {
@@ -455,7 +455,7 @@ impl PhpSeries {
         Ok(wrap(s))
     }
 
-    pub fn sample(&self, n: Option<i64>, fraction: Option<f64>, withReplacement: Option<bool>, shuffle: Option<bool>, seed: Option<i64>) -> PhpResult<Self> {
+    pub fn sample(&self, n: Option<i64>, fraction: Option<crate::input::Num>, withReplacement: Option<bool>, shuffle: Option<bool>, seed: Option<i64>) -> PhpResult<Self> {
         self.apply(crate::expr::sample(me(), n, fraction, withReplacement, shuffle, seed)?)
     }
 
