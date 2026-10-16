@@ -4,6 +4,7 @@
 //! a sink. Formats outside the build's Cargo features raise a ComputeError.
 use ext_php_rs::{prelude::*, types::Zval};
 use polars::prelude::*;
+#[cfg(feature = "json")]
 use std::fs::File;
 
 use crate::{
