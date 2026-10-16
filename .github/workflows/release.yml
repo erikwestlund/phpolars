@@ -43,7 +43,7 @@ jobs:
           for path in ['LICENSE', 'composer.json', 'Cargo.lock', 'Cargo.toml', 'pie/config.m4',
                        'pie/Makefile.frag', 'src/lib.rs', 'tests/deployment.php', 'stubs/phpolars.php']:
               assert path in names, path
-          assert not any(p.startswith(('docs/_site/', 'docs/_freeze/', 'phibble/vendor/')) for p in names)
+          assert not any(p.startswith(('docs/_site/', 'docs/_freeze/')) for p in names)
           PY
       - name: Verify installation from the source archive itself
         run: |

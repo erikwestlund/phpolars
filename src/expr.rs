@@ -49,7 +49,10 @@ pub fn rank_method(s: Option<String>) -> PhpResult<RankMethod> {
 }
 
 fn fill_strategy(s: &str, limit: Option<i64>) -> PhpResult<FillNullStrategy> {
-    let limit = limit.map(|l| l as IdxSize);
+    let limit = limit
+        .map(|l| crate::input::count(l, "limit"))
+        .transpose()?
+        .map(|l| l as IdxSize);
     Ok(match s {
         "forward" => FillNullStrategy::Forward(limit),
         "backward" => FillNullStrategy::Backward(limit),
@@ -66,13 +69,18 @@ fn rolling(
     windowSize: i64,
     minPeriods: Option<i64>,
     center: Option<bool>,
-) -> RollingOptionsFixedWindow {
-    RollingOptionsFixedWindow {
+) -> PhpResult<RollingOptionsFixedWindow> {
+    if windowSize < 1 {
+        return Err(value_error(format!(
+            "windowSize must be at least 1, got {windowSize}"
+        )));
+    }
+    Ok(RollingOptionsFixedWindow {
         window_size: windowSize as usize,
-        min_periods: minPeriods.unwrap_or(windowSize) as usize,
+        min_periods: crate::input::count(minPeriods.unwrap_or(windowSize), "minPeriods")?,
         center: center.unwrap_or(false),
         ..Default::default()
-    }
+    })
 }
 
 pub fn sample(
@@ -89,7 +97,12 @@ pub fn sample(
     Ok(match (n, fraction) {
         (Some(_), Some(_)) => return Err(value_error("sample() takes n or fraction, not both")),
         (_, Some(f)) => e.sample_frac(lit(f.0), wr, sh, seed),
-        (n, None) => e.sample_n(lit(n.unwrap_or(1) as u64), wr, sh, seed),
+        (n, None) => e.sample_n(
+            lit(crate::input::count(n.unwrap_or(1), "n")? as u64),
+            wr,
+            sh,
+            seed,
+        ),
     })
 }
 
@@ -387,12 +400,12 @@ impl PhpExpr {
         wrap(self.inner.clone().nan_max())
     }
 
-    pub fn std(&self, ddof: Option<i64>) -> Self {
-        wrap(self.inner.clone().std(ddof.unwrap_or(1) as u8))
+    pub fn std(&self, ddof: Option<i64>) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().std(crate::input::ddof(ddof)?)))
     }
 
-    pub fn var(&self, ddof: Option<i64>) -> Self {
-        wrap(self.inner.clone().var(ddof.unwrap_or(1) as u8))
+    pub fn var(&self, ddof: Option<i64>) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().var(crate::input::ddof(ddof)?)))
     }
 
     pub fn quantile(&self, quantile: &Zval, interpolation: Option<String>) -> PhpResult<Self> {
@@ -564,12 +577,12 @@ impl PhpExpr {
         windowSize: i64,
         minPeriods: Option<i64>,
         center: Option<bool>,
-    ) -> Self {
-        wrap(
+    ) -> PhpResult<Self> {
+        Ok(wrap(
             self.inner
                 .clone()
-                .rolling_mean(rolling(windowSize, minPeriods, center)),
-        )
+                .rolling_mean(rolling(windowSize, minPeriods, center)?),
+        ))
     }
 
     pub fn rollingSum(
@@ -577,12 +590,12 @@ impl PhpExpr {
         windowSize: i64,
         minPeriods: Option<i64>,
         center: Option<bool>,
-    ) -> Self {
-        wrap(
+    ) -> PhpResult<Self> {
+        Ok(wrap(
             self.inner
                 .clone()
-                .rolling_sum(rolling(windowSize, minPeriods, center)),
-        )
+                .rolling_sum(rolling(windowSize, minPeriods, center)?),
+        ))
     }
 
     pub fn rollingMin(
@@ -590,12 +603,12 @@ impl PhpExpr {
         windowSize: i64,
         minPeriods: Option<i64>,
         center: Option<bool>,
-    ) -> Self {
-        wrap(
+    ) -> PhpResult<Self> {
+        Ok(wrap(
             self.inner
                 .clone()
-                .rolling_min(rolling(windowSize, minPeriods, center)),
-        )
+                .rolling_min(rolling(windowSize, minPeriods, center)?),
+        ))
     }
 
     pub fn rollingMax(
@@ -603,12 +616,12 @@ impl PhpExpr {
         windowSize: i64,
         minPeriods: Option<i64>,
         center: Option<bool>,
-    ) -> Self {
-        wrap(
+    ) -> PhpResult<Self> {
+        Ok(wrap(
             self.inner
                 .clone()
-                .rolling_max(rolling(windowSize, minPeriods, center)),
-        )
+                .rolling_max(rolling(windowSize, minPeriods, center)?),
+        ))
     }
 
     pub fn rollingMedian(
@@ -616,12 +629,12 @@ impl PhpExpr {
         windowSize: i64,
         minPeriods: Option<i64>,
         center: Option<bool>,
-    ) -> Self {
-        wrap(
+    ) -> PhpResult<Self> {
+        Ok(wrap(
             self.inner
                 .clone()
-                .rolling_median(rolling(windowSize, minPeriods, center)),
-        )
+                .rolling_median(rolling(windowSize, minPeriods, center)?),
+        ))
     }
 
     pub fn rollingStd(
@@ -629,12 +642,12 @@ impl PhpExpr {
         windowSize: i64,
         minPeriods: Option<i64>,
         center: Option<bool>,
-    ) -> Self {
-        wrap(
+    ) -> PhpResult<Self> {
+        Ok(wrap(
             self.inner
                 .clone()
-                .rolling_std(rolling(windowSize, minPeriods, center)),
-        )
+                .rolling_std(rolling(windowSize, minPeriods, center)?),
+        ))
     }
 
     pub fn rollingVar(
@@ -642,12 +655,12 @@ impl PhpExpr {
         windowSize: i64,
         minPeriods: Option<i64>,
         center: Option<bool>,
-    ) -> Self {
-        wrap(
+    ) -> PhpResult<Self> {
+        Ok(wrap(
             self.inner
                 .clone()
-                .rolling_var(rolling(windowSize, minPeriods, center)),
-        )
+                .rolling_var(rolling(windowSize, minPeriods, center)?),
+        ))
     }
 
     // Sorting, selecting and reshaping.
@@ -689,28 +702,40 @@ impl PhpExpr {
         wrap(self.inner.clone().reverse())
     }
 
-    pub fn head(&self, n: Option<i64>) -> Self {
-        wrap(self.inner.clone().head(Some(n.unwrap_or(10) as usize)))
+    pub fn head(&self, n: Option<i64>) -> PhpResult<Self> {
+        Ok(wrap(
+            self.inner
+                .clone()
+                .head(Some(crate::input::count(n.unwrap_or(10), "n")?)),
+        ))
     }
 
-    pub fn tail(&self, n: Option<i64>) -> Self {
-        wrap(self.inner.clone().tail(Some(n.unwrap_or(10) as usize)))
+    pub fn tail(&self, n: Option<i64>) -> PhpResult<Self> {
+        Ok(wrap(
+            self.inner
+                .clone()
+                .tail(Some(crate::input::count(n.unwrap_or(10), "n")?)),
+        ))
     }
 
-    pub fn slice(&self, offset: i64, length: Option<i64>) -> Self {
+    pub fn slice(&self, offset: i64, length: Option<i64>) -> PhpResult<Self> {
         let len = match length {
-            Some(l) => lit(l as u64),
+            Some(l) => lit(crate::input::count(l, "length")? as u64),
             None => lit(IdxSize::MAX as u64),
         };
-        wrap(self.inner.clone().slice(lit(offset), len))
+        Ok(wrap(self.inner.clone().slice(lit(offset), len)))
     }
 
-    pub fn topK(&self, k: Option<i64>) -> Self {
-        wrap(self.inner.clone().top_k(lit(k.unwrap_or(5) as u64)))
+    pub fn topK(&self, k: Option<i64>) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().top_k(lit(
+            crate::input::count(k.unwrap_or(5), "k")? as u64,
+        ))))
     }
 
-    pub fn bottomK(&self, k: Option<i64>) -> Self {
-        wrap(self.inner.clone().bottom_k(lit(k.unwrap_or(5) as u64)))
+    pub fn bottomK(&self, k: Option<i64>) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().bottom_k(lit(
+            crate::input::count(k.unwrap_or(5), "k")? as u64,
+        ))))
     }
 
     pub fn filter(&self, predicate: &Zval) -> PhpResult<Self> {
@@ -730,12 +755,14 @@ impl PhpExpr {
         ))
     }
 
-    pub fn gatherEvery(&self, n: i64, offset: Option<i64>) -> Self {
-        wrap(
-            self.inner
-                .clone()
-                .gather_every(n as usize, offset.unwrap_or(0) as usize),
-        )
+    pub fn gatherEvery(&self, n: i64, offset: Option<i64>) -> PhpResult<Self> {
+        if n < 1 {
+            return Err(value_error(format!("n must be at least 1, got {n}")));
+        }
+        Ok(wrap(self.inner.clone().gather_every(
+            n as usize,
+            crate::input::count(offset.unwrap_or(0), "offset")?,
+        )))
     }
 
     pub fn explode(&self) -> Self {
@@ -877,7 +904,11 @@ impl PhpExpr {
             other => return Err(value_error(format!("unknown round mode '{other}'"))),
         };
         Ok(wrap(
-            self.inner.clone().round(decimals.unwrap_or(0) as u32, mode),
+            self.inner.clone().round(
+                u32::try_from(decimals.unwrap_or(0))
+                    .map_err(|_| value_error("decimals must not be negative"))?,
+                mode,
+            ),
         ))
     }
 

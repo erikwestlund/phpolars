@@ -158,19 +158,34 @@ impl PhpSeries {
         convert::scalar(&self.inner)
     }
 
+    /// The first n values; a negative n keeps all but the last |n|, as in py.
     pub fn head(&self, n: Option<i64>) -> Self {
-        wrap(self.inner.head(Some(n.unwrap_or(10).max(0) as usize)))
+        let n = n.unwrap_or(10);
+        let keep = if n >= 0 {
+            n as usize
+        } else {
+            self.inner.len().saturating_sub(n.unsigned_abs() as usize)
+        };
+        wrap(self.inner.head(Some(keep)))
     }
 
+    /// The last n values; a negative n keeps all but the first |n|, as in py.
     pub fn tail(&self, n: Option<i64>) -> Self {
-        wrap(self.inner.tail(Some(n.unwrap_or(10).max(0) as usize)))
+        let n = n.unwrap_or(10);
+        let keep = if n >= 0 {
+            n as usize
+        } else {
+            self.inner.len().saturating_sub(n.unsigned_abs() as usize)
+        };
+        wrap(self.inner.tail(Some(keep)))
     }
 
-    pub fn slice(&self, offset: i64, length: Option<i64>) -> Self {
-        let len = length
-            .map(|l| l.max(0) as usize)
-            .unwrap_or(self.inner.len());
-        wrap(self.inner.slice(offset, len))
+    pub fn slice(&self, offset: i64, length: Option<i64>) -> PhpResult<Self> {
+        let len = match length {
+            Some(l) => crate::input::count(l, "length")?,
+            None => self.inner.len(),
+        };
+        Ok(wrap(self.inner.slice(offset, len)))
     }
 
     // Aggregations return PHP scalars.
@@ -196,11 +211,11 @@ impl PhpSeries {
     }
 
     pub fn std(&self, ddof: Option<i64>) -> PhpResult<Zval> {
-        self.agg(me().std(ddof.unwrap_or(1) as u8))
+        self.agg(me().std(crate::input::ddof(ddof)?))
     }
 
     pub fn var(&self, ddof: Option<i64>) -> PhpResult<Zval> {
-        self.agg(me().var(ddof.unwrap_or(1) as u8))
+        self.agg(me().var(crate::input::ddof(ddof)?))
     }
 
     pub fn quantile(
@@ -446,7 +461,9 @@ impl PhpSeries {
     }
 
     pub fn round(&self, decimals: Option<i64>) -> PhpResult<Self> {
-        self.apply(me().round(decimals.unwrap_or(0) as u32, RoundMode::HalfToEven))
+        let decimals = u32::try_from(decimals.unwrap_or(0))
+            .map_err(|_| value_error("decimals must not be negative"))?;
+        self.apply(me().round(decimals, RoundMode::HalfToEven))
     }
 
     pub fn sqrt(&self) -> PhpResult<Self> {

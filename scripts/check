@@ -23,7 +23,7 @@ esac
 "$PHP" -n -d "extension=$extension" scripts/stubs.php | diff -u stubs/phpolars.php - \
     || { echo 'stubs/phpolars.php is stale; regenerate it with scripts/stubs.php' >&2; exit 1; }
 "$PHP" -n -l stubs/phpolars.php >/dev/null
-for suite in dataframe expr io pyfixtures; do
+for suite in dataframe expr io regressions pyfixtures; do
     "$PHP" -n -d "extension=$extension" "tests/$suite.php"
 done
 echo 'Release checks passed'

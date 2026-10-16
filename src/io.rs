@@ -79,8 +79,8 @@ fn csv_reader(
         .with_separator(byte(separator, "separator", b',')?)
         .with_null_values(null_values(nullValues)?)
         .with_dtype_overwrite(overrides)
-        .with_n_rows(nRows.map(|n| n as usize))
-        .with_skip_rows(skipRows.unwrap_or(0) as usize)
+        .with_n_rows(nRows.map(|n| crate::input::count(n, "nRows")).transpose()?)
+        .with_skip_rows(crate::input::count(skipRows.unwrap_or(0), "skipRows")?)
         .with_infer_schema_length(match inferSchemaLength {
             Some(n) if n < 0 => None,
             Some(n) => Some(n as usize),
@@ -154,7 +154,7 @@ pub fn scan_csv(
 #[cfg(feature = "parquet")]
 fn parquet_scan(source: &str, nRows: Option<i64>) -> PhpResult<LazyFrame> {
     let args = ScanArgsParquet {
-        n_rows: nRows.map(|n| n as usize),
+        n_rows: nRows.map(|n| crate::input::count(n, "nRows")).transpose()?,
         ..Default::default()
     };
     LazyFrame::scan_parquet(path(source), args).php()
@@ -190,7 +190,7 @@ fn ipc_scan(source: &str, nRows: Option<i64>) -> PhpResult<LazyFrame> {
     let lf = LazyFrame::scan_ipc(path(source), Default::default(), Default::default()).php()?;
     // The optimizer pushes the limit into the scan.
     Ok(match nRows {
-        Some(n) => lf.limit(n as IdxSize),
+        Some(n) => lf.limit(crate::input::count(n, "nRows")? as IdxSize),
         None => lf,
     })
 }
@@ -220,7 +220,7 @@ fn ndjson_scan(
     inferSchemaLength: Option<i64>,
 ) -> PhpResult<LazyFrame> {
     LazyJsonLineReader::new(path(source))
-        .with_n_rows(nRows.map(|n| n as usize))
+        .with_n_rows(nRows.map(|n| crate::input::count(n, "nRows")).transpose()?)
         .with_infer_schema_length(
             inferSchemaLength.map(|n| std::num::NonZeroUsize::new(n.max(1) as usize).unwrap()),
         )

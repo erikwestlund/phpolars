@@ -369,7 +369,7 @@ array(5) {
 </tr>
 </tbody>
 </table>
-<p>From PHP, each column gets one inferred type. Integers widen to floats, nulls fit any type, <code>DateTimeInterface</code> values become <code>Datetime(us)</code> on their wall-clock time, lists become <code>List</code>, and associative arrays become <code>Struct</code>. Any other mix raises <code>SchemaError</code>; pass a <code>schema</code> to set types.</p>
+<p>From PHP, each column gets one inferred type. Integers widen to floats, nulls fit any type, <code>DateTimeInterface</code> values become naive <code>Datetime(us)</code> on their wall-clock time (the zone is not kept; use <code>dt()-&gt;replaceTimeZone()</code> to attach one), lists become <code>List</code>, and associative arrays become <code>Struct</code>. Any other mix raises <code>SchemaError</code>; pass a <code>schema</code> to set types.</p>
 </section>
 <section id="errors" class="level2">
 <h2 class="anchored" data-anchor-id="errors">Errors</h2>

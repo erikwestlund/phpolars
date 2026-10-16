@@ -24,6 +24,18 @@ impl<'a> FromZval<'a> for Num {
     }
 }
 
+/// A count, length, or position argument: negative values are an error
+/// rather than wrapping to a huge unsigned number.
+pub fn count(v: i64, what: &str) -> PhpResult<usize> {
+    usize::try_from(v).map_err(|_| value_error(format!("{what} must not be negative, got {v}")))
+}
+
+/// A degrees-of-freedom argument (default 1), as Polars' u8.
+pub fn ddof(v: Option<i64>) -> PhpResult<u8> {
+    let d = v.unwrap_or(1);
+    u8::try_from(d).map_err(|_| value_error(format!("ddof must be between 0 and 255, got {d}")))
+}
+
 /// Omitted named arguments and explicit nulls both mean "not given".
 pub fn given(v: Option<&Zval>) -> Option<&Zval> {
     v.filter(|v| !v.is_null())

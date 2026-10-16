@@ -5,7 +5,8 @@
 //
 //   php -d memory_limit=-1 -d extension=.../libphp_polars.so bench/phplyr.php PHPLYR_DIR ROWS [REPEATS]
 //
-// PHPLYR_DIR is a phplyr checkout with its dependencies installed.
+// PHPLYR_DIR is a phplyr checkout with its dependencies installed, on a phibble
+// that includes the Polars backend (Phibble\Polars\PolarsTable, phibble v0.2+).
 
 declare(strict_types=1);
 
@@ -15,17 +16,11 @@ if ($phplyr === null) {
     exit(2);
 }
 require $phplyr.'/vendor/autoload.php';
-spl_autoload_register(function (string $class): void {
-    $prefix = 'Phpolars\\Phibble\\';
-    if (str_starts_with($class, $prefix)) {
-        require __DIR__.'/../phibble/src/'.substr($class, strlen($prefix)).'.php';
-    }
-});
 
 use Phibble\Contracts\Table;
 use Phibble\Frame;
 use Phibble\Sql\SqlTable;
-use Phpolars\Phibble\PolarsTable;
+use Phibble\Polars\PolarsTable;
 
 use function Phplyr\{arrange, col, cumsum, desc, filter, group_by, lag, left_join, mean, min_rank, mutate, n, sum, summarise};
 

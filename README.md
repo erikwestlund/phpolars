@@ -71,7 +71,7 @@ Null is PHP `null`. Values convert as follows.
 | List, Array | list |
 | Struct | associative array |
 
-From PHP, each column gets one inferred type. Integers widen to floats, nulls fit any type, `DateTimeInterface` values become `Datetime(us)` on their wall-clock time, lists become `List`, and associative arrays become `Struct`. Any other mix of types raises `SchemaError`. Pass a `schema` to set types explicitly.
+From PHP, each column gets one inferred type. Integers widen to floats, nulls fit any type, `DateTimeInterface` values become naive `Datetime(us)` on their wall-clock time (the zone is not kept; use `dt()->replaceTimeZone()` to attach one), lists become `List`, and associative arrays become `Struct`. Any other mix of types raises `SchemaError`. Pass a `schema` to set types explicitly.
 
 ## Errors
 

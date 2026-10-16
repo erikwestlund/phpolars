@@ -1,6 +1,5 @@
 .git
 target
-phibble/vendor
 bench/*.csv
 pie/autom4te.cache
 pie/build

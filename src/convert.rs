@@ -377,6 +377,64 @@ fn datetime_column(name: PlSmallStr, vals: &[&Zval]) -> PhpResult<Option<Series>
     ))
 }
 
+/// The kind of each leaf value per position (list elements, struct fields).
+fn leaf_kinds(av: &AnyValue, path: &mut String, out: &mut Vec<(String, &'static str)>) {
+    let kind = match av {
+        AnyValue::Null => return,
+        AnyValue::List(s) => {
+            path.push_str("[]");
+            for inner in s.iter() {
+                leaf_kinds(&inner.into_static(), path, out);
+            }
+            path.truncate(path.len() - 2);
+            return;
+        }
+        AnyValue::StructOwned(payload) => {
+            let (vals, fields) = payload.as_ref();
+            for (v, f) in vals.iter().zip(fields) {
+                let len = path.len();
+                path.push('.');
+                path.push_str(f.name());
+                leaf_kinds(v, path, out);
+                path.truncate(len);
+            }
+            return;
+        }
+        AnyValue::Boolean(_) => "bool",
+        AnyValue::StringOwned(_) | AnyValue::String(_) => "string",
+        AnyValue::DatetimeOwned(..) | AnyValue::Datetime(..) | AnyValue::Date(_) => "datetime",
+        v if v.is_primitive_numeric() => "number",
+        _ => "other",
+    };
+    if !out.iter().any(|(p, k)| p == path && *k == kind) {
+        out.push((path.clone(), kind));
+    }
+}
+
+/// Mixed kinds at one position (a list holding ints and strings, a struct
+/// field holding both) raise SchemaError instead of becoming strings.
+fn check_kinds(name: &str, avs: &[AnyValue]) -> PhpResult<()> {
+    let mut kinds = Vec::new();
+    for av in avs {
+        leaf_kinds(av, &mut String::new(), &mut kinds);
+    }
+    for (i, (path, kind)) in kinds.iter().enumerate() {
+        if let Some((_, other)) = kinds[i + 1..].iter().find(|(p, k)| p == path && k != kind) {
+            return Err(PhpException::from_class::<crate::error::SchemaError>(
+                format!(
+                    "column '{name}' mixes {kind} and {other} values{}; pass a dtype or cast first",
+                    if path.is_empty() {
+                        String::new()
+                    } else {
+                        format!(" at {path}")
+                    }
+                ),
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// A PHP value as an owned AnyValue, for nested and temporal data.
 pub fn any_value(v: &Zval) -> PhpResult<AnyValue<'static>> {
     Ok(match kind(v) {
@@ -452,6 +510,8 @@ pub fn series(name: PlSmallStr, vals: &[&Zval], dtype: Option<&DataType>) -> Php
                 .iter()
                 .map(|v| any_value(v))
                 .collect::<PhpResult<Vec<_>>>()?;
+            // Polars would cast mixed kinds (ints and strings in one list) to strings.
+            check_kinds(&name, &avs)?;
             let s = Series::from_any_values(name, &avs, false).php()?;
             return match dtype {
                 Some(dt) if dt != s.dtype() => s.strict_cast(dt).php(),

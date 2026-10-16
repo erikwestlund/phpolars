@@ -241,7 +241,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul>
   <li><a href="#building-and-testing" id="toc-building-and-testing" class="nav-link active" data-scroll-target="#building-and-testing">Building and testing</a></li>
   <li><a href="#comparing-with-py-polars" id="toc-comparing-with-py-polars" class="nav-link" data-scroll-target="#comparing-with-py-polars">Comparing with py-polars</a></li>
-  <li><a href="#the-phibble-adapter" id="toc-the-phibble-adapter" class="nav-link" data-scroll-target="#the-phibble-adapter">The phibble adapter</a></li>
   <li><a href="#documentation" id="toc-documentation" class="nav-link" data-scroll-target="#documentation">Documentation</a></li>
   <li><a href="#stubs" id="toc-stubs" class="nav-link" data-scroll-target="#stubs">Stubs</a></li>
   </ul>
@@ -273,7 +272,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="building-and-testing">Building and testing</h2>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">scripts/test</span>        <span class="co"># build and run tests/dataframe.php, expr.php, io.php, and pyfixtures.php</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">scripts/check</span>       <span class="co"># release gate: rustfmt, clippy, the suites, and a stub freshness check</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="va">PHIBBLE</span><span class="op">=</span>phibble/vendor/autoload.php <span class="ex">scripts/test</span>   <span class="co"># also the phibble round-trip</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="va">PHIBBLE</span><span class="op">=</span>path/to/phibble/vendor/autoload.php <span class="ex">scripts/test</span>   <span class="co"># also the phibble round-trip</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Set <code>PHP</code> and <code>PHP_CONFIG</code> to a PHP 8.5 installation. On macOS, also set <code>LIBCLANG_PATH=$(brew --prefix llvm)/lib</code>.</p>
 </section>
 <section id="comparing-with-py-polars" class="level2">
@@ -282,21 +281,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run <span class="at">--with</span> <span class="st">'polars==1.43.2'</span> python scripts/pyfixtures.py</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>py-polars 1.43.2 is the release whose Rust core is closest to the pinned Polars 0.55.2.</p>
 </section>
-<section id="the-phibble-adapter" class="level2">
-<h2 class="anchored" data-anchor-id="the-phibble-adapter">The phibble adapter</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> phibble</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">composer</span> install</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">php</span> <span class="at">-d</span> extension=../target/release/libphp_polars.so vendor/bin/pest</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</section>
 <section id="documentation" class="level2">
 <h2 class="anchored" data-anchor-id="documentation">Documentation</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">scripts/render-docs</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">scripts/render-docs</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>This runs every <code>docs/examples/*.php</code> against the release build and embeds its output, regenerates the reference signatures from the extension (<code>scripts/docs-reference.php</code>), renders the site with Quarto, and copies it into <code>docs/</code> for GitHub Pages.</p>
 </section>
 <section id="stubs" class="level2">
 <h2 class="anchored" data-anchor-id="stubs">Stubs</h2>
 <p><code>stubs/phpolars.php</code> holds signatures for IDEs and static analysis. Regenerate it after changing the API:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">php</span> <span class="at">-d</span> extension=target/release/libphp_polars.so scripts/stubs.php <span class="op">&gt;</span> stubs/phpolars.php</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">php</span> <span class="at">-d</span> extension=target/release/libphp_polars.so scripts/stubs.php <span class="op">&gt;</span> stubs/phpolars.php</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 
 
 </section>

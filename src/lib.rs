@@ -257,6 +257,10 @@ pub fn polars_version() -> &'static str {
 
 fn startup(_ty: i32, mod_num: i32) -> i32 {
     IniEntryDef::register(INI.as_slice(), mod_num);
+    // Apply the cap now, before any PHP code runs: eager operations can start
+    // Polars' pool without passing through init_threads(). MINIT runs once,
+    // single-threaded, before FPM forks its workers.
+    init_threads();
     0
 }
 

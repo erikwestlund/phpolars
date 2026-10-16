@@ -157,20 +157,33 @@ macro_rules! frame_verbs {
                 Self::out(self.lf().sort_by_exprs(by, sort_options(descending, nullsLast, maintainOrder)?))
             }
 
+            /// The first n rows; a negative n keeps all but the last |n|, as in py.
             pub fn head(&self, n: Option<i64>) -> PhpResult<Self> {
-                Self::out(self.lf().limit(n.unwrap_or(5).max(0) as IdxSize))
+                let n = n.unwrap_or(5);
+                if n >= 0 {
+                    return Self::out(self.lf().limit(n as IdxSize));
+                }
+                Self::out(self.lf().filter(row_number().lt(rows() - lit(n.unsigned_abs() as i64))))
             }
 
             pub fn limit(&self, n: Option<i64>) -> PhpResult<Self> {
                 self.head(n)
             }
 
+            /// The last n rows; a negative n keeps all but the first |n|, as in py.
             pub fn tail(&self, n: Option<i64>) -> PhpResult<Self> {
-                Self::out(self.lf().tail(n.unwrap_or(5).max(0) as IdxSize))
+                let n = n.unwrap_or(5);
+                if n >= 0 {
+                    return Self::out(self.lf().tail(n as IdxSize));
+                }
+                Self::out(self.lf().filter(row_number().gt_eq(lit(n.unsigned_abs() as i64))))
             }
 
             pub fn slice(&self, offset: i64, length: Option<i64>) -> PhpResult<Self> {
-                let len = length.map(|l| l.max(0) as IdxSize).unwrap_or(IdxSize::MAX);
+                let len = match length {
+                    Some(l) => crate::input::count(l, "length")? as IdxSize,
+                    None => IdxSize::MAX,
+                };
                 Self::out(self.lf().slice(offset, len))
             }
 
@@ -257,6 +270,7 @@ macro_rules! frame_verbs {
 
             pub fn withRowIndex(&self, name: Option<String>, offset: Option<i64>) -> PhpResult<Self> {
                 let name = name.unwrap_or_else(|| "index".into());
+                let offset = offset.map(|o| crate::input::count(o, "offset")).transpose()?;
                 Self::out(self.lf().with_row_index(name, offset.map(|o| o as IdxSize)))
             }
 
@@ -367,11 +381,11 @@ macro_rules! frame_verbs {
             }
 
             pub fn std(&self, ddof: Option<i64>) -> PhpResult<Self> {
-                Self::out(self.lf().std(ddof.unwrap_or(1) as u8))
+                Self::out(self.lf().std(crate::input::ddof(ddof)?))
             }
 
             pub fn var(&self, ddof: Option<i64>) -> PhpResult<Self> {
-                Self::out(self.lf().var(ddof.unwrap_or(1) as u8))
+                Self::out(self.lf().var(crate::input::ddof(ddof)?))
             }
 
             pub fn count(&self) -> PhpResult<Self> {
@@ -773,10 +787,12 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
                 self.inner
                     .sample_frac(&Series::new("frac".into(), [f.0]), wr, shuffle, seed)
             }
-            (n, None) => {
-                self.inner
-                    .sample_n_literal(n.unwrap_or(1).max(0) as usize, wr, shuffle, seed)
-            }
+            (n, None) => self.inner.sample_n_literal(
+                crate::input::count(n.unwrap_or(1), "n")?,
+                wr,
+                shuffle,
+                seed,
+            ),
         };
         out.php().map(Self::wrap)
     }
@@ -901,7 +917,7 @@ frame_verbs!(PhpLazyFrame, PhpLazyGroupBy, {
         init_threads();
         self.inner
             .clone()
-            .limit(n.unwrap_or(500) as IdxSize)
+            .limit(crate::input::count(n.unwrap_or(500), "n")? as IdxSize)
             .collect()
             .php()
             .map(PhpDataFrame::wrap)
@@ -998,14 +1014,34 @@ macro_rules! group_by {
             }
 
             pub fn head(&self, n: Option<i64>) -> PhpResult<$frame> {
-                $frame::out(self.grouped().head(Some(n.unwrap_or(5) as usize)))
+                $frame::out(
+                    self.grouped()
+                        .head(Some(crate::input::count(n.unwrap_or(5), "n")?)),
+                )
             }
 
             pub fn tail(&self, n: Option<i64>) -> PhpResult<$frame> {
-                $frame::out(self.grouped().tail(Some(n.unwrap_or(5) as usize)))
+                $frame::out(
+                    self.grouped()
+                        .tail(Some(crate::input::count(n.unwrap_or(5), "n")?)),
+                )
             }
         }
     };
+}
+
+/// Row position (0-based) and row count as Int64, for negative head/tail.
+fn row_number() -> Expr {
+    polars::prelude::int_range(
+        lit(0i64),
+        polars::prelude::len().cast(DataType::Int64),
+        1,
+        DataType::Int64,
+    )
+}
+
+fn rows() -> Expr {
+    polars::prelude::len().cast(DataType::Int64)
 }
 
 fn pl_len() -> Expr {

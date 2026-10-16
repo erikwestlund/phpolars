@@ -14,7 +14,7 @@ phpolars brings [Polars](https://pola.rs) to PHP as a native extension written i
 - `Series`, with the same expression methods.
 - CSV, Parquet, JSON, NDJSON, and Arrow IPC reading and writing, with lazy scans and streaming sinks.
 - A thread-pool cap for PHP-FPM (`php_polars.max_threads`).
-- An adapter, `Phpolars\Phibble\PolarsTable`, that runs [phibble](https://erikwestlund.github.io/phibble/) and [phplyr](https://erikwestlund.github.io/phplyr/) pipelines in Polars.
+- A backend for [phibble](https://erikwestlund.github.io/phibble/), `Phibble\Polars\PolarsTable`, that runs [phplyr](https://erikwestlund.github.io/phplyr/) pipelines in Polars. It ships with phibble.
 
 ## The family
 

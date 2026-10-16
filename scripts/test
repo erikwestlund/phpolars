@@ -10,7 +10,7 @@ if [[ -z "${LIBCLANG_PATH:-}" ]] && command -v brew >/dev/null; then
 fi
 cargo build --release --manifest-path "$root/Cargo.toml" --quiet
 ext="$root/target/release/libphp_polars.$([[ "$(uname)" == Darwin ]] && echo dylib || echo so)"
-for t in "$root"/tests/dataframe.php "$root"/tests/expr.php "$root"/tests/io.php "$root"/tests/pyfixtures.php; do
+for t in "$root"/tests/dataframe.php "$root"/tests/expr.php "$root"/tests/io.php "$root"/tests/regressions.php "$root"/tests/pyfixtures.php; do
     [[ -f "$t" ]] && "$php" -n -d extension="$ext" "$t"
 done
 if [[ -n "${PHIBBLE:-}" ]]; then

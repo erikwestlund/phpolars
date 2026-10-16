@@ -23,7 +23,7 @@ Data types are written as py-polars names: `'Int8'` … `'Int64'`, `'UInt8'` …
 | List, Array | list |
 | Struct | associative array |
 
-From PHP, each column gets one inferred type. Integers widen to floats, nulls fit any type, `DateTimeInterface` values become `Datetime(us)` on their wall-clock time, lists become `List`, and associative arrays become `Struct`. Any other mix raises `SchemaError`; pass a `schema` to set types.
+From PHP, each column gets one inferred type. Integers widen to floats, nulls fit any type, `DateTimeInterface` values become naive `Datetime(us)` on their wall-clock time (the zone is not kept; use `dt()->replaceTimeZone()` to attach one), lists become `List`, and associative arrays become `Struct`. Any other mix raises `SchemaError`; pass a `schema` to set types.
 
 ## Errors
 

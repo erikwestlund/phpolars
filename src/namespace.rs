@@ -221,6 +221,9 @@ impl PhpStrNameSpace {
     }
 
     pub fn splitn(&self, by: &Zval, n: i64) -> PhpResult<Zval> {
+        if n < 1 {
+            return Err(value_error(format!("n must be at least 1, got {n}")));
+        }
         self.finish(self.base().str().splitn(operand(by)?, n as usize))
     }
 
@@ -236,7 +239,11 @@ impl PhpStrNameSpace {
     }
 
     pub fn zfill(&self, length: i64) -> PhpResult<Zval> {
-        self.finish(self.base().str().zfill(lit(length as u64)))
+        self.finish(
+            self.base()
+                .str()
+                .zfill(lit(crate::input::count(length, "length")? as u64)),
+        )
     }
 
     pub fn reverse(&self) -> PhpResult<Zval> {
@@ -244,11 +251,10 @@ impl PhpStrNameSpace {
     }
 
     pub fn extract(&self, pattern: &Zval, groupIndex: Option<i64>) -> PhpResult<Zval> {
-        self.finish(
-            self.base()
-                .str()
-                .extract(operand(pattern)?, groupIndex.unwrap_or(1) as usize),
-        )
+        self.finish(self.base().str().extract(
+            operand(pattern)?,
+            crate::input::count(groupIndex.unwrap_or(1), "groupIndex")?,
+        ))
     }
 
     pub fn extractAll(&self, pattern: &Zval) -> PhpResult<Zval> {
@@ -545,11 +551,11 @@ impl PhpListNameSpace {
     }
 
     pub fn std(&self, ddof: Option<i64>) -> PhpResult<Zval> {
-        self.finish(self.base().list().std(ddof.unwrap_or(1) as u8))
+        self.finish(self.base().list().std(crate::input::ddof(ddof)?))
     }
 
     pub fn var(&self, ddof: Option<i64>) -> PhpResult<Zval> {
-        self.finish(self.base().list().var(ddof.unwrap_or(1) as u8))
+        self.finish(self.base().list().var(crate::input::ddof(ddof)?))
     }
 
     pub fn first(&self) -> PhpResult<Zval> {
