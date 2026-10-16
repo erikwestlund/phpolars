@@ -8,6 +8,7 @@ use Closure;
 use Generator;
 use InvalidArgumentException;
 use Phibble\Column\FactorColumn;
+use Phibble\Column\TemporalColumn;
 use Phibble\Contracts\Table;
 use Phibble\Exception\ColumnNotFound;
 use Phibble\Expr\Col;
@@ -62,7 +63,26 @@ final class PolarsTable implements Table
         $frame = $table->collect();
         $schema = [];
         $factors = [];
+        $columns = [];
+        $temporal = [];
+        foreach ($frame->columns() as $name) {
+            $storage = $frame->storage($name);
+            if ($storage instanceof TemporalColumn) {
+                // Dates and datetimes cross as integer ticks, never as objects.
+                $columns[$name] = $storage->ticks();
+                $temporal[$name] = $storage->type() === Type::Date
+                    ? 'Date'
+                    : ($storage->timezone() === 'UTC' ? 'Datetime(us)' : "Datetime(us, {$storage->timezone()})");
+            } else {
+                $columns[$name] = $storage->values();
+            }
+        }
         foreach ($frame->types() as $name => $type) {
+            if (isset($temporal[$name])) {
+                $schema[$name] = 'Int64';
+
+                continue;
+            }
             $dtype = match ($type) {
                 Type::Int => 'Int64',
                 Type::Float => 'Float64',
@@ -80,7 +100,14 @@ final class PolarsTable implements Table
                 $factors[$name] = ['levels' => $storage->levels(), 'ordered' => $storage instanceof FactorColumn && $storage->isOrdered()];
             }
         }
-        $df = DataFrame::fromDict($frame->toColumns(), schema: $schema);
+        $df = DataFrame::fromDict($columns, schema: $schema);
+        if ($temporal !== []) {
+            $casts = [];
+            foreach ($temporal as $name => $dtype) {
+                $casts[$name] = col($name)->cast($dtype);
+            }
+            $df = $df->withColumns($casts);
+        }
 
         return new self($df, $frame->groups(), $frame->isRowwise(), $factors, $frame->dropsEmptyGroups());
     }
@@ -209,31 +236,77 @@ final class PolarsTable implements Table
     {
         $this->check($name);
 
-        return $this->df->getColumn($name)->toList();
+        return (new self($this->df->select($name)))->toColumns()[$name];
     }
 
     public function getIterator(): Generator
     {
-        foreach ($this->df->toDicts() as $i => $row) {
+        foreach ($this->toRows() as $i => $row) {
             yield $i => new Row($row);
         }
     }
 
     public function toRows(): array
     {
-        return $this->df->toDicts();
+        $columns = $this->toColumns();
+        $rows = [];
+        for ($i = 0, $n = $this->nrow(); $i < $n; $i++) {
+            $row = [];
+            foreach ($columns as $name => $values) {
+                $row[$name] = $values[$i];
+            }
+            $rows[] = $row;
+        }
+
+        return $rows;
     }
 
     public function toColumns(): array
     {
-        return $this->df->toDict(asSeries: false);
+        return array_map(
+            fn ($column) => $column instanceof TemporalColumn ? $column->values() : $column,
+            $this->phibbleColumns(),
+        );
+    }
+
+    /**
+     * Columns as phibble wants them: plain lists, with dates and datetimes
+     * as TemporalColumn built from integer ticks, so no PHP date objects are
+     * made unless values are read.
+     *
+     * @return array<string, list<mixed>|TemporalColumn>
+     */
+    private function phibbleColumns(): array
+    {
+        $casts = [];
+        $temporal = [];
+        foreach ($this->df->schema() as $name => $dtype) {
+            if ($dtype === 'Date') {
+                $casts[$name] = col($name)->cast('Int64');
+                $temporal[$name] = [Type::Date, 'UTC'];
+            } elseif (str_starts_with($dtype, 'Datetime')) {
+                $casts[$name] = col($name)->dt()->castTimeUnit('us')->cast('Int64');
+                $zone = preg_match('/^Datetime\(\w+, (.+)\)$/', $dtype, $m) ? $m[1] : 'UTC';
+                $temporal[$name] = [Type::DateTime, $zone];
+            }
+        }
+        $df = $casts === [] ? $this->df : $this->df->withColumns($casts);
+        $columns = $df->toDict(asSeries: false);
+        foreach ($temporal as $name => [$type, $zone]) {
+            $columns[$name] = new TemporalColumn($type, $columns[$name], $zone);
+        }
+
+        return $columns;
     }
 
     public function collect(): Frame
     {
-        $columns = $this->df->toDict(asSeries: false);
+        $columns = $this->phibbleColumns();
         $types = [];
         foreach ($this->types() as $name => $type) {
+            if ($columns[$name] instanceof TemporalColumn) {
+                continue;
+            }
             if ($type === Type::Factor && isset($this->factors[$name])) {
                 $levels = $this->factors[$name]['levels'];
                 $extra = array_diff(array_unique(array_filter($columns[$name], fn ($v) => $v !== null)), $levels);
