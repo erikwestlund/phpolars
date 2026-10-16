@@ -4,6 +4,7 @@ all_horizontal(mixed ...$exprs): Phpolars\Expr
 any(mixed $names, ?bool $ignoreNulls = null): Phpolars\Expr
 any_horizontal(mixed ...$exprs): Phpolars\Expr
 approx_n_unique(mixed ...$names): Phpolars\Expr
+arange(mixed $start, mixed $end = null, ?int $step = null): Phpolars\Expr
 arctan2(mixed $y, mixed $x): Phpolars\Expr
 arg_sort_by(mixed $exprs, mixed $descending = null, mixed $nullsLast = null, ?bool $maintainOrder = null): Phpolars\Expr
 arg_where(mixed $condition): Phpolars\Expr
@@ -42,6 +43,7 @@ head(mixed $names, ?int $n = null): Phpolars\Expr
 implode(mixed ...$names): Phpolars\Expr
 int_range(mixed $start, mixed $end = null, ?int $step = null): Phpolars\Expr
 int_ranges(mixed $start, mixed $end = null, mixed $step = null): Phpolars\Expr
+json_normalize(array $data, ?string $separator = null, ?int $maxLevel = null): Phpolars\DataFrame
 last(mixed ...$names): Phpolars\Expr
 len(): Phpolars\Expr
 linear_space(mixed $start, mixed $end, mixed $numSamples, ?string $closed = null): Phpolars\Expr
@@ -66,6 +68,7 @@ row_index(?string $name = null): Phpolars\Expr
 select(mixed ...$exprs): Phpolars\DataFrame
 set_random_seed(int $seed): void
 sql(string $query, ?array $frames = null, ?bool $eager = null): mixed
+sql_expr(string $sql): Phpolars\Expr
 std(mixed $column, ?int $ddof = null): Phpolars\Expr
 struct_(mixed ...$exprs): Phpolars\Expr
 sum(mixed ...$names): Phpolars\Expr

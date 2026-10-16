@@ -631,6 +631,7 @@ namespace Phpolars {
         public function pctChange(?int $n = null): Phpolars\Series {}
         public function rank(?string $method = null, ?bool $descending = null, ?int $seed = null): Phpolars\Series {}
         public function clip(mixed $lowerBound = null, mixed $upperBound = null): Phpolars\Series {}
+        public function clone(): Phpolars\Series {}
         public function describe(?array $percentiles = null): Phpolars\DataFrame {}
         public function scatter(mixed $indices, mixed $values): Phpolars\Series {}
         public function set(Phpolars\Series $filter, mixed $value): Phpolars\Series {}
@@ -717,6 +718,9 @@ namespace Phpolars {
         public function extend(Phpolars\DataFrame $other): Phpolars\DataFrame {}
         public function rechunk(): Phpolars\DataFrame {}
         public function writeDatabase(string $tableName, mixed $connection, ?string $ifTableExists = null): int {}
+        public function iterColumns(): array {}
+        public function melt(mixed $idVars = null, mixed $valueVars = null, ?string $variableName = null, ?string $valueName = null): Phpolars\DataFrame {}
+        public function writeIpcStream(string $file): void {}
         public function iterSlices(?int $nRows = null): array {}
         public function rowsByKey(string $key, ?bool $named = null, ?bool $includeKey = null, ?bool $unique = null): array {}
         public function mapRows(mixed $function): Phpolars\DataFrame {}
@@ -934,6 +938,8 @@ namespace Phpolars {
 
     function read_json(string $source, ?array $schema = null, ?array $schemaOverrides = null, ?int $inferSchemaLength = null): Phpolars\DataFrame {}
 
+    function read_ipc_stream(string $source, mixed $columns = null, ?int $nRows = null): Phpolars\DataFrame {}
+
     function sql(string $query, ?array $frames = null, ?bool $eager = null): mixed {}
 
     function col(mixed ...$names): Phpolars\Expr {}
@@ -1049,6 +1055,16 @@ namespace Phpolars {
     function rolling_cov(mixed $a, mixed $b, int $windowSize, ?int $minPeriods = null, ?int $ddof = null): Phpolars\Expr {}
 
     function union(array $items, ?string $how = null): mixed {}
+
+    function arange(mixed $start, mixed $end = null, ?int $step = null): Phpolars\Expr {}
+
+    function sql_expr(string $sql): Phpolars\Expr {}
+
+    function json_normalize(array $data, ?string $separator = null, ?int $maxLevel = null): Phpolars\DataFrame {}
+
+    function read_parquet_schema(string $source): array {}
+
+    function read_ipc_schema(string $source): array {}
 
     function date_range(mixed $start = null, mixed $end = null, ?string $interval = null, ?int $numSamples = null, ?string $closed = null): Phpolars\Expr {}
 

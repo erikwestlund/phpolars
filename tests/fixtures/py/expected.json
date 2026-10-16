@@ -12344,6 +12344,194 @@
     ]
    ],
    "scalar": true
+  },
+  "json_normalize": {
+   "columns": [
+    "a",
+    "f",
+    "b.c",
+    "b.d.e",
+    "b.d.u",
+    "g"
+   ],
+   "dtypes": [
+    "Int64",
+    "List(Int64)",
+    "Int64",
+    "Int64",
+    "String",
+    "Boolean"
+   ],
+   "rows": [
+    [
+     1,
+     [
+      1,
+      2
+     ],
+     2,
+     3,
+     "x/y",
+     null
+    ],
+    [
+     null,
+     null,
+     5,
+     null,
+     null,
+     null
+    ],
+    [
+     null,
+     null,
+     null,
+     null,
+     null,
+     true
+    ]
+   ]
+  },
+  "json_normalize_level": {
+   "columns": [
+    "a",
+    "f",
+    "b_c",
+    "b_d",
+    "g"
+   ],
+   "dtypes": [
+    "Int64",
+    "List(Int64)",
+    "Int64",
+    "String",
+    "Boolean"
+   ],
+   "rows": [
+    [
+     1,
+     [
+      1,
+      2
+     ],
+     2,
+     "{\"e\": 3, \"u\": \"x/y\"}",
+     null
+    ],
+    [
+     null,
+     null,
+     5,
+     null,
+     null
+    ],
+    [
+     null,
+     null,
+     null,
+     null,
+     true
+    ]
+   ]
+  },
+  "sql_expr": {
+   "columns": [
+    "twice",
+    "g"
+   ],
+   "dtypes": [
+    "Int64",
+    "String"
+   ],
+   "rows": [
+    [
+     2,
+     "A"
+    ],
+    [
+     4,
+     "B"
+    ],
+    [
+     6,
+     "A"
+    ],
+    [
+     8,
+     "C"
+    ],
+    [
+     10,
+     null
+    ],
+    [
+     12,
+     "B"
+    ]
+   ]
+  },
+  "melt": {
+   "columns": [
+    "id",
+    "variable",
+    "value"
+   ],
+   "dtypes": [
+    "Int64",
+    "String",
+    "Int64"
+   ],
+   "rows": [
+    [
+     1,
+     "v",
+     10
+    ],
+    [
+     1,
+     "v",
+     20
+    ],
+    [
+     2,
+     "v",
+     30
+    ],
+    [
+     2,
+     "v",
+     null
+    ],
+    [
+     3,
+     "v",
+     50
+    ],
+    [
+     1,
+     "v",
+     5
+    ]
+   ]
+  },
+  "arange": {
+   "columns": [
+    "r"
+   ],
+   "dtypes": [
+    "Int64"
+   ],
+   "rows": [
+    [
+     0
+    ],
+    [
+     2
+    ],
+    [
+     4
+    ]
+   ]
   }
  }
 }

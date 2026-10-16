@@ -85,6 +85,11 @@ same('read_ipc columns', read_ipc("$dir/out.arrow", columns: ['name'])->columns(
 same('read_ipc rowIndexName', read_ipc("$dir/out.arrow", rowIndexName: 'i')->columns()[0], 'i');
 same('read_ndjson schemaOverrides', read_ndjson("$dir/out.ndjson", schemaOverrides: ['id' => 'Float64'])->dtypes()[0], 'Float64');
 same('read_ndjson columns', read_ndjson("$dir/out.ndjson", columns: ['ok'])->columns(), ['ok']);
+$df->writeIpcStream("$dir/stream.arrows");
+same('ipc stream round-trip', Phpolars\read_ipc_stream("$dir/stream.arrows")->equals($df), true);
+same('read_ipc_stream columns', Phpolars\read_ipc_stream("$dir/stream.arrows", columns: ['id'], nRows: 2)->shape(), [2, 1]);
+same('read_parquet_schema', Phpolars\read_parquet_schema("$dir/out.parquet"), ['id' => 'Int64', 'name' => 'String', 'score' => 'Float64', 'ok' => 'Boolean']);
+same('read_ipc_schema', array_keys(Phpolars\read_ipc_schema("$dir/out.arrow")), ['id', 'name', 'score', 'ok']);
 same('read_json schema', read_json("$dir/out.json", schema: ['id' => 'Int16', 'name' => 'String', 'score' => 'Float64', 'ok' => 'Boolean'])->dtypes()[0], 'Int16');
 
 // Databases through PDO

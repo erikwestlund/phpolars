@@ -41,6 +41,7 @@ isDuplicated(): Phpolars\Series
 isEmpty(): bool
 isUnique(): Phpolars\Series
 item(?int $row = null, mixed $column = null): mixed
+iterColumns(): array
 iterRows(?bool $named = null): array
 iterSlices(?int $nRows = null): array
 join(mixed $other, mixed $on = null, ?string $how = null, mixed $leftOn = null, mixed $rightOn = null, ?string $suffix = null, ?bool $coalesce = null, ?string $maintainOrder = null, ?bool $nullsEqual = null): Phpolars\DataFrame
@@ -55,6 +56,7 @@ maxHorizontal(): Phpolars\Series
 mean(): Phpolars\DataFrame
 meanHorizontal(?bool $ignoreNulls = null): Phpolars\Series
 median(): Phpolars\DataFrame
+melt(mixed $idVars = null, mixed $valueVars = null, ?string $variableName = null, ?string $valueName = null): Phpolars\DataFrame
 mergeSorted(mixed $other, mixed $key, ?bool $maintainOrder = null): Phpolars\DataFrame
 min(): Phpolars\DataFrame
 minHorizontal(): Phpolars\Series
@@ -115,6 +117,7 @@ withRowIndex(?string $name = null, ?int $offset = null): Phpolars\DataFrame
 writeCsv(string $file, ?bool $includeHeader = null, ?string $separator = null, ?string $nullValue = null, ?string $quoteChar = null, ?string $dateFormat = null, ?string $datetimeFormat = null, ?string $timeFormat = null, ?bool $floatScientific = null, ?int $floatPrecision = null, ?bool $decimalComma = null, ?string $lineTerminator = null, ?string $quoteStyle = null, ?bool $includeBom = null): void
 writeDatabase(string $tableName, mixed $connection, ?string $ifTableExists = null): int
 writeIpc(string $file): void
+writeIpcStream(string $file): void
 writeJson(string $file): void
 writeNdjson(string $file): void
 writeParquet(string $file, ?string $compression = null, ?int $compressionLevel = null, ?bool $statistics = null, ?int $rowGroupSize = null): void

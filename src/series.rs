@@ -539,6 +539,10 @@ impl PhpSeries {
         self.apply(crate::expr::clip(me(), lowerBound, upperBound)?)
     }
 
+    pub fn clone(&self) -> Self {
+        wrap(self.inner.clone())
+    }
+
     /// Summary statistics as a statistic/value frame, as py's Series.describe().
     pub fn describe(&self, percentiles: Option<Vec<crate::input::Num>>) -> PhpResult<PhpDataFrame> {
         let df = DataFrame::new_infer_height(vec![self.inner.clone().into_column()]).php()?;

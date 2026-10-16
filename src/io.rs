@@ -737,4 +737,48 @@ pub fn register(module: ModuleBuilder) -> ModuleBuilder {
         .function(wrap_function!(read_ndjson))
         .function(wrap_function!(scan_ndjson))
         .function(wrap_function!(read_json))
+        .function(wrap_function!(read_ipc_stream))
+}
+
+/// Arrow IPC in the streaming format, written eagerly.
+pub fn write_ipc_stream(df: &DataFrame, file: &str) -> PhpResult<()> {
+    #[cfg(feature = "ipc")]
+    {
+        let mut out =
+            std::fs::File::create(file).map_err(|e| value_error(format!("{file}: {e}")))?;
+        let mut df = df.clone();
+        IpcStreamWriter::new(&mut out).finish(&mut df).php()
+    }
+    #[cfg(not(feature = "ipc"))]
+    {
+        let _ = (df, file);
+        Err(missing("ipc"))
+    }
+}
+
+/// Arrow IPC in the streaming format.
+#[php_function]
+#[php(name = "Phpolars\\read_ipc_stream")]
+pub fn read_ipc_stream(
+    source: String,
+    columns: Option<&Zval>,
+    nRows: Option<i64>,
+) -> PhpResult<PhpDataFrame> {
+    #[cfg(feature = "ipc")]
+    {
+        init_threads();
+        let file =
+            std::fs::File::open(&source).map_err(|e| value_error(format!("{source}: {e}")))?;
+        let mut reader = IpcStreamReader::new(file);
+        if let Some(n) = nRows {
+            reader = reader.with_n_rows(Some(crate::input::count(n, "nRows")?));
+        }
+        let df = reader.finish().php()?;
+        collect(select_columns(df.lazy(), columns)?)
+    }
+    #[cfg(not(feature = "ipc"))]
+    {
+        let _ = (source, columns, nRows);
+        Err(missing("ipc"))
+    }
 }

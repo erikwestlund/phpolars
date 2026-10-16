@@ -1474,6 +1474,27 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
         )
     }
 
+    /// The columns as Series; the same as getColumns().
+    pub fn iterColumns(&self) -> Vec<PhpSeries> {
+        self.getColumns()
+    }
+
+    /// py's deprecated melt(); the same as unpivot(on: valueVars, index: idVars).
+    pub fn melt(
+        &self,
+        idVars: Option<&Zval>,
+        valueVars: Option<&Zval>,
+        variableName: Option<String>,
+        valueName: Option<String>,
+    ) -> PhpResult<Self> {
+        self.unpivot(valueVars, idVars, variableName, valueName)
+    }
+
+    /// Arrow IPC in the streaming format.
+    pub fn writeIpcStream(&self, file: String) -> PhpResult<()> {
+        crate::io::write_ipc_stream(&self.inner, &file)
+    }
+
     /// The frame in slices of nRows rows.
     pub fn iterSlices(&self, nRows: Option<i64>) -> PhpResult<Vec<PhpDataFrame>> {
         let n = crate::input::count(nRows.unwrap_or(10_000), "nRows")?.max(1);

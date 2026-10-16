@@ -21,6 +21,7 @@ cat(): Phpolars\CatNameSpace
 chunkLengths(): array
 clear(?int $n = null): Phpolars\Series
 clip(mixed $lowerBound = null, mixed $upperBound = null): Phpolars\Series
+clone(): Phpolars\Series
 count(): int
 cumMax(?bool $reverse = null): Phpolars\Series
 cumMin(?bool $reverse = null): Phpolars\Series

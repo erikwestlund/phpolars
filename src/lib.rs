@@ -1103,6 +1103,165 @@ pub fn union(items: &ZendHashTable, how: Option<String>) -> PhpResult<Zval> {
     frame::concat(items, how)
 }
 
+/// py's arange(); the same as int_range().
+#[php_function]
+#[php(name = "Phpolars\\arange")]
+pub fn arange(start: &Zval, end: Option<&Zval>, step: Option<i64>) -> PhpResult<PhpExpr> {
+    int_range(start, end, step)
+}
+
+/// An expression from SQL text: sql_expr('a * 2 AS b').
+#[php_function]
+#[php(name = "Phpolars\\sql_expr")]
+pub fn sql_expr(sql: String) -> PhpResult<PhpExpr> {
+    #[cfg(feature = "sql")]
+    {
+        use error::OrPhp;
+        polars::sql::sql_expr(&sql).php().map(wrap)
+    }
+    #[cfg(not(feature = "sql"))]
+    {
+        let _ = sql;
+        Err(PhpException::from_class::<error::ComputeError>(
+            "php_polars was built without the 'sql' feature".to_string(),
+        ))
+    }
+}
+
+/// Flatten nested associative arrays into columns named with separator:
+/// json_normalize([['a' => 1, 'b' => ['c' => 2]]]) has columns a and b.c.
+/// Values nested deeper than maxLevel stay as JSON text.
+#[php_function]
+#[php(name = "Phpolars\\json_normalize")]
+pub fn json_normalize(
+    data: &ZendHashTable,
+    separator: Option<String>,
+    maxLevel: Option<i64>,
+) -> PhpResult<frame::PhpDataFrame> {
+    let sep = separator.unwrap_or_else(|| ".".into());
+    let records: Vec<&ZendHashTable> = if convert::is_list(data) {
+        data.values()
+            .map(|v| {
+                v.array()
+                    .ok_or_else(|| error::value_error("json_normalize() takes a list of arrays"))
+            })
+            .collect::<PhpResult<_>>()?
+    } else {
+        vec![data]
+    };
+    let mut order: Vec<String> = Vec::new();
+    let mut flat: Vec<Vec<(String, Zval)>> = Vec::with_capacity(records.len());
+    for r in records {
+        let mut out = Vec::new();
+        // Top-level plain values come first, then the flattened nested ones, as in py.
+        for (k, v) in r.iter() {
+            if !is_dict(v) {
+                out.push((k.to_string(), v.shallow_clone()));
+            }
+        }
+        for (k, v) in r.iter() {
+            if is_dict(v) {
+                normalize_into(&k.to_string(), v, &sep, maxLevel, 1, &mut out)?;
+            }
+        }
+        for (k, _) in &out {
+            if !order.contains(k) {
+                order.push(k.clone());
+            }
+        }
+        flat.push(out);
+    }
+    let mut columns = ext_php_rs::types::ZendHashTable::new();
+    for name in &order {
+        let mut values = ext_php_rs::types::ZendHashTable::with_capacity(flat.len() as u32);
+        for row in &flat {
+            match row.iter().find(|(k, _)| k == name) {
+                Some((_, v)) => values.push(v.shallow_clone())?,
+                None => values.push(())?,
+            }
+        }
+        columns.insert(name.as_str(), values)?;
+    }
+    convert::from_columns(&columns, None).map(frame::PhpDataFrame::wrap)
+}
+
+fn is_dict(v: &Zval) -> bool {
+    v.array()
+        .is_some_and(|a| !a.is_empty() && !convert::is_list(a))
+}
+
+fn normalize_into(
+    prefix: &str,
+    v: &Zval,
+    sep: &str,
+    max_level: Option<i64>,
+    level: i64,
+    out: &mut Vec<(String, Zval)>,
+) -> PhpResult<()> {
+    for (k, child) in v.array().unwrap().iter() {
+        let key = format!("{prefix}{sep}{k}");
+        if is_dict(child) && max_level.is_none_or(|m| level < m) {
+            normalize_into(&key, child, sep, max_level, level + 1, out)?;
+        } else if is_dict(child) {
+            use ext_php_rs::convert::IntoZval;
+            out.push((key, py_json(child)?.into_zval(false)?));
+        } else {
+            out.push((key, child.shallow_clone()));
+        }
+    }
+    Ok(())
+}
+
+/// JSON text spaced as Python's json.dumps writes it, so results match py.
+fn py_json(v: &Zval) -> PhpResult<String> {
+    if let Some(a) = v.array() {
+        if convert::is_list(a) {
+            let items: Vec<String> = a.values().map(py_json).collect::<PhpResult<_>>()?;
+            return Ok(format!("[{}]", items.join(", ")));
+        }
+        let mut items = Vec::new();
+        for (k, x) in a.iter() {
+            items.push(format!(
+                "{}: {}",
+                py_json(&{
+                    use ext_php_rs::convert::IntoZval;
+                    k.to_string().into_zval(false)?
+                })?,
+                py_json(x)?
+            ));
+        }
+        return Ok(format!("{{{}}}", items.join(", ")));
+    }
+    // JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION
+    let enc = ext_php_rs::types::ZendCallable::try_from_name("json_encode")?;
+    Ok(enc
+        .try_call(vec![v, &(64i64 | 1024)])?
+        .str()
+        .unwrap_or("null")
+        .to_string())
+}
+
+/// The column names and types of a Parquet file, without reading its data.
+#[php_function]
+#[php(name = "Phpolars\\read_parquet_schema")]
+pub fn read_parquet_schema(source: String) -> PhpResult<Vec<(String, String)>> {
+    use error::OrPhp;
+    let lf = io::scan_parquet(source, None, None, None, None, None, None, None, None, None)?;
+    Ok(dtype::schema_array(
+        lf.inner.clone().collect_schema().php()?.as_ref(),
+    ))
+}
+
+#[php_function]
+#[php(name = "Phpolars\\read_ipc_schema")]
+pub fn read_ipc_schema(source: String) -> PhpResult<Vec<(String, String)>> {
+    use error::OrPhp;
+    let lf = io::scan_ipc(source, None, None, None)?;
+    Ok(dtype::schema_array(
+        lf.inner.clone().collect_schema().php()?.as_ref(),
+    ))
+}
+
 /// count('a') counts non-null values; count() alone counts rows.
 #[php_function]
 #[php(name = "Phpolars\\count")]
@@ -1242,6 +1401,11 @@ pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
         .function(wrap_function!(rolling_corr))
         .function(wrap_function!(rolling_cov))
         .function(wrap_function!(union))
+        .function(wrap_function!(arange))
+        .function(wrap_function!(sql_expr))
+        .function(wrap_function!(json_normalize))
+        .function(wrap_function!(read_parquet_schema))
+        .function(wrap_function!(read_ipc_schema))
         .function(wrap_function!(date_range))
         .function(wrap_function!(date_ranges))
         .function(wrap_function!(datetime_range))

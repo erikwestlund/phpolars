@@ -870,6 +870,15 @@ simple("fn_rolling_corr_cov", lambda: base.select(pl.rolling_corr("id", "y", win
 simple("fn_escape_regex", lambda: {"e": pl.select(pl.lit("a.b*c").str.escape_regex()).item()})
 
 
+# json_normalize, sql_expr, melt, arange
+nested = [{"a": 1, "b": {"c": 2, "d": {"e": 3, "u": "x/y"}}, "f": [1, 2]}, {"a": None, "b": {"c": 5}}, {"g": True}]
+simple("json_normalize", lambda: pl.json_normalize(nested))
+simple("json_normalize_level", lambda: pl.json_normalize(nested, max_level=1, separator="_"))
+simple("sql_expr", lambda: base.select(pl.sql_expr("id * 2 AS twice"), pl.sql_expr("UPPER(g)")))
+simple("melt", lambda: long.melt(id_vars="id", value_vars=["v"]))
+simple("arange", lambda: pl.select(pl.arange(0, 6, 2).alias("r")))
+
+
 
 # ---------------------------------------------------------------------------
 # Serialisation

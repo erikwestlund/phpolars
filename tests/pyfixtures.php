@@ -52,6 +52,7 @@ $wide = new DataFrame([
     'i8' => 'Int8', 'u32' => 'UInt32', 'f32' => 'Float32', 'day' => 'Date', 'ts_ms_utc' => 'Datetime(ms, UTC)', 'dur' => 'Duration(us)',
     'cat' => 'Categorical', 'arr' => 'Array(Int64, 2)', 'bin' => 'Binary', 'dec' => 'Decimal(10, 2)',
 ])->withColumns(col('tm')->str()->toTime('%H:%M:%S'));
+$nested = [['a' => 1, 'b' => ['c' => 2, 'd' => ['e' => 3, 'u' => 'x/y']], 'f' => [1, 2]], ['a' => null, 'b' => ['c' => 5]], ['g' => true]];
 $upd = new DataFrame(['id' => [2, 4, 9], 'x' => [20, null, 90], 'g' => ['B', null, 'Z']]);
 $tsf = new DataFrame([
     't' => array_map($dt, ['2024-01-01 00:00', '2024-01-01 01:00', '2024-01-01 03:00', '2024-01-02 00:00', '2024-01-02 05:00', '2024-01-04 00:00']),
@@ -806,6 +807,12 @@ $cases = [
     'fn_time_range' => fn () => select(Phpolars\time_range('09:00:00', '12:00:00', '90m')->alias('t')),
     'fn_rolling_corr_cov' => fn () => $S(Phpolars\rolling_corr('id', 'y', windowSize: 3)->alias('c'), Phpolars\rolling_cov('id', 'x', windowSize: 2, ddof: 0)->alias('v')),
     'fn_escape_regex' => fn () => ['e' => Phpolars\escape_regex('a.b*c')],
+    // json_normalize, sql_expr, melt, arange
+    'json_normalize' => fn () => Phpolars\json_normalize($nested),
+    'json_normalize_level' => fn () => Phpolars\json_normalize($nested, maxLevel: 1, separator: '_'),
+    'sql_expr' => fn () => $S(Phpolars\sql_expr('id * 2 AS twice'), Phpolars\sql_expr('UPPER(g)')),
+    'melt' => fn () => $long->melt(idVars: 'id', valueVars: ['v']),
+    'arange' => fn () => select(Phpolars\arange(0, 6, 2)->alias('r')),
     'group_by_iter' => function () use ($base) {
         $rows = [];
         foreach ($base->groupBy(['g', col('x')->gt(2)], maintainOrder: true) as $key => $group) {
