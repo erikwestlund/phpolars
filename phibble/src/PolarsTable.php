@@ -141,6 +141,16 @@ final class PolarsTable implements Table
         }, $keys);
     }
 
+    /** Raise R's error when a quantile() argument holds NA and na_rm is FALSE. */
+    private function guard(Translator $translator): void
+    {
+        foreach ($translator->naChecks as $arg) {
+            if ($this->df->select($arg->isNull()->any()->alias('na'))->item() === true) {
+                throw new InvalidArgumentException("missing values and NaN's not allowed if 'na_rm' is FALSE");
+            }
+        }
+    }
+
     // Shape and values
 
     public function columns(): array
@@ -245,7 +255,11 @@ final class PolarsTable implements Table
             return $this->viaFrame(fn (Frame $f) => $f->filter($predicate));
         }
 
-        return $this->with($this->df->filter($this->translator()->row($predicate)));
+        $translator = $this->translator();
+        $predicate = $translator->row($predicate);
+        $this->guard($translator);
+
+        return $this->with($this->df->filter($predicate));
     }
 
     public function filterGroups(Closure $predicate): static
@@ -262,12 +276,14 @@ final class PolarsTable implements Table
         $factors = $this->factors;
         foreach ($columns as $name => $value) {
             $name = (string) $name;
+            $translator = new Translator($df->schema(), $this->groups);
             $expr = match (true) {
-                $value instanceof PhibbleExpr => (new Translator($df->schema(), $this->groups))->row($value),
+                $value instanceof PhibbleExpr => $translator->row($value),
                 is_array($value) => $this->listColumn($value, $df->height()),
                 $value === null => lit(null)->cast('Boolean'),
                 default => lit($value),
             };
+            (new self($df))->guard($translator);
             $df = $df->withColumns([$name => $expr]);
             unset($factors[$name]);
         }
@@ -407,6 +423,7 @@ final class PolarsTable implements Table
             }
             $named[(string) $name] = $translator->aggregate($expr);
         }
+        $this->guard($translator);
         if ($this->groups === []) {
             return $this->with($this->df->select($named), []);
         }

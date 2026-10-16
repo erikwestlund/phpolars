@@ -27,6 +27,14 @@ use function Phpolars\{coalesce, col, concat_str, int_range, len, lit, max_horiz
 final class Translator
 {
     /**
+     * Arguments that must hold no NA, checked before the verb runs: R's
+     * quantile() raises an error on NA unless na.rm is TRUE.
+     *
+     * @var list<Expr>
+     */
+    public array $naChecks = [];
+
+    /**
      * @param array<string, string> $schema Column name => Polars data type name.
      * @param list<string> $partition Group keys for mutate/filter; empty when ungrouped.
      */
@@ -212,6 +220,9 @@ final class Translator
             'any' => $x->any(ignoreNulls: $naRm),
             'all' => $x->all(ignoreNulls: $naRm),
         };
+        if (! $naRm && in_array($fn, ['quantile', 'iqr'], true)) {
+            $this->naChecks[] = $x;
+        }
         if ($naRm || in_array($fn, ['any', 'all'], true)) {
             return $value;
         }

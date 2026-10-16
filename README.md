@@ -111,8 +111,7 @@ Polars is large. Release builds use the `dist` profile, which applies fat LTO, o
 | --- | --- |
 | `parquet` | `read_parquet`, `scan_parquet`, `writeParquet`, `sinkParquet` |
 | `json` | `read_json`, `read_ndjson`, `writeJson`, `writeNdjson` |
-| `ipc` | Arrow IPC (Feather) reading and writing |
-| `timezones` | the time zone database for `convertTimeZone()` and `replaceTimeZone()` |
+| `ipc` | Arrow IPC (Feather) reading and writing; also enables `parquet`, which Polars 0.55's IPC reader needs |
 | `fmt` | the table layout used by `__toString()` |
 
 All features are on by default. Build a smaller extension with, for example, `cargo build --profile dist --no-default-features --features parquet`.

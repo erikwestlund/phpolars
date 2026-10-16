@@ -57,3 +57,12 @@ it('arranges by expressions in Polars', function () {
 it('rejects summarise entries that are not size 1', function () {
     expect(fn () => pt(exprFrame())->groupBy(['g'])->summarise(['out' => col('x')]))->toThrow(LengthException::class, 'must be size 1');
 });
+
+it('raises like R for quantile() over NA without na_rm', function () {
+    expect(fn () => pt(exprFrame())->summarise(['q' => Phibble\Expr\quantile(col('x'), 0.5)]))
+        ->toThrow(InvalidArgumentException::class, "missing values and NaN's not allowed if 'na_rm' is FALSE")
+        ->and(fn () => pt(exprFrame())->groupBy(['g'])->mutate(['q' => Phibble\Expr\iqr(col('x'))]))
+        ->toThrow(InvalidArgumentException::class, "missing values and NaN's not allowed")
+        ->and(pt(exprFrame())->summarise(['q' => Phibble\Expr\quantile(col('x'), 0.5, na_rm: true)])->column('q'))
+        ->toBe(exprFrame()->summarise(['q' => Phibble\Expr\quantile(col('x'), 0.5, na_rm: true)])->column('q'));
+});

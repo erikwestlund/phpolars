@@ -27,6 +27,7 @@ Verbs given column names or `Phibble\Expr` expressions run in Polars: `select`, 
 - Groups are visited and summarised in sorted key order, with factors in level order and NA last.
 - Joins follow dplyr 1.1: row order, `.x`/`.y` suffixes, key coalescing, `multiple`, `relationship`, `unmatched`, and `naMatches`.
 - `round()` follows R 4: ties go to the even digit, judged against the stored double.
+- `quantile()` and `iqr()` over NA with `na_rm = FALSE` raise R's error, checked before the verb runs.
 
 PHP closures cannot run on Polars threads. A verb given a closure (`filter(fn ($r) => ...)`, `mutate(['x' => fn ($r) => ...])`, `mutateGroups()`, `filterGroups()`) and every verb on a rowwise table materializes a `Phibble\Frame`, runs there, and converts the result back to Polars. `PolarsTable::$fallbacks` counts these fallbacks.
 
@@ -35,8 +36,7 @@ Factor columns are held as strings in Polars. Their levels travel with the table
 ## Known differences from the in-memory Frame
 
 - `as_string()` on doubles formats to 15 significant digits, as R does. Very large or small values can differ from R's scientific notation.
-- `quantile()` and `iqr()` with NA input and `na_rm = FALSE` return NA. The Frame throws.
-- `mean()`, `min()`, and `max()` of an empty group return NA. R and the Frame return NaN, Inf, and -Inf.
+- `mean()`, `min()`, and `max()` over zero rows return NA. R and the Frame return NaN, Inf, and -Inf. The contract allows this difference.
 - Regex is not used: `str_detect()`, `str_starts()`, and `str_ends()` take fixed patterns, as the contract specifies.
 
 ## Tests

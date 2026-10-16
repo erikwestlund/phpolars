@@ -559,7 +559,12 @@ impl PhpStructNameSpace {
     }
 
     pub fn jsonEncode(&self) -> PhpResult<Zval> {
-        self.finish(self.base().struct_().json_encode())
+        #[cfg(feature = "json")]
+        {
+            self.finish(self.base().struct_().json_encode())
+        }
+        #[cfg(not(feature = "json"))]
+        Err(PhpException::from_class::<crate::error::ComputeError>("php_polars was built without the 'json' feature".into()))
     }
 }
 
