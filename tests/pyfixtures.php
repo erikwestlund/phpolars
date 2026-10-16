@@ -7,6 +7,7 @@ require __DIR__ . '/harness.php';
 use Phpolars\{DataFrame, Series};
 use function Phpolars\{col, lit, when, len, element, concat, concat_str, coalesce, concat_list, struct_};
 use function Phpolars\{sum_horizontal, mean_horizontal, min_horizontal, max_horizontal};
+use function Phpolars\{date_range, date_ranges, datetime_range, int_ranges, date, datetime, duration, from_epoch, arg_where, corr, cov, nth, repeat, linear_space, select, std, quantile, implode, approx_n_unique};
 
 $fixture = json_decode(file_get_contents(__DIR__ . '/fixtures/py/expected.json'), true, flags: JSON_THROW_ON_ERROR);
 
@@ -36,6 +37,17 @@ $long = new DataFrame(['id' => [1, 1, 2, 2, 3, 1], 'k' => ['p', 'q', 'p', 'q', '
 $nums = new DataFrame(['n' => ['1', '20', '-3', 'x', null, '007']]);
 $rnd = new DataFrame(['f' => [0.5, 1.5, 2.5, -0.5, -1.5, 1.005, 2.675, null]]);
 $dt = fn (string $s) => new DateTimeImmutable($s);
+$tsf = new DataFrame([
+    't' => array_map($dt, ['2024-01-01 00:00', '2024-01-01 01:00', '2024-01-01 03:00', '2024-01-02 00:00', '2024-01-02 05:00', '2024-01-04 00:00']),
+    'g' => ['a', 'b', 'a', 'a', 'b', 'a'],
+    'v' => [1, 2, 3, null, 5, 6],
+    'f' => [1.0, NAN, 2.5, 4.0, null, 8.0],
+]);
+$quotes = new DataFrame([
+    't' => array_map($dt, ['2024-01-01 00:30', '2024-01-01 02:00', '2024-01-02 04:00']),
+    'g' => ['a', 'a', 'b'],
+    'px' => [10.0, 11.0, 12.0],
+]);
 
 // ---------------------------------------------------------------------------
 // Cases
@@ -446,6 +458,133 @@ $cases = [
     'struct_pack_field' => fn () => $S(struct_('g', 'x')->alias('st'))->withColumns(col('st')->struct()->field('x')->alias('sx')),
     'unique_counts_mode' => fn () => $S(col('k')->dropNulls()->mode()->sort()->alias('mode')),
     'top_bottom_k' => fn () => $S(col('y')->topK(2)->alias('top'), col('y')->bottomK(2)->alias('bottom')),
+
+    // asof joins, time windows, and rolling
+    'join_asof_backward' => fn () => $tsf->joinAsof($quotes, on: 't'),
+    'join_asof_forward_by' => fn () => $tsf->joinAsof($quotes, on: 't', by: 'g', strategy: 'forward'),
+    'join_asof_nearest_tolerance' => fn () => $tsf->joinAsof($quotes, on: 't', strategy: 'nearest', tolerance: '2h'),
+    'join_asof_int_tolerance' => fn () => (new DataFrame(['k' => [1, 5, 10]]))->joinAsof(
+        new DataFrame(['k' => [2, 4, 9], 'r' => ['a', 'b', 'c']]), on: 'k', tolerance: 1, allowExactMatches: false),
+    'group_by_dynamic_day' => fn () => $tsf->groupByDynamic('t', every: '1d')->agg(col('v')->sum(), len()),
+    'group_by_dynamic_by_bounds' => fn () => $tsf->groupByDynamic('t', every: '12h', period: '1d', closed: 'both', groupBy: 'g', includeBoundaries: true)->agg(col('v')->max()),
+    'group_by_dynamic_label_offset' => fn () => $tsf->groupByDynamic('t', every: '1d', offset: '6h', label: 'right', startBy: 'datapoint')->agg(col('v')->first()),
+    'rolling_frame' => fn () => $tsf->rolling('t', period: '1d')->agg(col('v')->sum()->alias('s'), col('v')->count()->alias('n')),
+    'rolling_frame_by' => fn () => $tsf->rolling('t', period: '2h', offset: '-1h', closed: 'both', groupBy: 'g')->agg(col('v')->sum()),
+    'rolling_by_exprs' => fn () => $tsf->select(
+        't',
+        col('v')->rollingMeanBy('t', '1d')->alias('mean'),
+        col('v')->fillNull(0)->rollingSumBy('t', '3h', closed: 'both')->alias('sum'),
+        col('v')->rollingMaxBy('t', '2d', minPeriods: 2)->alias('max'),
+        col('v')->rollingMinBy('t', '1d', closed: 'left')->alias('min'),
+        col('v')->rollingMedianBy('t', '1d')->alias('median'),
+        col('v')->rollingStdBy('t', '1d')->alias('std'),
+        col('v')->rollingVarBy('t', '1d', ddof: 0)->alias('var'),
+        col('v')->rollingQuantileBy('t', '1d', quantile: 0.5)->alias('q'),
+    ),
+    'rolling_quantile_skew' => fn () => $S(
+        col('y')->rollingQuantile(0.5, windowSize: 2)->alias('q'),
+        col('x')->rollingQuantile(0.25, interpolation: 'linear', windowSize: 3, minPeriods: 1)->alias('ql'),
+        col('id')->rollingSkew(3)->alias('skew'),
+        col('id')->cast('Float64')->pow(2)->rollingKurtosis(4)->alias('kurt'),
+    ),
+    'ewm' => fn () => $S(
+        col('y')->ewmMean(alpha: 0.5)->alias('mean'),
+        col('y')->ewmMean(span: 3, adjust: false)->alias('mean_span'),
+        col('y')->ewmStd(com: 1)->alias('std'),
+        col('x')->ewmVar(halfLife: 2, ignoreNulls: true, bias: true)->alias('var'),
+    ),
+    'ewm_mean_by' => fn () => $tsf->select(col('v')->ewmMeanBy('t', halfLife: '1d')),
+    'ewm_no_alpha' => fn () => $S(col('y')->ewmMean()),
+
+    // binning, runs, and searching
+    'cut_qcut' => fn () => $S(
+        'y',
+        col('y')->cut([0, 2])->alias('cut'),
+        col('y')->cut([0, 2], labels: ['lo', 'mid', 'hi'], leftClosed: true)->alias('cutl'),
+        col('y')->qcut([0.5])->alias('q'),
+        col('y')->qcut(2, labels: ['a', 'b'])->alias('q2'),
+    )->withColumns(Phpolars\all()->exclude('y')->cast('String')),
+    'cut_include_breaks' => fn () => $S(col('y')->cut([0, 2], includeBreaks: true)->alias('c'))->unnest('c')->withColumns(col('category')->cast('String')),
+    'rle' => fn () => (new DataFrame(['a' => [1, 1, 2, 2, 2, null, null, 1]]))->select(col('a')->rle()->alias('r'))->unnest('r'),
+    'rle_id' => fn () => (new DataFrame(['a' => [1, 1, 2, 2, 2, null, null, 1]]))->select(col('a')->rleId()),
+    'search_sorted' => fn () => (new DataFrame(['a' => [1, 2, 2, 4, 7]]))->select(
+        col('a')->searchSorted(2)->alias('any'), col('a')->searchSorted(2, 'left')->alias('left'),
+        col('a')->searchSorted(2, 'right')->alias('right'), col('a')->searchSorted(9)->alias('end'),
+    ),
+    'search_sorted_many' => fn () => (new DataFrame(['a' => [1, 2, 2, 4, 7]]))->select(col('a')->searchSorted([0, 3, 7], 'left')),
+    'peaks_entropy' => fn () => (new DataFrame(['a' => [1, 3, 2, 2, 5, 4]]))->select(
+        col('a')->peakMax()->alias('max'), col('a')->peakMin()->alias('min'),
+        col('a')->entropy()->alias('e'), col('a')->entropy(base: 2, normalize: false)->alias('e2'),
+    ),
+    'hist_bins' => fn () => (new DataFrame(['a' => [1.0, 2.5, 3.0, 4.5, 5.0, 2.0]]))->select(col('a')->hist(bins: [0, 2, 4, 6])),
+    'hist_count_breaks' => fn () => (new DataFrame(['a' => [1.0, 2.5, 3.0, 4.5, 5.0, 2.0]]))->select(
+        col('a')->hist(binCount: 2, includeBreakpoint: true, includeCategory: true)->alias('h'))->unnest('h')->withColumns(col('category')->cast('String')),
+    'interpolate_by' => fn () => (new DataFrame(['a' => [1.0, null, 3.0, null, null, 6.0, null], 'b' => [1, 2, 5, 6, 7, 10, 11]]))->select(col('a')->interpolateBy('b')),
+    'is_close_index_of' => fn () => (new DataFrame(['a' => [1.0, 1.0000000001, 2.0, NAN], 'k' => [3, 1, 3, 2]]))->select(
+        col('a')->isClose(1.0)->alias('close'),
+        col('a')->isClose(1.5, absTol: 0.6)->alias('abs'),
+        col('a')->isClose(NAN, nansEqual: true)->alias('nan'),
+        col('k')->indexOf(3)->alias('idx'),
+        col('k')->indexOf(9)->alias('missing'),
+    ),
+    'arg_unique_bounds' => fn () => (new DataFrame(['k' => [3, 1, 3, 2, 1]]))->select(
+        col('k')->argUnique()->alias('au')->implode(), col('k')->upperBound()->alias('ub'), col('k')->cast('Int8')->lowerBound()->alias('lb'),
+    ),
+    'trig_extra' => fn () => $rnd->select(
+        col('f')->degrees()->alias('deg'), col('f')->radians()->alias('rad'), col('f')->sinh()->alias('sinh'),
+        col('f')->cosh()->alias('cosh'), col('f')->tanh()->alias('tanh'), col('f')->arcsinh()->alias('asinh'),
+        col('f')->abs()->add(1)->arccosh()->alias('acosh'), col('f')->truediv(10)->arctanh()->alias('atanh'), col('f')->cot()->alias('cot'),
+    ),
+
+    // frame verbs
+    'frame_shift' => fn () => $base->select('id', 'x')->shift(2),
+    'frame_shift_fill' => fn () => $base->select('id', 'x')->shift(-1, fillValue: 0),
+    'frame_interpolate' => fn () => $base->select('x', 'y')->interpolate(),
+    'frame_quantile_product' => fn () => concat([
+        $base->select('x', 'y', 'k')->quantile(0.5, 'linear'),
+        $base->select('x', 'y', 'k')->cast('Float64')->product(),
+    ]),
+    'frame_top_bottom_k' => fn () => concat([
+        $base->select('id', 'y')->topK(2, by: 'y'),
+        $base->select('id', 'k')->bottomK(3, by: ['k', 'id']),
+        $base->select('id', 'x')->topK(2, by: 'x', reverse: true),
+    ], how: 'diagonal'),
+    'frame_gather_every' => fn () => $base->select('id', 'g')->gatherEvery(2, offset: 1),
+    'frame_drop_nans' => fn () => $tsf->dropNans(),
+    'frame_drop_nans_subset' => fn () => $tsf->withColumns(col('f')->alias('f2'))->dropNans(subset: 'f2'),
+    'frame_is_duplicated' => fn () => new DataFrame([
+        'dup' => $long->select('id', 'k')->isDuplicated(), 'uniq' => $long->select('id', 'k')->isUnique(),
+    ]),
+    'frame_upsample' => fn () => (new DataFrame([
+        't' => [$dt('2024-01-01'), $dt('2024-01-04'), $dt('2024-01-02'), $dt('2024-01-03')],
+        'g' => ['a', 'a', 'b', 'b'], 'v' => [1, 4, 2, 3],
+    ]))->cast(['t' => 'Date'])->sort('t')->upsample('t', every: '1d', groupBy: 'g', maintainOrder: true),
+    'frame_corr' => fn () => $base->select('id', 'x', 'y')->dropNulls()->corr(),
+    'frame_insert_to_struct' => fn () => $base->select('id', 'g')->head(3)->insertColumn(1, new Series('n', [7, 8, 9]))->toStruct('st')->toFrame()->unnest('st'),
+    'frame_approx_n_unique' => fn () => $base->select('g', 'k')->approxNUnique(),
+
+    // functions
+    'fn_date_range' => fn () => select(date_range($dt('2024-01-01'), $dt('2024-01-10'), '3d')->alias('d')),
+    'fn_date_range_closed' => fn () => select(date_range($dt('2024-01-30'), $dt('2024-04-30'), '1mo', closed: 'left')->alias('d')),
+    'fn_datetime_range' => fn () => select(datetime_range($dt('2024-01-01'), $dt('2024-01-02'), '6h')->alias('t')),
+    'fn_date_ranges' => fn () => $base->select('d')->dropNulls()->head(2)->select(date_ranges(col('d'), col('d')->dt()->offsetBy('2d'))->alias('r')),
+    'fn_int_ranges' => fn () => $base->select('k')->dropNulls()->select(int_ranges(col('k'))->alias('r'), int_ranges(1, col('k')->add(2), 2)->alias('r2')),
+    'fn_date_datetime' => fn () => $base->select('k')->dropNulls()->select(
+        date(2024, col('k'), 15)->alias('d'), datetime(2024, 1, col('k'), 12, col('k'), 30)->alias('t')),
+    'fn_duration' => fn () => $base->select('k')->dropNulls()->select(
+        duration(days: col('k'), hours: 1)->alias('d'), date(2024, 1, 1)->add(duration(weeks: col('k')))->alias('shifted')),
+    'fn_from_epoch' => fn () => (new DataFrame(['s' => [0, 1_700_000_000], 'd' => [0, 19_700]]))->select(
+        from_epoch('s')->alias('s'), from_epoch('d', timeUnit: 'd')->alias('d'), from_epoch(col('s')->mul(1000), timeUnit: 'ms')->alias('ms')),
+    'fn_arg_where' => fn () => $S(arg_where(col('x')->gt(2))),
+    'fn_corr_cov' => fn () => $S(
+        corr('id', 'y')->alias('pearson'), corr('id', 'y', method: 'spearman')->alias('spearman'),
+        cov('id', 'x')->alias('cov'), cov('id', 'x', ddof: 0)->alias('cov0')),
+    'fn_nth' => fn () => $S(nth(0, 2)),
+    'fn_repeat_linear_space' => fn () => select(repeat('a', 3)->alias('r'), linear_space(0, 1, 3)->alias('ls')),
+    'fn_select' => fn () => select(lit(1)->alias('one'), lit(2)->mul(3)->alias('six')),
+    'fn_stat_shorthands' => fn () => $S(
+        std('y')->alias('std'), Phpolars\var_('y', ddof: 0)->alias('var'), quantile('y', 0.5)->alias('q'),
+        implode('g')->alias('all'), approx_n_unique('g')->alias('au')),
 ];
 
 // ---------------------------------------------------------------------------

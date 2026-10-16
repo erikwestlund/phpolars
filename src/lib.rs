@@ -225,6 +225,389 @@ agg_fn!("Phpolars\\first", first, first);
 agg_fn!("Phpolars\\last", last, last);
 agg_fn!("Phpolars\\n_unique", n_unique, n_unique);
 
+// Ranges, dates, and durations.
+
+fn range_bound(v: Option<&Zval>) -> PhpResult<Option<polars::prelude::Expr>> {
+    input::given(v).map(input::operand_or_column).transpose()
+}
+
+/// date_range(start, end, interval: '1d', closed: 'both'); start and end are
+/// DateTimeInterface values or Expr.
+#[php_function]
+#[php(name = "Phpolars\\date_range")]
+pub fn date_range(
+    start: Option<&Zval>,
+    end: Option<&Zval>,
+    interval: Option<String>,
+    numSamples: Option<i64>,
+    closed: Option<String>,
+) -> PhpResult<PhpExpr> {
+    use error::OrPhp;
+    let interval = match (&interval, numSamples) {
+        (None, Some(_)) => None,
+        (i, _) => Some(input::duration(i.as_deref().unwrap_or("1d"))?),
+    };
+    pl_dsl::date_range(
+        range_bound(start)?,
+        range_bound(end)?,
+        interval,
+        numSamples.map(polars::prelude::lit),
+        input::closed_window(closed, polars::prelude::ClosedWindow::Both)?,
+    )
+    .php()
+    .map(wrap)
+}
+
+#[php_function]
+#[php(name = "Phpolars\\date_ranges")]
+pub fn date_ranges(
+    start: Option<&Zval>,
+    end: Option<&Zval>,
+    interval: Option<String>,
+    closed: Option<String>,
+) -> PhpResult<PhpExpr> {
+    use error::OrPhp;
+    pl_dsl::date_ranges(
+        range_bound(start)?,
+        range_bound(end)?,
+        Some(input::duration(interval.as_deref().unwrap_or("1d"))?),
+        None,
+        input::closed_window(closed, polars::prelude::ClosedWindow::Both)?,
+    )
+    .php()
+    .map(wrap)
+}
+
+#[php_function]
+#[php(name = "Phpolars\\datetime_range")]
+pub fn datetime_range(
+    start: Option<&Zval>,
+    end: Option<&Zval>,
+    interval: Option<String>,
+    numSamples: Option<i64>,
+    closed: Option<String>,
+    timeUnit: Option<String>,
+    timeZone: Option<String>,
+) -> PhpResult<PhpExpr> {
+    use error::OrPhp;
+    let interval = match (&interval, numSamples) {
+        (None, Some(_)) => None,
+        (i, _) => Some(input::duration(i.as_deref().unwrap_or("1d"))?),
+    };
+    pl_dsl::datetime_range(
+        range_bound(start)?,
+        range_bound(end)?,
+        interval,
+        numSamples.map(polars::prelude::lit),
+        input::closed_window(closed, polars::prelude::ClosedWindow::Both)?,
+        timeUnit.map(|t| input::time_unit(Some(t))).transpose()?,
+        input::time_zone(timeZone)?,
+    )
+    .php()
+    .map(wrap)
+}
+
+#[php_function]
+#[php(name = "Phpolars\\datetime_ranges")]
+pub fn datetime_ranges(
+    start: Option<&Zval>,
+    end: Option<&Zval>,
+    interval: Option<String>,
+    closed: Option<String>,
+    timeUnit: Option<String>,
+    timeZone: Option<String>,
+) -> PhpResult<PhpExpr> {
+    use error::OrPhp;
+    pl_dsl::datetime_ranges(
+        range_bound(start)?,
+        range_bound(end)?,
+        Some(input::duration(interval.as_deref().unwrap_or("1d"))?),
+        None,
+        input::closed_window(closed, polars::prelude::ClosedWindow::Both)?,
+        timeUnit.map(|t| input::time_unit(Some(t))).transpose()?,
+        input::time_zone(timeZone)?,
+    )
+    .php()
+    .map(wrap)
+}
+
+/// int_ranges(start, end, step): one list of integers per row.
+#[php_function]
+#[php(name = "Phpolars\\int_ranges")]
+pub fn int_ranges(start: &Zval, end: Option<&Zval>, step: Option<&Zval>) -> PhpResult<PhpExpr> {
+    let (s, e) = match input::given(end) {
+        Some(e) => (input::into_expr(start)?, input::into_expr(e)?),
+        None => (polars::prelude::lit(0i64), input::into_expr(start)?),
+    };
+    let step = match input::given(step) {
+        Some(st) => input::into_expr(st)?,
+        None => polars::prelude::lit(1i64),
+    };
+    Ok(wrap(polars::prelude::int_ranges(
+        s,
+        e,
+        step,
+        polars::prelude::DataType::Int64,
+    )))
+}
+
+/// A Date from year, month, and day expressions or numbers.
+#[php_function]
+#[php(name = "Phpolars\\date")]
+pub fn date(year: &Zval, month: &Zval, day: &Zval) -> PhpResult<PhpExpr> {
+    let args = polars::prelude::DatetimeArgs::new(
+        input::into_expr(year)?,
+        input::into_expr(month)?,
+        input::into_expr(day)?,
+    );
+    Ok(wrap(
+        polars::prelude::datetime(args).cast(polars::prelude::DataType::Date),
+    ))
+}
+
+/// A Datetime from its parts; each part is an Expr, a column name, or a number.
+#[php_function]
+#[php(name = "Phpolars\\datetime")]
+pub fn datetime(
+    year: &Zval,
+    month: &Zval,
+    day: &Zval,
+    hour: Option<&Zval>,
+    minute: Option<&Zval>,
+    second: Option<&Zval>,
+    microsecond: Option<&Zval>,
+    timeUnit: Option<String>,
+    timeZone: Option<String>,
+) -> PhpResult<PhpExpr> {
+    let part = |v: Option<&Zval>| -> PhpResult<polars::prelude::Expr> {
+        match input::given(v) {
+            Some(v) => input::into_expr(v),
+            None => Ok(polars::prelude::lit(0)),
+        }
+    };
+    let args = polars::prelude::DatetimeArgs::new(
+        input::into_expr(year)?,
+        input::into_expr(month)?,
+        input::into_expr(day)?,
+    )
+    .with_hms(part(hour)?, part(minute)?, part(second)?)
+    .with_microsecond(part(microsecond)?)
+    .with_time_unit(input::time_unit(timeUnit)?)
+    .with_time_zone(input::time_zone(timeZone)?);
+    Ok(wrap(polars::prelude::datetime(args)))
+}
+
+/// A Duration from parts: duration(days: 1, hours: col('h')).
+#[php_function]
+#[php(name = "Phpolars\\duration")]
+pub fn duration(
+    weeks: Option<&Zval>,
+    days: Option<&Zval>,
+    hours: Option<&Zval>,
+    minutes: Option<&Zval>,
+    seconds: Option<&Zval>,
+    milliseconds: Option<&Zval>,
+    microseconds: Option<&Zval>,
+    nanoseconds: Option<&Zval>,
+    timeUnit: Option<String>,
+) -> PhpResult<PhpExpr> {
+    let part = |v: Option<&Zval>| -> PhpResult<polars::prelude::Expr> {
+        match input::given(v) {
+            Some(v) => input::into_expr(v),
+            None => Ok(polars::prelude::lit(0)),
+        }
+    };
+    let unit = match timeUnit {
+        Some(t) => input::time_unit(Some(t))?,
+        None if input::given(nanoseconds).is_some() => polars::prelude::TimeUnit::Nanoseconds,
+        None => polars::prelude::TimeUnit::Microseconds,
+    };
+    let args = polars::prelude::DurationArgs {
+        weeks: part(weeks)?,
+        days: part(days)?,
+        hours: part(hours)?,
+        minutes: part(minutes)?,
+        seconds: part(seconds)?,
+        milliseconds: part(milliseconds)?,
+        microseconds: part(microseconds)?,
+        nanoseconds: part(nanoseconds)?,
+        time_unit: unit,
+    };
+    Ok(wrap(polars::prelude::duration(args)))
+}
+
+/// Integers since the Unix epoch: 'd' gives a Date; 's', 'ms', 'us', and 'ns' give a Datetime.
+#[php_function]
+#[php(name = "Phpolars\\from_epoch")]
+pub fn from_epoch(column: &Zval, timeUnit: Option<String>) -> PhpResult<PhpExpr> {
+    use polars::prelude::{DataType, TimeUnit, lit};
+    let e = input::into_expr(column)?;
+    Ok(wrap(match timeUnit.as_deref().unwrap_or("s") {
+        "d" => e.cast(DataType::Date),
+        // py scales seconds and milliseconds to microseconds.
+        "s" => (e.cast(DataType::Int64) * lit(1_000_000i64))
+            .cast(DataType::Datetime(TimeUnit::Microseconds, None)),
+        "ms" => (e.cast(DataType::Int64) * lit(1_000i64))
+            .cast(DataType::Datetime(TimeUnit::Microseconds, None)),
+        u => e.cast(DataType::Datetime(
+            input::time_unit(Some(u.to_string()))?,
+            None,
+        )),
+    }))
+}
+
+/// Indices where the condition is true.
+#[php_function]
+#[php(name = "Phpolars\\arg_where")]
+pub fn arg_where(condition: &Zval) -> PhpResult<PhpExpr> {
+    Ok(wrap(polars::prelude::arg_where(input::into_expr(
+        condition,
+    )?)))
+}
+
+/// Correlation of two columns: method 'pearson' or 'spearman'.
+#[php_function]
+#[php(name = "Phpolars\\corr")]
+pub fn corr(
+    a: &Zval,
+    b: &Zval,
+    method: Option<String>,
+    propagateNans: Option<bool>,
+) -> PhpResult<PhpExpr> {
+    let (a, b) = (input::into_expr(a)?, input::into_expr(b)?);
+    Ok(wrap(match method.as_deref().unwrap_or("pearson") {
+        "pearson" => polars::prelude::pearson_corr(a, b),
+        "spearman" => polars::prelude::spearman_rank_corr(a, b, propagateNans.unwrap_or(false)),
+        m => {
+            return Err(error::value_error(format!(
+                "method must be pearson or spearman, not '{m}'"
+            )));
+        }
+    }))
+}
+
+#[php_function]
+#[php(name = "Phpolars\\cov")]
+pub fn cov(a: &Zval, b: &Zval, ddof: Option<i64>) -> PhpResult<PhpExpr> {
+    Ok(wrap(polars::prelude::cov(
+        input::into_expr(a)?,
+        input::into_expr(b)?,
+        input::ddof(ddof)?,
+    )))
+}
+
+/// Columns by position: nth(0), nth(1, -1).
+#[php_function]
+#[php(name = "Phpolars\\nth")]
+pub fn nth(indices: &[&Zval]) -> PhpResult<PhpExpr> {
+    let mut idx = Vec::new();
+    for v in indices {
+        match (v.long(), v.array()) {
+            (Some(i), _) => idx.push(i),
+            (None, Some(a)) => {
+                for x in a.values() {
+                    idx.push(
+                        x.long()
+                            .ok_or_else(|| error::value_error("nth() takes integer positions"))?,
+                    );
+                }
+            }
+            _ => return Err(error::value_error("nth() takes integer positions")),
+        }
+    }
+    let mut it = idx.into_iter();
+    let first = it
+        .next()
+        .ok_or_else(|| error::value_error("nth() needs a position"))?;
+    let mut sel = polars::prelude::nth(first);
+    for i in it {
+        sel |= polars::prelude::nth(i);
+    }
+    Ok(wrap(sel.as_expr()))
+}
+
+/// A value repeated n times.
+#[php_function]
+#[php(name = "Phpolars\\repeat")]
+pub fn repeat(value: &Zval, n: &Zval, dtype: Option<String>) -> PhpResult<PhpExpr> {
+    let mut v = input::operand(value)?;
+    if let Some(d) = dtype {
+        v = v.strict_cast(dtype::parse(&d)?);
+    }
+    Ok(wrap(polars::prelude::repeat(v, input::into_expr(n)?)))
+}
+
+/// num evenly spaced Float64 values from start to end.
+#[php_function]
+#[php(name = "Phpolars\\linear_space")]
+pub fn linear_space(
+    start: &Zval,
+    end: &Zval,
+    numSamples: &Zval,
+    closed: Option<String>,
+) -> PhpResult<PhpExpr> {
+    Ok(wrap(polars::prelude::linear_space(
+        input::operand(start)?,
+        input::operand(end)?,
+        input::into_expr(numSamples)?,
+        input::closed_interval(closed)?,
+    )))
+}
+
+/// Evaluate expressions without a frame: select(lit(1), date_range(...)).
+#[php_function]
+#[php(name = "Phpolars\\select")]
+pub fn select(exprs: &[&Zval]) -> PhpResult<frame::PhpDataFrame> {
+    use error::OrPhp;
+    init_threads();
+    use polars::prelude::IntoLazy;
+    polars::prelude::DataFrame::empty()
+        .lazy()
+        .select(input::exprs(exprs)?)
+        .collect()
+        .php()
+        .map(frame::PhpDataFrame::wrap)
+}
+
+/// Each column's values as one list.
+#[php_function]
+#[php(name = "Phpolars\\implode")]
+pub fn implode_fn(names: &[&Zval]) -> PhpResult<PhpExpr> {
+    Ok(wrap(col(names)?.inner.implode(true)))
+}
+agg_fn!(
+    "Phpolars\\approx_n_unique",
+    approx_n_unique,
+    approx_n_unique
+);
+
+/// std('a', ddof: 1), var_('a'), quantile('a', 0.5): py's column shorthands.
+/// var_ has a trailing underscore because PHP reserves var, as struct_ does for struct.
+#[php_function]
+#[php(name = "Phpolars\\std")]
+pub fn std(column: &Zval, ddof: Option<i64>) -> PhpResult<PhpExpr> {
+    Ok(wrap(input::into_expr(column)?.std(input::ddof(ddof)?)))
+}
+
+#[php_function]
+#[php(name = "Phpolars\\var_")]
+pub fn var(column: &Zval, ddof: Option<i64>) -> PhpResult<PhpExpr> {
+    Ok(wrap(input::into_expr(column)?.var(input::ddof(ddof)?)))
+}
+
+#[php_function]
+#[php(name = "Phpolars\\quantile")]
+pub fn quantile_fn(
+    column: &Zval,
+    quantile: input::Num,
+    interpolation: Option<String>,
+) -> PhpResult<PhpExpr> {
+    Ok(wrap(input::into_expr(column)?.quantile(
+        polars::prelude::lit(quantile.0),
+        expr::quantile_method(interpolation)?,
+    )))
+}
+
 /// count('a') counts non-null values; count() alone counts rows.
 #[php_function]
 #[php(name = "Phpolars\\count")]
@@ -326,6 +709,27 @@ pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
         .function(wrap_function!(last))
         .function(wrap_function!(n_unique))
         .function(wrap_function!(count))
+        .function(wrap_function!(date_range))
+        .function(wrap_function!(date_ranges))
+        .function(wrap_function!(datetime_range))
+        .function(wrap_function!(datetime_ranges))
+        .function(wrap_function!(int_ranges))
+        .function(wrap_function!(date))
+        .function(wrap_function!(datetime))
+        .function(wrap_function!(duration))
+        .function(wrap_function!(from_epoch))
+        .function(wrap_function!(arg_where))
+        .function(wrap_function!(corr))
+        .function(wrap_function!(cov))
+        .function(wrap_function!(nth))
+        .function(wrap_function!(repeat))
+        .function(wrap_function!(linear_space))
+        .function(wrap_function!(select))
+        .function(wrap_function!(implode_fn))
+        .function(wrap_function!(approx_n_unique))
+        .function(wrap_function!(std))
+        .function(wrap_function!(var))
+        .function(wrap_function!(quantile_fn))
         .function(wrap_function!(concat))
         .function(wrap_function!(thread_pool_size))
         .function(wrap_function!(version))

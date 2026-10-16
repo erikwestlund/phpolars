@@ -357,6 +357,7 @@ macro_rules! frame_verbs {
                     lf: self.lf(),
                     keys,
                     maintain_order: maintainOrder.unwrap_or(false),
+                    window: Window::None,
                 })
             }
 
@@ -415,6 +416,181 @@ macro_rules! frame_verbs {
                     value_name: valueName.map(Into::into),
                 };
                 Self::out(self.lf().unpivot(args))
+            }
+
+            /// joinAsof($other, on: 't', by: 'g', strategy: 'backward', tolerance: '1h'):
+            /// each left row takes the nearest right row by the sorted 'on' key.
+            pub fn joinAsof(&self, other: &Zval, on: Option<&Zval>, leftOn: Option<&Zval>, rightOn: Option<&Zval>, by: Option<&Zval>, byLeft: Option<&Zval>, byRight: Option<&Zval>, strategy: Option<String>, suffix: Option<String>, tolerance: Option<&Zval>, allowExactMatches: Option<bool>, checkSortedness: Option<bool>, coalesce: Option<bool>) -> PhpResult<Self> {
+                let other = other_frame(other)?;
+                let (left, right) = match (given(on), given(leftOn), given(rightOn)) {
+                    (Some(on), None, None) => (into_expr(on)?, into_expr(on)?),
+                    (None, Some(l), Some(r)) => (into_expr(l)?, into_expr(r)?),
+                    _ => return Err(value_error("joinAsof() needs on, or both leftOn and rightOn")),
+                };
+                let (left_by, right_by) = match (opt_names(by)?, opt_names(byLeft)?, opt_names(byRight)?) {
+                    (Some(b), None, None) => (Some(b.clone()), Some(b)),
+                    (None, Some(l), Some(r)) => (Some(l), Some(r)),
+                    (None, None, None) => (None, None),
+                    _ => return Err(value_error("joinAsof() takes by, or both byLeft and byRight")),
+                };
+                let strategy = match strategy.as_deref().unwrap_or("backward") {
+                    "backward" => AsofStrategy::Backward,
+                    "forward" => AsofStrategy::Forward,
+                    "nearest" => AsofStrategy::Nearest,
+                    s => return Err(value_error(format!("strategy must be backward, forward or nearest, not '{s}'"))),
+                };
+                let (tolerance, tolerance_str) = match given(tolerance) {
+                    None => (None, None),
+                    Some(t) => match t.str() {
+                        Some(s) => {
+                            crate::input::duration(s)?;
+                            (None, Some(s.into()))
+                        }
+                        None => {
+                            let av = convert::any_value(t)?.into_static();
+                            (Some(Scalar::new(av.dtype(), av)), None)
+                        }
+                    },
+                };
+                let options = AsOfOptions {
+                    strategy,
+                    tolerance,
+                    tolerance_str,
+                    left_by: left_by.map(|v| v.into_iter().map(Into::into).collect()),
+                    right_by: right_by.map(|v| v.into_iter().map(Into::into).collect()),
+                    allow_eq: allowExactMatches.unwrap_or(true),
+                    check_sortedness: checkSortedness.unwrap_or(true),
+                };
+                let args = JoinArgs::new(JoinType::AsOf(Box::new(options)))
+                    .with_suffix(Some(suffix.unwrap_or_else(|| "_right".into()).into()))
+                    .with_coalesce(if coalesce.unwrap_or(true) { JoinCoalesce::CoalesceColumns } else { JoinCoalesce::KeepColumns });
+                Self::out(self.lf().join(other, [left], [right], args))
+            }
+
+            /// Fixed time windows: groupByDynamic('t', every: '1d', period:, offset:,
+            /// includeBoundaries:, closed: 'left', label: 'left', groupBy:, startBy: 'window').
+            pub fn groupByDynamic(&self, indexColumn: &Zval, every: String, period: Option<String>, offset: Option<String>, includeBoundaries: Option<bool>, closed: Option<String>, label: Option<String>, groupBy: Option<&Zval>, startBy: Option<String>) -> PhpResult<$group> {
+                let every_d = crate::input::duration(&every)?;
+                let options = DynamicGroupOptions {
+                    index_column: "".into(),
+                    every: every_d,
+                    period: match period { Some(p) => crate::input::duration(&p)?, None => every_d },
+                    offset: crate::input::duration(offset.as_deref().unwrap_or("0ns"))?,
+                    label: match label.as_deref().unwrap_or("left") {
+                        "left" => Label::Left,
+                        "right" => Label::Right,
+                        "datapoint" => Label::DataPoint,
+                        l => return Err(value_error(format!("label must be left, right or datapoint, not '{l}'"))),
+                    },
+                    include_boundaries: includeBoundaries.unwrap_or(false),
+                    closed_window: crate::input::closed_window(closed, ClosedWindow::Left)?,
+                    start_by: match startBy.as_deref().unwrap_or("window") {
+                        "window" => StartBy::WindowBound,
+                        "datapoint" => StartBy::DataPoint,
+                        "monday" => StartBy::Monday,
+                        "tuesday" => StartBy::Tuesday,
+                        "wednesday" => StartBy::Wednesday,
+                        "thursday" => StartBy::Thursday,
+                        "friday" => StartBy::Friday,
+                        "saturday" => StartBy::Saturday,
+                        "sunday" => StartBy::Sunday,
+                        s => return Err(value_error(format!("unknown startBy '{s}'"))),
+                    },
+                };
+                Ok($group {
+                    lf: self.lf(),
+                    keys: given(groupBy).map(|g| exprs(&[g])).transpose()?.unwrap_or_default(),
+                    maintain_order: true,
+                    window: Window::Dynamic(into_expr(indexColumn)?, options),
+                })
+            }
+
+            /// Windows that end at each row: rolling('t', period: '2d', offset:, closed: 'right', groupBy:).
+            pub fn rolling(&self, indexColumn: &Zval, period: String, offset: Option<String>, closed: Option<String>, groupBy: Option<&Zval>) -> PhpResult<$group> {
+                let period_d = crate::input::duration(&period)?;
+                let options = RollingGroupOptions {
+                    index_column: "".into(),
+                    period: period_d,
+                    offset: match offset { Some(o) => crate::input::duration(&o)?, None => -period_d },
+                    closed_window: crate::input::closed_window(closed, ClosedWindow::Right)?,
+                };
+                Ok($group {
+                    lf: self.lf(),
+                    keys: given(groupBy).map(|g| exprs(&[g])).transpose()?.unwrap_or_default(),
+                    maintain_order: true,
+                    window: Window::Rolling(into_expr(indexColumn)?, options),
+                })
+            }
+
+            /// Shift every column by n rows, filling with fillValue or null.
+            pub fn shift(&self, n: Option<i64>, fillValue: Option<&Zval>) -> PhpResult<Self> {
+                let n = lit(n.unwrap_or(1));
+                Self::out(match given(fillValue) {
+                    Some(v) => self.lf().shift_and_fill(n, operand(v)?),
+                    None => self.lf().shift(n),
+                })
+            }
+
+            pub fn interpolate(&self) -> PhpResult<Self> {
+                Self::out(self.lf().select([all().as_expr().interpolate(InterpolationMethod::Linear)]))
+            }
+
+            pub fn quantile(&self, quantile: crate::input::Num, interpolation: Option<String>) -> PhpResult<Self> {
+                Self::out(self.lf().quantile(lit(quantile.0), crate::expr::quantile_method(interpolation)?))
+            }
+
+            pub fn product(&self) -> PhpResult<Self> {
+                Self::out(frame_agg(self.lf(), |e| e.product()))
+            }
+
+            pub fn approxNUnique(&self) -> PhpResult<Self> {
+                Self::out(frame_agg(self.lf(), |e| e.approx_n_unique()))
+            }
+
+            /// The k rows with the largest values of by; reverse: true for the smallest.
+            pub fn topK(&self, k: i64, by: &Zval, reverse: Option<&Zval>) -> PhpResult<Self> {
+                let k = crate::input::count(k, "k")? as IdxSize;
+                let options = SortMultipleOptions::default().with_order_descending_multi(bools(reverse, false)?);
+                Self::out(self.lf().top_k(k, exprs(&[by])?, options))
+            }
+
+            pub fn bottomK(&self, k: i64, by: &Zval, reverse: Option<&Zval>) -> PhpResult<Self> {
+                let k = crate::input::count(k, "k")? as IdxSize;
+                let options = SortMultipleOptions::default().with_order_descending_multi(bools(reverse, false)?);
+                Self::out(self.lf().bottom_k(k, exprs(&[by])?, options))
+            }
+
+            /// Every nth row, starting at offset.
+            pub fn gatherEvery(&self, n: i64, offset: Option<i64>) -> PhpResult<Self> {
+                let n = crate::input::count(n, "n")?;
+                if n == 0 {
+                    return Err(value_error("n must be at least 1"));
+                }
+                let offset = crate::input::count(offset.unwrap_or(0), "offset")?;
+                Self::out(self.lf().select([all().as_expr().gather_every(n, offset)]))
+            }
+
+            /// Drop rows with NaN in any float column of subset (default: all).
+            pub fn dropNans(&self, subset: Option<&Zval>) -> PhpResult<Self> {
+                let schema = self.schema_ref()?;
+                let cols = match opt_names(subset)? {
+                    Some(c) => c,
+                    None => schema.iter().filter(|(_, dt)| dt.is_float()).map(|(n, _)| n.to_string()).collect(),
+                };
+                if cols.is_empty() {
+                    return Self::out(self.lf());
+                }
+                let any_nan = polars::lazy::dsl::any_horizontal(cols.into_iter().map(|c| col(c).is_nan()).collect::<Vec<_>>()).php()?;
+                Self::out(self.lf().filter(any_nan.not().fill_null(lit(true))))
+            }
+
+            /// select() with the expressions run one after another.
+            pub fn selectSeq(&self, exprs: &[&Zval]) -> PhpResult<Self> {
+                Self::out(self.lf().select_seq(crate::input::exprs(exprs)?))
+            }
+
+            pub fn withColumnsSeq(&self, exprs: &[&Zval]) -> PhpResult<Self> {
+                Self::out(self.lf().with_columns_seq(crate::input::exprs(exprs)?))
             }
 
             /// Columns and their py data type names.
@@ -862,6 +1038,138 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
         self.inner.vstack(&other.inner).php().map(Self::wrap)
     }
 
+    /// A Boolean Series: true for rows that occur more than once.
+    pub fn isDuplicated(&self) -> PhpResult<PhpSeries> {
+        Ok(PhpSeries {
+            inner: self.inner.is_duplicated().php()?.into_series(),
+        })
+    }
+
+    pub fn isUnique(&self) -> PhpResult<PhpSeries> {
+        Ok(PhpSeries {
+            inner: self.inner.is_unique().php()?.into_series(),
+        })
+    }
+
+    /// One frame per group of by. asDict: true keys them by the group value
+    /// (one key column only, since PHP array keys can't be tuples).
+    pub fn partitionBy(
+        &self,
+        by: &Zval,
+        maintainOrder: Option<bool>,
+        includeKey: Option<bool>,
+        asDict: Option<bool>,
+    ) -> PhpResult<ZBox<ZendHashTable>> {
+        let by = names(&[by])?;
+        let include = includeKey.unwrap_or(true);
+        let parts = if maintainOrder.unwrap_or(true) {
+            self.inner.partition_by_stable(by.clone(), true)
+        } else {
+            self.inner.partition_by(by.clone(), true)
+        }
+        .php()?;
+        let as_dict = asDict.unwrap_or(false);
+        if as_dict && by.len() != 1 {
+            return Err(value_error(
+                "partitionBy(asDict: true) takes one key column",
+            ));
+        }
+        let mut out = ZendHashTable::with_capacity(parts.len() as u32);
+        for p in parts {
+            let key = if as_dict {
+                Some(match p.column(&by[0]).php()?.get(0).php()? {
+                    AnyValue::Null => String::new(),
+                    AnyValue::String(s) => s.to_string(),
+                    AnyValue::StringOwned(s) => s.to_string(),
+                    other => other.to_string(),
+                })
+            } else {
+                None
+            };
+            let p = if include {
+                p
+            } else {
+                p.drop_many(by.iter().map(|s| s.as_str()))
+            };
+            match key {
+                Some(k) => out.insert(k.as_str(), Self::wrap(p))?,
+                None => out.push(Self::wrap(p))?,
+            }
+        }
+        Ok(out)
+    }
+
+    /// Fill in missing time steps: upsample('t', every: '1d', groupBy:, maintainOrder:).
+    pub fn upsample(
+        &self,
+        timeColumn: String,
+        every: String,
+        groupBy: Option<&Zval>,
+        maintainOrder: Option<bool>,
+    ) -> PhpResult<Self> {
+        use polars::prelude::PolarsUpsample;
+        init_threads();
+        let by = opt_names(groupBy)?.unwrap_or_default();
+        let every = crate::input::duration(&every)?;
+        let out = if maintainOrder.unwrap_or(false) {
+            self.inner.upsample_stable(by, &timeColumn, every)
+        } else {
+            self.inner.upsample(by, &timeColumn, every)
+        };
+        out.php().map(Self::wrap)
+    }
+
+    /// The rows as one Struct Series.
+    pub fn toStruct(&self, name: Option<String>) -> PhpSeries {
+        PhpSeries {
+            inner: self
+                .inner
+                .clone()
+                .into_struct(name.unwrap_or_default().into())
+                .into_series(),
+        }
+    }
+
+    /// Pearson correlation between every pair of columns.
+    pub fn corr(&self) -> PhpResult<Self> {
+        let names: Vec<PlSmallStr> = self.inner.get_column_names().into_iter().cloned().collect();
+        let mut exprs = Vec::new();
+        for a in &names {
+            for b in &names {
+                exprs.push(
+                    pearson_corr(col(a.clone()), col(b.clone())).alias(format!("{a}\u{0}{b}")),
+                );
+            }
+        }
+        init_threads();
+        let one = self.lf().select(exprs).collect().php()?;
+        let mut columns: Vec<Column> = Vec::new();
+        for a in &names {
+            let mut values = Vec::with_capacity(names.len());
+            for b in &names {
+                let v = one.column(&format!("{b}\u{0}{a}")).php()?.get(0).php()?;
+                values.push(v.extract::<f64>());
+            }
+            columns.push(Series::new(a.clone(), values).into());
+        }
+        DataFrame::new_infer_height(columns).php().map(Self::wrap)
+    }
+
+    /// Insert a Series at a column position (negative counts from the end).
+    pub fn insertColumn(&self, index: i64, column: &PhpSeries) -> PhpResult<Self> {
+        let w = self.inner.width() as i64;
+        let i = if index < 0 { w + index + 1 } else { index };
+        if i < 0 || i > w {
+            return Err(PhpException::from_class::<crate::error::OutOfBoundsError>(
+                format!("column index {index} is out of bounds"),
+            ));
+        }
+        let mut df = self.inner.clone();
+        df.insert_column(i as usize, column.inner.clone().into())
+            .php()?;
+        Ok(Self::wrap(df))
+    }
+
     pub fn __to_string(&self) -> String {
         format!("{}", self.inner)
     }
@@ -923,10 +1231,23 @@ frame_verbs!(PhpLazyFrame, PhpLazyGroupBy, {
             .map(PhpDataFrame::wrap)
     }
 
+    /// Summary statistics, collected eagerly as DataFrame::describe() does.
+    pub fn describe(&self, percentiles: Option<Vec<crate::input::Num>>) -> PhpResult<PhpDataFrame> {
+        self.collect()?.describe(percentiles)
+    }
+
     pub fn __to_string(&self) -> String {
         self.inner.explain(false).unwrap_or_default()
     }
 });
+
+/// The windows of a groupByDynamic() or rolling() group.
+#[derive(Clone)]
+enum Window {
+    None,
+    Dynamic(Expr, DynamicGroupOptions),
+    Rolling(Expr, RollingGroupOptions),
+}
 
 macro_rules! group_by {
     ($ty:ident, $php:literal, $frame:ident) => {
@@ -936,21 +1257,31 @@ macro_rules! group_by {
             lf: LazyFrame,
             keys: Vec<Expr>,
             maintain_order: bool,
+            window: Window,
         }
 
         impl $ty {
             fn grouped(&self) -> LazyGroupBy {
-                if self.maintain_order {
-                    self.lf.clone().group_by_stable(self.keys.clone())
-                } else {
-                    self.lf.clone().group_by(self.keys.clone())
+                let (lf, keys) = (self.lf.clone(), self.keys.clone());
+                match &self.window {
+                    Window::Dynamic(index, o) => {
+                        lf.group_by_dynamic(index.clone(), keys, o.clone())
+                    }
+                    Window::Rolling(index, o) => lf.rolling(index.clone(), keys, o.clone()),
+                    Window::None if self.maintain_order => lf.group_by_stable(keys),
+                    Window::None => lf.group_by(keys),
                 }
             }
 
             fn all_other(&self, f: impl Fn(Expr) -> Expr) -> PhpResult<$frame> {
+                let index = match &self.window {
+                    Window::Dynamic(i, _) | Window::Rolling(i, _) => Some(i),
+                    Window::None => None,
+                };
                 let keys: Vec<PlSmallStr> = self
                     .keys
                     .iter()
+                    .chain(index)
                     .filter_map(|k| k.clone().meta().output_name().ok())
                     .collect();
                 let rest = all().exclude_cols(keys).as_expr();

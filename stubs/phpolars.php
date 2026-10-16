@@ -172,6 +172,48 @@ namespace Phpolars {
         public function arcsin(): Phpolars\Expr {}
         public function arccos(): Phpolars\Expr {}
         public function arctan(): Phpolars\Expr {}
+        public function rollingQuantile(float $quantile, int $windowSize, ?string $interpolation = null, ?int $minPeriods = null, ?bool $center = null): Phpolars\Expr {}
+        public function rollingSkew(int $windowSize, ?bool $bias = null, ?int $minPeriods = null, ?bool $center = null): Phpolars\Expr {}
+        public function rollingKurtosis(int $windowSize, ?bool $fisher = null, ?bool $bias = null, ?int $minPeriods = null, ?bool $center = null): Phpolars\Expr {}
+        public function rollingMeanBy(mixed $by, string $windowSize, ?int $minPeriods = null, ?string $closed = null): Phpolars\Expr {}
+        public function rollingSumBy(mixed $by, string $windowSize, ?int $minPeriods = null, ?string $closed = null): Phpolars\Expr {}
+        public function rollingMinBy(mixed $by, string $windowSize, ?int $minPeriods = null, ?string $closed = null): Phpolars\Expr {}
+        public function rollingMaxBy(mixed $by, string $windowSize, ?int $minPeriods = null, ?string $closed = null): Phpolars\Expr {}
+        public function rollingMedianBy(mixed $by, string $windowSize, ?int $minPeriods = null, ?string $closed = null): Phpolars\Expr {}
+        public function rollingStdBy(mixed $by, string $windowSize, ?int $minPeriods = null, ?string $closed = null, ?int $ddof = null): Phpolars\Expr {}
+        public function rollingVarBy(mixed $by, string $windowSize, ?int $minPeriods = null, ?string $closed = null, ?int $ddof = null): Phpolars\Expr {}
+        public function rollingQuantileBy(mixed $by, string $windowSize, float $quantile, ?string $interpolation = null, ?int $minPeriods = null, ?string $closed = null): Phpolars\Expr {}
+        public function ewmMean(?float $com = null, ?float $span = null, ?float $halfLife = null, ?float $alpha = null, ?bool $adjust = null, ?int $minPeriods = null, ?bool $ignoreNulls = null): Phpolars\Expr {}
+        public function ewmStd(?float $com = null, ?float $span = null, ?float $halfLife = null, ?float $alpha = null, ?bool $adjust = null, ?bool $bias = null, ?int $minPeriods = null, ?bool $ignoreNulls = null): Phpolars\Expr {}
+        public function ewmVar(?float $com = null, ?float $span = null, ?float $halfLife = null, ?float $alpha = null, ?bool $adjust = null, ?bool $bias = null, ?int $minPeriods = null, ?bool $ignoreNulls = null): Phpolars\Expr {}
+        public function ewmMeanBy(mixed $by, string $halfLife): Phpolars\Expr {}
+        public function cut(mixed $breaks, ?array $labels = null, ?bool $leftClosed = null, ?bool $includeBreaks = null): Phpolars\Expr {}
+        public function qcut(mixed $quantiles, ?array $labels = null, ?bool $leftClosed = null, ?bool $allowDuplicates = null, ?bool $includeBreaks = null): Phpolars\Expr {}
+        public function rle(): Phpolars\Expr {}
+        public function rleId(): Phpolars\Expr {}
+        public function searchSorted(mixed $element, ?string $side = null, ?bool $descending = null): Phpolars\Expr {}
+        public function peakMax(): Phpolars\Expr {}
+        public function peakMin(): Phpolars\Expr {}
+        public function entropy(?float $base = null, ?bool $normalize = null): Phpolars\Expr {}
+        public function hist(mixed $bins = null, ?int $binCount = null, ?bool $includeCategory = null, ?bool $includeBreakpoint = null): Phpolars\Expr {}
+        public function interpolateBy(mixed $by): Phpolars\Expr {}
+        public function isClose(mixed $other, ?float $absTol = null, ?float $relTol = null, ?bool $nansEqual = null): Phpolars\Expr {}
+        public function argUnique(): Phpolars\Expr {}
+        public function indexOf(mixed $element): Phpolars\Expr {}
+        public function upperBound(): Phpolars\Expr {}
+        public function lowerBound(): Phpolars\Expr {}
+        public function toPhysical(): Phpolars\Expr {}
+        public function limit(?int $n = null): Phpolars\Expr {}
+        public function exclude(mixed ...$columns): Phpolars\Expr {}
+        public function degrees(): Phpolars\Expr {}
+        public function radians(): Phpolars\Expr {}
+        public function sinh(): Phpolars\Expr {}
+        public function cosh(): Phpolars\Expr {}
+        public function tanh(): Phpolars\Expr {}
+        public function arcsinh(): Phpolars\Expr {}
+        public function arccosh(): Phpolars\Expr {}
+        public function arctanh(): Phpolars\Expr {}
+        public function cot(): Phpolars\Expr {}
         public function __toString(): string {}
         public function __construct() {}
     }
@@ -459,6 +501,13 @@ namespace Phpolars {
         public function clone(): Phpolars\DataFrame {}
         public function hstack(mixed $columns): Phpolars\DataFrame {}
         public function vstack(Phpolars\DataFrame $other): Phpolars\DataFrame {}
+        public function isDuplicated(): Phpolars\Series {}
+        public function isUnique(): Phpolars\Series {}
+        public function partitionBy(mixed $by, ?bool $maintainOrder = null, ?bool $includeKey = null, ?bool $asDict = null): array {}
+        public function upsample(string $timeColumn, string $every, mixed $groupBy = null, ?bool $maintainOrder = null): Phpolars\DataFrame {}
+        public function toStruct(?string $name = null): Phpolars\Series {}
+        public function corr(): Phpolars\DataFrame {}
+        public function insertColumn(int $index, Phpolars\Series $column): Phpolars\DataFrame {}
         public function __toString(): string {}
         public function select(mixed ...$exprs): Phpolars\DataFrame {}
         public function withColumns(mixed ...$exprs): Phpolars\DataFrame {}
@@ -495,6 +544,20 @@ namespace Phpolars {
         public function count(): Phpolars\DataFrame {}
         public function nUnique(): Phpolars\DataFrame {}
         public function unpivot(mixed $on = null, mixed $index = null, ?string $variableName = null, ?string $valueName = null): Phpolars\DataFrame {}
+        public function joinAsof(mixed $other, mixed $on = null, mixed $leftOn = null, mixed $rightOn = null, mixed $by = null, mixed $byLeft = null, mixed $byRight = null, ?string $strategy = null, ?string $suffix = null, mixed $tolerance = null, ?bool $allowExactMatches = null, ?bool $checkSortedness = null, ?bool $coalesce = null): Phpolars\DataFrame {}
+        public function groupByDynamic(mixed $indexColumn, string $every, ?string $period = null, ?string $offset = null, ?bool $includeBoundaries = null, ?string $closed = null, ?string $label = null, mixed $groupBy = null, ?string $startBy = null): Phpolars\GroupBy {}
+        public function rolling(mixed $indexColumn, string $period, ?string $offset = null, ?string $closed = null, mixed $groupBy = null): Phpolars\GroupBy {}
+        public function shift(?int $n = null, mixed $fillValue = null): Phpolars\DataFrame {}
+        public function interpolate(): Phpolars\DataFrame {}
+        public function quantile(float $quantile, ?string $interpolation = null): Phpolars\DataFrame {}
+        public function product(): Phpolars\DataFrame {}
+        public function approxNUnique(): Phpolars\DataFrame {}
+        public function topK(int $k, mixed $by, mixed $reverse = null): Phpolars\DataFrame {}
+        public function bottomK(int $k, mixed $by, mixed $reverse = null): Phpolars\DataFrame {}
+        public function gatherEvery(int $n, ?int $offset = null): Phpolars\DataFrame {}
+        public function dropNans(mixed $subset = null): Phpolars\DataFrame {}
+        public function selectSeq(mixed ...$exprs): Phpolars\DataFrame {}
+        public function withColumnsSeq(mixed ...$exprs): Phpolars\DataFrame {}
         public function collectSchema(): array {}
         public function __construct(?array $data = null, ?array $schema = null) {}
     }
@@ -510,6 +573,7 @@ namespace Phpolars {
         public function sinkNdjson(string $file): void {}
         public function cache(): Phpolars\LazyFrame {}
         public function fetch(?int $n = null): Phpolars\DataFrame {}
+        public function describe(?array $percentiles = null): Phpolars\DataFrame {}
         public function __toString(): string {}
         public function select(mixed ...$exprs): Phpolars\LazyFrame {}
         public function withColumns(mixed ...$exprs): Phpolars\LazyFrame {}
@@ -546,6 +610,20 @@ namespace Phpolars {
         public function count(): Phpolars\LazyFrame {}
         public function nUnique(): Phpolars\LazyFrame {}
         public function unpivot(mixed $on = null, mixed $index = null, ?string $variableName = null, ?string $valueName = null): Phpolars\LazyFrame {}
+        public function joinAsof(mixed $other, mixed $on = null, mixed $leftOn = null, mixed $rightOn = null, mixed $by = null, mixed $byLeft = null, mixed $byRight = null, ?string $strategy = null, ?string $suffix = null, mixed $tolerance = null, ?bool $allowExactMatches = null, ?bool $checkSortedness = null, ?bool $coalesce = null): Phpolars\LazyFrame {}
+        public function groupByDynamic(mixed $indexColumn, string $every, ?string $period = null, ?string $offset = null, ?bool $includeBoundaries = null, ?string $closed = null, ?string $label = null, mixed $groupBy = null, ?string $startBy = null): Phpolars\LazyGroupBy {}
+        public function rolling(mixed $indexColumn, string $period, ?string $offset = null, ?string $closed = null, mixed $groupBy = null): Phpolars\LazyGroupBy {}
+        public function shift(?int $n = null, mixed $fillValue = null): Phpolars\LazyFrame {}
+        public function interpolate(): Phpolars\LazyFrame {}
+        public function quantile(float $quantile, ?string $interpolation = null): Phpolars\LazyFrame {}
+        public function product(): Phpolars\LazyFrame {}
+        public function approxNUnique(): Phpolars\LazyFrame {}
+        public function topK(int $k, mixed $by, mixed $reverse = null): Phpolars\LazyFrame {}
+        public function bottomK(int $k, mixed $by, mixed $reverse = null): Phpolars\LazyFrame {}
+        public function gatherEvery(int $n, ?int $offset = null): Phpolars\LazyFrame {}
+        public function dropNans(mixed $subset = null): Phpolars\LazyFrame {}
+        public function selectSeq(mixed ...$exprs): Phpolars\LazyFrame {}
+        public function withColumnsSeq(mixed ...$exprs): Phpolars\LazyFrame {}
         public function collectSchema(): array {}
         public function __construct() {}
     }
@@ -659,6 +737,48 @@ namespace Phpolars {
     function n_unique(mixed ...$names): Phpolars\Expr {}
 
     function count(mixed ...$names): Phpolars\Expr {}
+
+    function date_range(mixed $start = null, mixed $end = null, ?string $interval = null, ?int $numSamples = null, ?string $closed = null): Phpolars\Expr {}
+
+    function date_ranges(mixed $start = null, mixed $end = null, ?string $interval = null, ?string $closed = null): Phpolars\Expr {}
+
+    function datetime_range(mixed $start = null, mixed $end = null, ?string $interval = null, ?int $numSamples = null, ?string $closed = null, ?string $timeUnit = null, ?string $timeZone = null): Phpolars\Expr {}
+
+    function datetime_ranges(mixed $start = null, mixed $end = null, ?string $interval = null, ?string $closed = null, ?string $timeUnit = null, ?string $timeZone = null): Phpolars\Expr {}
+
+    function int_ranges(mixed $start, mixed $end = null, mixed $step = null): Phpolars\Expr {}
+
+    function date(mixed $year, mixed $month, mixed $day): Phpolars\Expr {}
+
+    function datetime(mixed $year, mixed $month, mixed $day, mixed $hour = null, mixed $minute = null, mixed $second = null, mixed $microsecond = null, ?string $timeUnit = null, ?string $timeZone = null): Phpolars\Expr {}
+
+    function duration(mixed $weeks = null, mixed $days = null, mixed $hours = null, mixed $minutes = null, mixed $seconds = null, mixed $milliseconds = null, mixed $microseconds = null, mixed $nanoseconds = null, ?string $timeUnit = null): Phpolars\Expr {}
+
+    function from_epoch(mixed $column, ?string $timeUnit = null): Phpolars\Expr {}
+
+    function arg_where(mixed $condition): Phpolars\Expr {}
+
+    function corr(mixed $a, mixed $b, ?string $method = null, ?bool $propagateNans = null): Phpolars\Expr {}
+
+    function cov(mixed $a, mixed $b, ?int $ddof = null): Phpolars\Expr {}
+
+    function nth(mixed ...$indices): Phpolars\Expr {}
+
+    function repeat(mixed $value, mixed $n, ?string $dtype = null): Phpolars\Expr {}
+
+    function linear_space(mixed $start, mixed $end, mixed $numSamples, ?string $closed = null): Phpolars\Expr {}
+
+    function select(mixed ...$exprs): Phpolars\DataFrame {}
+
+    function implode(mixed ...$names): Phpolars\Expr {}
+
+    function approx_n_unique(mixed ...$names): Phpolars\Expr {}
+
+    function std(mixed $column, ?int $ddof = null): Phpolars\Expr {}
+
+    function var_(mixed $column, ?int $ddof = null): Phpolars\Expr {}
+
+    function quantile(mixed $column, float $quantile, ?string $interpolation = null): Phpolars\Expr {}
 
     function concat(array $items, ?string $how = null): mixed {}
 

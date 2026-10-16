@@ -137,6 +137,85 @@ pub fn fill_null(
     }
 }
 
+fn rolling_by(
+    windowSize: &str,
+    minPeriods: Option<i64>,
+    closed: Option<String>,
+) -> PhpResult<RollingOptionsDynamicWindow> {
+    Ok(RollingOptionsDynamicWindow {
+        window_size: crate::input::duration(windowSize)?,
+        min_periods: crate::input::count(minPeriods.unwrap_or(1), "minPeriods")?,
+        closed_window: crate::input::closed_window(closed, ClosedWindow::Right)?,
+        fn_params: None,
+    })
+}
+
+/// py's _prepare_alpha: exactly one of com, span, halfLife, or alpha.
+fn ewm_options(
+    com: Option<crate::input::Num>,
+    span: Option<crate::input::Num>,
+    halfLife: Option<crate::input::Num>,
+    alpha: Option<crate::input::Num>,
+    adjust: Option<bool>,
+    minPeriods: Option<i64>,
+    ignoreNulls: Option<bool>,
+    bias: Option<bool>,
+) -> PhpResult<EWMOptions> {
+    let given = [com, span, halfLife, alpha]
+        .iter()
+        .filter(|v| v.is_some())
+        .count();
+    if given != 1 {
+        return Err(value_error(
+            "give exactly one of com, span, halfLife, or alpha",
+        ));
+    }
+    let alpha = if let Some(c) = com {
+        if c.0 < 0.0 {
+            return Err(value_error(format!("com must be at least 0, got {}", c.0)));
+        }
+        1.0 / (1.0 + c.0)
+    } else if let Some(s) = span {
+        if s.0 < 1.0 {
+            return Err(value_error(format!("span must be at least 1, got {}", s.0)));
+        }
+        2.0 / (s.0 + 1.0)
+    } else if let Some(h) = halfLife {
+        if h.0 <= 0.0 {
+            return Err(value_error(format!(
+                "halfLife must be above 0, got {}",
+                h.0
+            )));
+        }
+        1.0 - (-(2f64.ln()) / h.0).exp()
+    } else {
+        let a = alpha.unwrap().0;
+        if !(a > 0.0 && a <= 1.0) {
+            return Err(value_error(format!("alpha must be in (0, 1], got {a}")));
+        }
+        a
+    };
+    Ok(EWMOptions {
+        alpha,
+        adjust: adjust.unwrap_or(true),
+        bias: bias.unwrap_or(false),
+        min_periods: crate::input::count(minPeriods.unwrap_or(1), "minPeriods")?,
+        ignore_nulls: ignoreNulls.unwrap_or(false),
+    })
+}
+
+fn float_list(v: &Zval, what: &str) -> PhpResult<Vec<f64>> {
+    v.array()
+        .ok_or_else(|| value_error(format!("{what} must be a list of numbers")))?
+        .values()
+        .map(|x| {
+            x.double()
+                .or_else(|| x.long().map(|i| i as f64))
+                .ok_or_else(|| value_error(format!("{what} must be a list of numbers")))
+        })
+        .collect()
+}
+
 #[php_impl]
 impl PhpExpr {
     // Arithmetic. Operands may be an Expr or a literal; strings are literals.
@@ -978,6 +1057,444 @@ impl PhpExpr {
 
     pub fn arctan(&self) -> Self {
         wrap(self.inner.clone().arctan())
+    }
+
+    pub fn rollingQuantile(
+        &self,
+        quantile: crate::input::Num,
+        windowSize: i64,
+        interpolation: Option<String>,
+        minPeriods: Option<i64>,
+        center: Option<bool>,
+    ) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().rolling_quantile(
+            quantile_method(interpolation)?,
+            quantile.0,
+            rolling(windowSize, minPeriods, center)?,
+        )))
+    }
+
+    pub fn rollingSkew(
+        &self,
+        windowSize: i64,
+        bias: Option<bool>,
+        minPeriods: Option<i64>,
+        center: Option<bool>,
+    ) -> PhpResult<Self> {
+        let mut o = rolling(windowSize, minPeriods, center)?;
+        o.fn_params = Some(RollingFnParams::Skew {
+            bias: bias.unwrap_or(true),
+        });
+        Ok(wrap(self.inner.clone().rolling_skew(o)))
+    }
+
+    pub fn rollingKurtosis(
+        &self,
+        windowSize: i64,
+        fisher: Option<bool>,
+        bias: Option<bool>,
+        minPeriods: Option<i64>,
+        center: Option<bool>,
+    ) -> PhpResult<Self> {
+        let mut o = rolling(windowSize, minPeriods, center)?;
+        o.fn_params = Some(RollingFnParams::Kurtosis {
+            fisher: fisher.unwrap_or(true),
+            bias: bias.unwrap_or(true),
+        });
+        Ok(wrap(self.inner.clone().rolling_kurtosis(o)))
+    }
+
+    /// Rolling windows over a time or integer column: rollingMeanBy('t', '2d').
+    pub fn rollingMeanBy(
+        &self,
+        by: &Zval,
+        windowSize: String,
+        minPeriods: Option<i64>,
+        closed: Option<String>,
+    ) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().rolling_mean_by(
+            into_expr(by)?,
+            rolling_by(&windowSize, minPeriods, closed)?,
+        )))
+    }
+
+    pub fn rollingSumBy(
+        &self,
+        by: &Zval,
+        windowSize: String,
+        minPeriods: Option<i64>,
+        closed: Option<String>,
+    ) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().rolling_sum_by(
+            into_expr(by)?,
+            rolling_by(&windowSize, minPeriods, closed)?,
+        )))
+    }
+
+    pub fn rollingMinBy(
+        &self,
+        by: &Zval,
+        windowSize: String,
+        minPeriods: Option<i64>,
+        closed: Option<String>,
+    ) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().rolling_min_by(
+            into_expr(by)?,
+            rolling_by(&windowSize, minPeriods, closed)?,
+        )))
+    }
+
+    pub fn rollingMaxBy(
+        &self,
+        by: &Zval,
+        windowSize: String,
+        minPeriods: Option<i64>,
+        closed: Option<String>,
+    ) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().rolling_max_by(
+            into_expr(by)?,
+            rolling_by(&windowSize, minPeriods, closed)?,
+        )))
+    }
+
+    pub fn rollingMedianBy(
+        &self,
+        by: &Zval,
+        windowSize: String,
+        minPeriods: Option<i64>,
+        closed: Option<String>,
+    ) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().rolling_median_by(
+            into_expr(by)?,
+            rolling_by(&windowSize, minPeriods, closed)?,
+        )))
+    }
+
+    pub fn rollingStdBy(
+        &self,
+        by: &Zval,
+        windowSize: String,
+        minPeriods: Option<i64>,
+        closed: Option<String>,
+        ddof: Option<i64>,
+    ) -> PhpResult<Self> {
+        let mut o = rolling_by(&windowSize, minPeriods, closed)?;
+        o.fn_params = Some(RollingFnParams::Var(RollingVarParams {
+            ddof: crate::input::ddof(ddof)?,
+        }));
+        Ok(wrap(self.inner.clone().rolling_std_by(into_expr(by)?, o)))
+    }
+
+    pub fn rollingVarBy(
+        &self,
+        by: &Zval,
+        windowSize: String,
+        minPeriods: Option<i64>,
+        closed: Option<String>,
+        ddof: Option<i64>,
+    ) -> PhpResult<Self> {
+        let mut o = rolling_by(&windowSize, minPeriods, closed)?;
+        o.fn_params = Some(RollingFnParams::Var(RollingVarParams {
+            ddof: crate::input::ddof(ddof)?,
+        }));
+        Ok(wrap(self.inner.clone().rolling_var_by(into_expr(by)?, o)))
+    }
+
+    pub fn rollingQuantileBy(
+        &self,
+        by: &Zval,
+        windowSize: String,
+        quantile: crate::input::Num,
+        interpolation: Option<String>,
+        minPeriods: Option<i64>,
+        closed: Option<String>,
+    ) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().rolling_quantile_by(
+            into_expr(by)?,
+            quantile_method(interpolation)?,
+            quantile.0,
+            rolling_by(&windowSize, minPeriods, closed)?,
+        )))
+    }
+
+    /// Exponentially weighted mean; give one of com, span, halfLife, or alpha.
+    pub fn ewmMean(
+        &self,
+        com: Option<crate::input::Num>,
+        span: Option<crate::input::Num>,
+        halfLife: Option<crate::input::Num>,
+        alpha: Option<crate::input::Num>,
+        adjust: Option<bool>,
+        minPeriods: Option<i64>,
+        ignoreNulls: Option<bool>,
+    ) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().ewm_mean(ewm_options(
+            com,
+            span,
+            halfLife,
+            alpha,
+            adjust,
+            minPeriods,
+            ignoreNulls,
+            None,
+        )?)))
+    }
+
+    pub fn ewmStd(
+        &self,
+        com: Option<crate::input::Num>,
+        span: Option<crate::input::Num>,
+        halfLife: Option<crate::input::Num>,
+        alpha: Option<crate::input::Num>,
+        adjust: Option<bool>,
+        bias: Option<bool>,
+        minPeriods: Option<i64>,
+        ignoreNulls: Option<bool>,
+    ) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().ewm_std(ewm_options(
+            com,
+            span,
+            halfLife,
+            alpha,
+            adjust,
+            minPeriods,
+            ignoreNulls,
+            bias,
+        )?)))
+    }
+
+    pub fn ewmVar(
+        &self,
+        com: Option<crate::input::Num>,
+        span: Option<crate::input::Num>,
+        halfLife: Option<crate::input::Num>,
+        alpha: Option<crate::input::Num>,
+        adjust: Option<bool>,
+        bias: Option<bool>,
+        minPeriods: Option<i64>,
+        ignoreNulls: Option<bool>,
+    ) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().ewm_var(ewm_options(
+            com,
+            span,
+            halfLife,
+            alpha,
+            adjust,
+            minPeriods,
+            ignoreNulls,
+            bias,
+        )?)))
+    }
+
+    /// Time-based exponentially weighted mean: ewmMeanBy('t', halfLife: '1d').
+    pub fn ewmMeanBy(&self, by: &Zval, halfLife: String) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().ewm_mean_by(
+            into_expr(by)?,
+            crate::input::duration(&halfLife)?,
+        )))
+    }
+
+    /// Bin values into intervals at breaks; the result is Categorical.
+    pub fn cut(
+        &self,
+        breaks: &Zval,
+        labels: Option<Vec<String>>,
+        leftClosed: Option<bool>,
+        includeBreaks: Option<bool>,
+    ) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().cut(
+            float_list(breaks, "breaks")?,
+            labels,
+            leftClosed.unwrap_or(false),
+            includeBreaks.unwrap_or(false),
+        )))
+    }
+
+    /// Bin values by quantiles: a list of probabilities, or a number of bins.
+    pub fn qcut(
+        &self,
+        quantiles: &Zval,
+        labels: Option<Vec<String>>,
+        leftClosed: Option<bool>,
+        allowDuplicates: Option<bool>,
+        includeBreaks: Option<bool>,
+    ) -> PhpResult<Self> {
+        let probs = match quantiles.long() {
+            Some(n) if n >= 1 => (1..n).map(|i| i as f64 / n as f64).collect(),
+            Some(n) => return Err(value_error(format!("qcut() needs at least 1 bin, got {n}"))),
+            None => float_list(quantiles, "quantiles")?,
+        };
+        Ok(wrap(self.inner.clone().qcut(
+            probs,
+            labels,
+            leftClosed.unwrap_or(false),
+            allowDuplicates.unwrap_or(false),
+            includeBreaks.unwrap_or(false),
+        )))
+    }
+
+    /// Run-length encoding: a struct of len and value per run.
+    pub fn rle(&self) -> Self {
+        wrap(self.inner.clone().rle())
+    }
+
+    /// A run id that increases each time the value changes.
+    pub fn rleId(&self) -> Self {
+        wrap(self.inner.clone().rle_id())
+    }
+
+    pub fn searchSorted(
+        &self,
+        element: &Zval,
+        side: Option<String>,
+        descending: Option<bool>,
+    ) -> PhpResult<Self> {
+        let side = match side.as_deref().unwrap_or("any") {
+            "any" => SearchSortedSide::Any,
+            "left" => SearchSortedSide::Left,
+            "right" => SearchSortedSide::Right,
+            s => {
+                return Err(value_error(format!(
+                    "side must be any, left or right, not '{s}'"
+                )));
+            }
+        };
+        Ok(wrap(self.inner.clone().search_sorted(
+            crate::input::collection_or_operand(element)?,
+            side,
+            descending.unwrap_or(false),
+        )))
+    }
+
+    pub fn peakMax(&self) -> Self {
+        wrap(self.inner.clone().peak_max())
+    }
+
+    pub fn peakMin(&self) -> Self {
+        wrap(self.inner.clone().peak_min())
+    }
+
+    pub fn entropy(&self, base: Option<crate::input::Num>, normalize: Option<bool>) -> Self {
+        wrap(self.inner.clone().entropy(
+            base.map_or(std::f64::consts::E, |b| b.0),
+            normalize.unwrap_or(true),
+        ))
+    }
+
+    /// Bin counts: bins (edges) or binCount equal-width bins.
+    pub fn hist(
+        &self,
+        bins: Option<&Zval>,
+        binCount: Option<i64>,
+        includeCategory: Option<bool>,
+        includeBreakpoint: Option<bool>,
+    ) -> PhpResult<Self> {
+        let bins = match crate::input::given(bins) {
+            Some(b) => Some(lit(Series::new("bins".into(), float_list(b, "bins")?))),
+            None => None,
+        };
+        let count = binCount
+            .map(|n| crate::input::count(n, "binCount"))
+            .transpose()?;
+        Ok(wrap(self.inner.clone().hist(
+            bins,
+            count,
+            includeCategory.unwrap_or(false),
+            includeBreakpoint.unwrap_or(false),
+        )))
+    }
+
+    pub fn interpolateBy(&self, by: &Zval) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().interpolate_by(into_expr(by)?)))
+    }
+
+    pub fn isClose(
+        &self,
+        other: &Zval,
+        absTol: Option<crate::input::Num>,
+        relTol: Option<crate::input::Num>,
+        nansEqual: Option<bool>,
+    ) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().is_close(
+            operand(other)?,
+            absTol.map_or(0.0, |n| n.0),
+            relTol.map_or(1e-9, |n| n.0),
+            nansEqual.unwrap_or(false),
+        )))
+    }
+
+    /// The position of the first occurrence of each unique value.
+    pub fn argUnique(&self) -> Self {
+        wrap(self.inner.clone().arg_unique())
+    }
+
+    /// The position of the first value equal to element, or null.
+    pub fn indexOf(&self, element: &Zval) -> PhpResult<Self> {
+        Ok(wrap(self.inner.clone().index_of(operand(element)?)))
+    }
+
+    /// The largest value the column's type can hold.
+    pub fn upperBound(&self) -> Self {
+        wrap(self.inner.clone().upper_bound())
+    }
+
+    pub fn lowerBound(&self) -> Self {
+        wrap(self.inner.clone().lower_bound())
+    }
+
+    pub fn toPhysical(&self) -> Self {
+        wrap(self.inner.clone().to_physical())
+    }
+
+    pub fn limit(&self, n: Option<i64>) -> PhpResult<Self> {
+        self.head(n)
+    }
+
+    /// Drop columns from a multi-column expression: all()->exclude('id').
+    pub fn exclude(&self, columns: &[&Zval]) -> PhpResult<Self> {
+        let names = crate::input::names(columns)?;
+        match &self.inner {
+            Expr::Selector(s) => Ok(wrap(s.clone().exclude_cols(names).as_expr())),
+            _ => Err(value_error(
+                "exclude() applies to all(), col('*'), or a multi-column col()",
+            )),
+        }
+    }
+
+    pub fn degrees(&self) -> Self {
+        wrap(self.inner.clone().degrees())
+    }
+
+    pub fn radians(&self) -> Self {
+        wrap(self.inner.clone().radians())
+    }
+
+    pub fn sinh(&self) -> Self {
+        wrap(self.inner.clone().sinh())
+    }
+
+    pub fn cosh(&self) -> Self {
+        wrap(self.inner.clone().cosh())
+    }
+
+    pub fn tanh(&self) -> Self {
+        wrap(self.inner.clone().tanh())
+    }
+
+    pub fn arcsinh(&self) -> Self {
+        wrap(self.inner.clone().arcsinh())
+    }
+
+    pub fn arccosh(&self) -> Self {
+        wrap(self.inner.clone().arccosh())
+    }
+
+    pub fn arctanh(&self) -> Self {
+        wrap(self.inner.clone().arctanh())
+    }
+
+    pub fn cot(&self) -> Self {
+        wrap(self.inner.clone().cot())
     }
 
     pub fn __to_string(&self) -> String {

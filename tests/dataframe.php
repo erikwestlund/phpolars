@@ -118,3 +118,21 @@ same('describe numeric', $d->getColumn('v')->toList(), [3.0, 1.0, 20.0, 10.0, 10
 same('describe keeps numeric columns float', $w->describe()->dtypes(), ['String', 'Float64', 'String', 'Float64']);
 preg_match('/^polars = \{ version = "=([^"]+)"/m', file_get_contents(__DIR__.'/../Cargo.toml'), $pin);
 same('polars_version matches the Cargo pin', Phpolars\polars_version(), $pin[1] ?? null);
+
+// Partitions, windows on LazyFrame, and argument checks
+$parts = $w->partitionBy('k');
+same('partitionBy list', array_map(fn ($p) => $p->height(), $parts), [2, 2]);
+same('partitionBy asDict keys', array_keys($w->partitionBy('k', asDict: true)), ['a', 'b']);
+same('partitionBy drops key', $w->partitionBy('k', includeKey: false)[0]->columns(), ['id', 'v']);
+throws('partitionBy asDict needs one key', fn () => $w->partitionBy(['id', 'k'], asDict: true), ValueError::class, 'one key column');
+$ts = new DataFrame(['t' => [new DateTimeImmutable('2024-01-01 00:00'), new DateTimeImmutable('2024-01-01 12:00'), new DateTimeImmutable('2024-01-02 06:00')], 'v' => [1, 2, 3]]);
+same('lazy groupByDynamic', $ts->lazy()->groupByDynamic('t', every: '1d')->agg(col('v')->sum())->collect()->getColumn('v')->toList(), [3, 3]);
+same('groupByDynamic sum() skips the index', $ts->groupByDynamic('t', every: '1d')->sum()->columns(), ['t', 'v']);
+same('lazy rolling', $ts->lazy()->rolling('t', period: '1d')->agg(col('v')->sum())->collect()->getColumn('v')->toList(), [1, 3, 5]);
+same('lazy joinAsof', $ts->lazy()->joinAsof($ts->select('t', col('v')->alias('w'))->tail(1), on: 't', strategy: 'forward')->collect()->getColumn('w')->toList(), [3, 3, 3]);
+same('lazy describe', $ts->lazy()->describe()->getColumn('statistic')->toList()[0], 'count');
+throws('bad duration', fn () => $ts->groupByDynamic('t', every: 'soon'), Phpolars\PolarsError::class);
+throws('asof needs keys', fn () => $ts->joinAsof($ts), ValueError::class, 'needs on');
+throws('ewm needs one parameter', fn () => col('v')->ewmMean(com: 1, span: 2), ValueError::class, 'exactly one');
+throws('gatherEvery zero', fn () => $ts->gatherEvery(0), ValueError::class, 'at least 1');
+same('exclude', $ts->select(Phpolars\all()->exclude('t'))->columns(), ['v']);

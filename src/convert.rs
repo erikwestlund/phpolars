@@ -175,9 +175,14 @@ pub fn series_values(s: &Series) -> PhpResult<Vec<Zval>> {
         DataType::Binary => values(s.binary().php()?.iter(), |z, v| z.set_binary(v.to_vec())),
         DataType::List(_) => {
             let ca = s.list().php()?;
+            let inner_dtype = ca.inner_dtype().clone();
             let mut out = Vec::with_capacity(s.len());
             for i in 0..ca.len() {
                 out.push(match ca.get_as_series(i) {
+                    // Some kernels hand back the physical inner values; restore the logical type.
+                    Some(inner) if inner.dtype() != &inner_dtype => {
+                        hashtable(series_list(&inner.cast(&inner_dtype).php()?)?)
+                    }
                     Some(inner) => hashtable(series_list(&inner)?),
                     None => null(),
                 });

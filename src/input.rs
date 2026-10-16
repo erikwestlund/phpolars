@@ -174,3 +174,43 @@ pub fn time_unit(s: Option<String>) -> PhpResult<TimeUnit> {
         ))),
     }
 }
+
+/// A py duration string such as "1d", "2h30m", or "-1w".
+pub fn duration(s: &str) -> PhpResult<Duration> {
+    use crate::error::OrPhp;
+    Duration::try_parse(s).php()
+}
+
+/// py closed= for time windows: left, right, both, or none.
+pub fn closed_window(s: Option<String>, default: ClosedWindow) -> PhpResult<ClosedWindow> {
+    match s.as_deref() {
+        None => Ok(default),
+        Some("left") => Ok(ClosedWindow::Left),
+        Some("right") => Ok(ClosedWindow::Right),
+        Some("both") => Ok(ClosedWindow::Both),
+        Some("none") => Ok(ClosedWindow::None),
+        Some(other) => Err(value_error(format!(
+            "closed must be left, right, both or none, not '{other}'"
+        ))),
+    }
+}
+
+/// A search value: a PHP list or Series searches each element, anything else one value.
+pub fn collection_or_operand(v: &Zval) -> PhpResult<Expr> {
+    if v.array().is_some() || v.extract::<&PhpSeries>().is_some() {
+        return literal(v);
+    }
+    operand(v)
+}
+
+/// A range bound: strings name columns, other values are literals.
+pub fn operand_or_column(v: &Zval) -> PhpResult<Expr> {
+    into_expr(v)
+}
+
+pub fn time_zone(s: Option<String>) -> PhpResult<Option<TimeZone>> {
+    use crate::error::OrPhp;
+    s.map(|z| TimeZone::opt_try_new(Some(z)).php())
+        .transpose()
+        .map(Option::flatten)
+}

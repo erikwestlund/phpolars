@@ -17,7 +17,7 @@ Set `PHP` and `PHP_CONFIG` to a PHP 8.5 installation. On macOS, also set `LIBCLA
 `scripts/pyfixtures.py` builds 169 cases with py-polars and writes `tests/fixtures/py/expected.json`. `tests/pyfixtures.php` builds the same cases with phpolars and compares column names, data types, and values. Regenerate the fixtures with:
 
 ```sh
-uv run --with 'polars==1.43.2' python scripts/pyfixtures.py
+uv run --with 'polars==1.43.2' --with numpy python scripts/pyfixtures.py
 ```
 
 py-polars 1.43.2 is the release whose Rust core is closest to the pinned Polars 0.55.2.

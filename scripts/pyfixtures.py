@@ -3,7 +3,7 @@
 Run with the py-polars release whose Rust core matches the crate in Cargo.toml
 (rs-0.55.2 was cut 26 commits after py-1.43.2):
 
-    uv run --with 'polars==1.43.2' python scripts/pyfixtures.py
+    uv run --with 'polars==1.43.2' --with numpy python scripts/pyfixtures.py
 
 tests/pyfixtures.php defines the same cases with the phpolars API and compares
 its output with the file this writes. Keep the case names in sync.
@@ -69,6 +69,26 @@ long = pl.DataFrame(
 )
 
 nums = pl.DataFrame({"n": ["1", "20", "-3", "x", None, "007"]})
+
+# A sorted time series and quotes for asof joins, windows, and rolling.
+tsf = pl.DataFrame(
+    {
+        "t": [
+            dt.datetime(2024, 1, 1, 0), dt.datetime(2024, 1, 1, 1), dt.datetime(2024, 1, 1, 3),
+            dt.datetime(2024, 1, 2, 0), dt.datetime(2024, 1, 2, 5), dt.datetime(2024, 1, 4, 0),
+        ],
+        "g": ["a", "b", "a", "a", "b", "a"],
+        "v": [1, 2, 3, None, 5, 6],
+        "f": [1.0, float("nan"), 2.5, 4.0, None, 8.0],
+    }
+)
+quotes = pl.DataFrame(
+    {
+        "t": [dt.datetime(2024, 1, 1, 0, 30), dt.datetime(2024, 1, 1, 2), dt.datetime(2024, 1, 2, 4)],
+        "g": ["a", "a", "b"],
+        "px": [10.0, 11.0, 12.0],
+    }
+)
 rnd = pl.DataFrame({"f": [0.5, 1.5, 2.5, -0.5, -1.5, 1.005, 2.675, None]})
 
 # ---------------------------------------------------------------------------
@@ -487,6 +507,135 @@ simple("rename_drop_reverse", lambda: base.select("id", "g", "x").rename({"g": "
 simple("struct_pack_field", lambda: base.select(pl.struct("g", "x").alias("st")).with_columns(col("st").struct.field("x").alias("sx")))
 simple("unique_counts_mode", lambda: base.select(col("k").drop_nulls().mode().sort().alias("mode")))
 simple("top_bottom_k", lambda: base.select(col("y").top_k(2).alias("top"), col("y").bottom_k(2).alias("bottom")))
+
+# asof joins, time windows, and rolling
+simple("join_asof_backward", lambda: tsf.join_asof(quotes, on="t"))
+simple("join_asof_forward_by", lambda: tsf.join_asof(quotes, on="t", by="g", strategy="forward"))
+simple("join_asof_nearest_tolerance", lambda: tsf.join_asof(quotes, on="t", strategy="nearest", tolerance="2h"))
+simple("join_asof_int_tolerance", lambda: pl.DataFrame({"k": [1, 5, 10]}).join_asof(
+    pl.DataFrame({"k": [2, 4, 9], "r": ["a", "b", "c"]}), on="k", tolerance=1, allow_exact_matches=False))
+simple("group_by_dynamic_day", lambda: tsf.group_by_dynamic("t", every="1d").agg(col("v").sum(), pl.len()))
+simple("group_by_dynamic_by_bounds", lambda: tsf.group_by_dynamic(
+    "t", every="12h", period="1d", closed="both", group_by="g", include_boundaries=True).agg(col("v").max()))
+simple("group_by_dynamic_label_offset", lambda: tsf.group_by_dynamic(
+    "t", every="1d", offset="6h", label="right", start_by="datapoint").agg(col("v").first()))
+simple("rolling_frame", lambda: tsf.rolling("t", period="1d").agg(col("v").sum().alias("s"), col("v").count().alias("n")))
+simple("rolling_frame_by", lambda: tsf.rolling("t", period="2h", offset="-1h", closed="both", group_by="g").agg(col("v").sum()))
+simple("rolling_by_exprs", lambda: tsf.select(
+    "t",
+    col("v").rolling_mean_by("t", "1d").alias("mean"),
+    col("v").fill_null(0).rolling_sum_by("t", "3h", closed="both").alias("sum"),
+    col("v").rolling_max_by("t", "2d", min_samples=2).alias("max"),
+    col("v").rolling_min_by("t", "1d", closed="left").alias("min"),
+    col("v").rolling_median_by("t", "1d").alias("median"),
+    col("v").rolling_std_by("t", "1d").alias("std"),
+    col("v").rolling_var_by("t", "1d", ddof=0).alias("var"),
+    col("v").rolling_quantile_by("t", "1d", quantile=0.5).alias("q"),
+))
+simple("rolling_quantile_skew", lambda: base.select(
+    col("y").rolling_quantile(0.5, window_size=2).alias("q"),
+    col("x").rolling_quantile(0.25, "linear", window_size=3, min_samples=1).alias("ql"),
+    col("id").rolling_skew(3).alias("skew"),
+    col("id").cast(pl.Float64).pow(2).rolling_kurtosis(4).alias("kurt"),
+))
+simple("ewm", lambda: base.select(
+    col("y").ewm_mean(alpha=0.5).alias("mean"),
+    col("y").ewm_mean(span=3, adjust=False).alias("mean_span"),
+    col("y").ewm_std(com=1).alias("std"),
+    col("x").ewm_var(half_life=2, ignore_nulls=True, bias=True).alias("var"),
+))
+simple("ewm_mean_by", lambda: tsf.select(col("v").ewm_mean_by("t", half_life="1d")))
+simple("ewm_no_alpha", lambda: base.select(col("y").ewm_mean()))
+
+# binning, runs, and searching
+simple("cut_qcut", lambda: base.select(
+    "y",
+    col("y").cut([0, 2]).alias("cut"),
+    col("y").cut([0, 2], labels=["lo", "mid", "hi"], left_closed=True).alias("cutl"),
+    col("y").qcut([0.5]).alias("q"),
+    col("y").qcut(2, labels=["a", "b"]).alias("q2"),
+).with_columns(pl.all().exclude("y").cast(pl.String)))
+simple("cut_include_breaks", lambda: base.select(col("y").cut([0, 2], include_breaks=True).alias("c")).unnest("c").with_columns(col("category").cast(pl.String)))
+simple("rle", lambda: pl.DataFrame({"a": [1, 1, 2, 2, 2, None, None, 1]}).select(col("a").rle().alias("r")).unnest("r"))
+simple("rle_id", lambda: pl.DataFrame({"a": [1, 1, 2, 2, 2, None, None, 1]}).select(col("a").rle_id()))
+simple("search_sorted", lambda: pl.DataFrame({"a": [1, 2, 2, 4, 7]}).select(
+    col("a").search_sorted(2).alias("any"), col("a").search_sorted(2, "left").alias("left"),
+    col("a").search_sorted(2, "right").alias("right"), col("a").search_sorted(9).alias("end"),
+))
+simple("search_sorted_many", lambda: pl.DataFrame({"a": [1, 2, 2, 4, 7]}).select(col("a").search_sorted([0, 3, 7], "left")))
+simple("peaks_entropy", lambda: pl.DataFrame({"a": [1, 3, 2, 2, 5, 4]}).select(
+    col("a").peak_max().alias("max"), col("a").peak_min().alias("min"),
+    col("a").entropy().alias("e"), col("a").entropy(base=2, normalize=False).alias("e2"),
+))
+simple("hist_bins", lambda: pl.DataFrame({"a": [1.0, 2.5, 3.0, 4.5, 5.0, 2.0]}).select(col("a").hist(bins=[0, 2, 4, 6])))
+simple("hist_count_breaks", lambda: pl.DataFrame({"a": [1.0, 2.5, 3.0, 4.5, 5.0, 2.0]}).select(
+    col("a").hist(bin_count=2, include_breakpoint=True, include_category=True).alias("h")).unnest("h").with_columns(col("category").cast(pl.String)))
+simple("interpolate_by", lambda: pl.DataFrame({"a": [1.0, None, 3.0, None, None, 6.0, None], "b": [1, 2, 5, 6, 7, 10, 11]}).select(col("a").interpolate_by("b")))
+simple("is_close_index_of", lambda: pl.DataFrame({"a": [1.0, 1.0000000001, 2.0, float("nan")], "k": [3, 1, 3, 2]}).select(
+    col("a").is_close(1.0).alias("close"),
+    col("a").is_close(1.5, abs_tol=0.6).alias("abs"),
+    col("a").is_close(float("nan"), nans_equal=True).alias("nan"),
+    col("k").index_of(3).alias("idx"),
+    col("k").index_of(9).alias("missing"),
+))
+simple("arg_unique_bounds", lambda: pl.DataFrame({"k": [3, 1, 3, 2, 1]}).select(
+    col("k").arg_unique().alias("au").implode(), col("k").upper_bound().alias("ub"), col("k").cast(pl.Int8).lower_bound().alias("lb"),
+))
+simple("trig_extra", lambda: rnd.select(
+    col("f").degrees().alias("deg"), col("f").radians().alias("rad"), col("f").sinh().alias("sinh"),
+    col("f").cosh().alias("cosh"), col("f").tanh().alias("tanh"), col("f").arcsinh().alias("asinh"),
+    col("f").abs().add(1).arccosh().alias("acosh"), (col("f") / 10).arctanh().alias("atanh"), col("f").cot().alias("cot"),
+))
+
+# frame verbs
+simple("frame_shift", lambda: base.select("id", "x").shift(2))
+simple("frame_shift_fill", lambda: base.select("id", "x").shift(-1, fill_value=0))
+simple("frame_interpolate", lambda: base.select("x", "y").interpolate())
+simple("frame_quantile_product", lambda: pl.concat([
+    base.select("x", "y", "k").quantile(0.5, "linear"),
+    base.select("x", "y", "k").cast(pl.Float64).product(),
+]))
+simple("frame_top_bottom_k", lambda: pl.concat([
+    base.select("id", "y").top_k(2, by="y"),
+    base.select("id", "k").bottom_k(3, by=["k", "id"]),
+    base.select("id", "x").top_k(2, by="x", reverse=True),
+], how="diagonal"))
+simple("frame_gather_every", lambda: base.select("id", "g").gather_every(2, offset=1))
+simple("frame_drop_nans", lambda: tsf.drop_nans())
+simple("frame_drop_nans_subset", lambda: tsf.with_columns(col("f").alias("f2")).drop_nans(subset="f2"))
+simple("frame_is_duplicated", lambda: long.select("id", "k").select(
+    long.select("id", "k").is_duplicated().alias("dup"), long.select("id", "k").is_unique().alias("uniq")))
+simple("frame_upsample", lambda: pl.DataFrame({
+    "t": [dt.date(2024, 1, 1), dt.date(2024, 1, 4), dt.date(2024, 1, 2), dt.date(2024, 1, 3)],
+    "g": ["a", "a", "b", "b"], "v": [1, 4, 2, 3],
+}).sort("t").upsample("t", every="1d", group_by="g", maintain_order=True))
+simple("frame_corr", lambda: base.select("id", "x", "y").drop_nulls().corr())
+simple("frame_insert_to_struct", lambda: base.select("id", "g").head(3).insert_column(1, pl.Series("n", [7, 8, 9])).to_struct("st").to_frame().unnest("st"))
+simple("frame_approx_n_unique", lambda: base.select("g", "k").approx_n_unique())
+
+# functions
+simple("fn_date_range", lambda: pl.select(pl.date_range(dt.date(2024, 1, 1), dt.date(2024, 1, 10), "3d").alias("d")))
+simple("fn_date_range_closed", lambda: pl.select(pl.date_range(dt.date(2024, 1, 30), dt.date(2024, 4, 30), "1mo", closed="left").alias("d")))
+simple("fn_datetime_range", lambda: pl.select(pl.datetime_range(dt.datetime(2024, 1, 1), dt.datetime(2024, 1, 2), "6h").alias("t")))
+simple("fn_date_ranges", lambda: base.select("d").drop_nulls().head(2).select(pl.date_ranges(col("d"), col("d").dt.offset_by("2d")).alias("r")))
+simple("fn_int_ranges", lambda: base.select("k").drop_nulls().select(pl.int_ranges(col("k")).alias("r"), pl.int_ranges(1, col("k") + 2, 2).alias("r2")))
+simple("fn_date_datetime", lambda: base.select("k").drop_nulls().select(
+    pl.date(2024, col("k"), 15).alias("d"), pl.datetime(2024, 1, col("k"), 12, col("k"), 30).alias("t")))
+simple("fn_duration", lambda: base.select("k").drop_nulls().select(
+    pl.duration(days=col("k"), hours=1).alias("d"), (pl.date(2024, 1, 1) + pl.duration(weeks=col("k"))).alias("shifted")))
+simple("fn_from_epoch", lambda: pl.DataFrame({"s": [0, 1_700_000_000], "d": [0, 19_700]}).select(
+    pl.from_epoch("s").alias("s"), pl.from_epoch("d", time_unit="d").alias("d"), pl.from_epoch(col("s") * 1000, time_unit="ms").alias("ms")))
+simple("fn_arg_where", lambda: base.select(pl.arg_where(col("x") > 2)))
+simple("fn_corr_cov", lambda: base.select(
+    pl.corr("id", "y").alias("pearson"), pl.corr("id", "y", method="spearman").alias("spearman"),
+    pl.cov("id", "x").alias("cov"), pl.cov("id", "x", ddof=0).alias("cov0")))
+simple("fn_nth", lambda: base.select(pl.nth(0, 2)))
+simple("fn_repeat_linear_space", lambda: pl.select(pl.repeat("a", 3).alias("r"), pl.linear_space(0, 1, 3).alias("ls")))
+simple("fn_select", lambda: pl.select(lit(1).alias("one"), (lit(2) * 3).alias("six")))
+simple("fn_stat_shorthands", lambda: base.select(
+    pl.std("y").alias("std"), pl.var("y", ddof=0).alias("var"), pl.quantile("y", 0.5).alias("q"),
+    pl.implode("g").alias("all"), pl.approx_n_unique("g").alias("au")))
+
 
 
 # ---------------------------------------------------------------------------

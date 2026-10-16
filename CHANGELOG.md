@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Time series: `joinAsof` (backward, forward, and nearest, with `by` groups and tolerances), `groupByDynamic`, `rolling` groups, `upsample`, the `rolling*By` expressions, `rollingQuantile`, `rollingSkew`, `rollingKurtosis`, and the `ewmMean`, `ewmStd`, `ewmVar`, and `ewmMeanBy` expressions.
+- Functions: `date_range`, `date_ranges`, `datetime_range`, `datetime_ranges`, `int_ranges`, `date`, `datetime`, `duration`, `from_epoch`, `arg_where`, `corr`, `cov`, `nth`, `repeat`, `linear_space`, `select`, `std`, `var_`, `quantile`, `implode`, and `approx_n_unique`. `var_` has a trailing underscore because PHP reserves `var`.
+- Frame verbs: `shift`, `interpolate`, `quantile`, `product`, `approxNUnique`, `topK`, `bottomK`, `gatherEvery`, `dropNans`, `selectSeq`, and `withColumnsSeq`. DataFrame adds `isDuplicated`, `isUnique`, `partitionBy`, `toStruct`, `corr`, and `insertColumn`, and LazyFrame adds `describe`.
+- Expressions: `cut`, `qcut`, `rle`, `rleId`, `searchSorted`, `peakMax`, `peakMin`, `entropy`, `hist`, `interpolateBy`, `isClose`, `argUnique`, `indexOf`, `upperBound`, `lowerBound`, `toPhysical`, `limit`, `exclude`, and the hyperbolic and degree functions.
+- Lists of dates and datetimes convert to PHP `DateTimeImmutable` values; some list results had come back as raw integers.
+- 223 cases are compared against py-polars 1.43.2, and all match.
+
 ## 0.1.0
 
 First release of phpolars: Polars 0.55.2 data frames for PHP 8.5 as a native extension, following the py-polars API.
