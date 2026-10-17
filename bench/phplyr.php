@@ -7,6 +7,8 @@
 //
 // PHPLYR_DIR is a phplyr checkout with its dependencies installed, on a phibble
 // that includes the Polars backend (Phibble\Polars\PolarsTable, phibble v0.2+).
+// The pipelines use phplyr's method chain, phplyr($t)->verb(...)->get(), so they
+// run on PHP 8.3 and later.
 
 declare(strict_types=1);
 
@@ -22,7 +24,7 @@ use Phibble\DataFrame;
 use Phibble\Sql\SqlTable;
 use Phibble\Polars\PolarsTable;
 
-use function Phplyr\{arrange, col, cumsum, desc, filter, group_by, lag, left_join, mean, min_rank, mutate, n, sum, summarise};
+use function Phplyr\{col, cumsum, desc, lag, mean, min_rank, n, phplyr, sum};
 
 $rows = (int) $rows;
 $repeats = (int) $repeats;
@@ -70,27 +72,30 @@ $tables = array_map(fn (array $b) => [$b[0](), $b[1]()], $backends);
 unset($sales);
 
 $pipelines = [
-    'A: filter, join, grouped summary, ranked window' => fn (Table $s, Table $st) => $s
-        |> filter(col('units')->gt(0))
-        |> left_join($st, by: 'store')
-        |> group_by('region', 'product')
-        |> summarise(n: n(), revenue: sum(col('units')->mul(col('price'))), avg_price: mean('price'))
-        |> group_by('region')
-        |> mutate(rank: min_rank(desc('revenue')))
-        |> filter(col('rank')->le(10))
-        |> arrange('region', 'rank'),
-    'B: per-group windows over every row' => fn (Table $s, Table $st) => $s
-        |> group_by('store')
-        |> mutate(prev: lag('units', order_by: 'day'), running: cumsum('units'), share: col('units')->div(sum('units', na_rm: true))),
-    'C: as A, with a PHP closure in filter()' => fn (Table $s, Table $st) => $s
-        |> filter(fn ($r) => $r->units > 0)
-        |> left_join($st, by: 'store')
-        |> group_by('region', 'product')
-        |> summarise(n: n(), revenue: sum(col('units')->mul(col('price'))), avg_price: mean('price'))
-        |> group_by('region')
-        |> mutate(rank: min_rank(desc('revenue')))
-        |> filter(col('rank')->le(10))
-        |> arrange('region', 'rank'),
+    'A: filter, join, grouped summary, ranked window' => fn (Table $s, Table $st) => phplyr($s)
+        ->filter(col('units')->gt(0))
+        ->left_join($st, by: 'store')
+        ->group_by('region', 'product')
+        ->summarise(n: n(), revenue: sum(col('units')->mul(col('price'))), avg_price: mean('price'))
+        ->group_by('region')
+        ->mutate(rank: min_rank(desc('revenue')))
+        ->filter(col('rank')->le(10))
+        ->arrange('region', 'rank')
+        ->get(),
+    'B: per-group windows over every row' => fn (Table $s, Table $st) => phplyr($s)
+        ->group_by('store')
+        ->mutate(prev: lag('units', order_by: 'day'), running: cumsum('units'), share: col('units')->div(sum('units', na_rm: true)))
+        ->get(),
+    'C: as A, with a PHP closure in filter()' => fn (Table $s, Table $st) => phplyr($s)
+        ->filter(fn ($r) => $r->units > 0)
+        ->left_join($st, by: 'store')
+        ->group_by('region', 'product')
+        ->summarise(n: n(), revenue: sum(col('units')->mul(col('price'))), avg_price: mean('price'))
+        ->group_by('region')
+        ->mutate(rank: min_rank(desc('revenue')))
+        ->filter(col('rank')->le(10))
+        ->arrange('region', 'rank')
+        ->get(),
 ];
 
 /** Rows with floats at 9 significant digits, sorted, so float noise and row order don't count. */

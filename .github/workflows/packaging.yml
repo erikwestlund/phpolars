@@ -12,14 +12,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        arch: [amd64, arm64]
+        php: ['8.3', '8.4', '8.5']
         include:
           - arch: amd64
             runner: ubuntu-24.04
           - arch: arm64
             runner: ubuntu-24.04-arm
+          # Pinned official images; build and runtime use the same one.
+          - php: '8.3'
+            image: php:8.3-fpm-bookworm@sha256:f768bd9142444f6126a690697b028c23f30878c3b628a7c355dfce75e29cc045
+          - php: '8.4'
+            image: php:8.4-fpm-bookworm@sha256:6bfef8e416977aa41f48e3e42a40c1e08050d24e4a938c6edb421400bff24601
+          - php: '8.5'
+            image: php:8.5-fpm-bookworm@sha256:dd198c828c224e479bdaa184cdcf04a28c73d186bf5a885493bf9cc78d7196ef
     runs-on: ${{ matrix.runner }}
     env:
-      PHP_IMAGE: php:8.5-fpm-bookworm@sha256:dd198c828c224e479bdaa184cdcf04a28c73d186bf5a885493bf9cc78d7196ef
+      PHP_IMAGE: ${{ matrix.image }}
     steps:
       - uses: actions/checkout@v4
       - name: Build and verify the PIE installation
@@ -32,9 +41,9 @@ jobs:
         run: docker build --progress=plain --build-arg "PHP_IMAGE=$PHP_IMAGE" --target binaries --output type=local,dest=binaries -f docker/Dockerfile .
       - uses: actions/upload-artifact@v4
         with:
-          name: linux-${{ matrix.arch }}-php-8.5-nts-bookworm
+          name: linux-${{ matrix.arch }}-php-${{ matrix.php }}-nts-bookworm
           path: binaries/
       - uses: actions/upload-artifact@v4
         with:
-          name: linux-${{ matrix.arch }}-php-8.5-deployment
+          name: linux-${{ matrix.arch }}-php-${{ matrix.php }}-deployment
           path: deployment.json

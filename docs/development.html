@@ -273,7 +273,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">scripts/test</span>        <span class="co"># build and run tests/dataframe.php, expr.php, io.php, and pyfixtures.php</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">scripts/check</span>       <span class="co"># release gate: rustfmt, clippy, the suites, stub freshness, and API compatibility with the latest tag</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="va">PHIBBLE</span><span class="op">=</span>path/to/phibble/vendor/autoload.php <span class="ex">scripts/test</span>   <span class="co"># also the phibble round-trip</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Set <code>PHP</code> and <code>PHP_CONFIG</code> to a PHP 8.5 installation. On macOS, also set <code>LIBCLANG_PATH=$(brew --prefix llvm)/lib</code>.</p>
+<p>Set <code>PHP</code> and <code>PHP_CONFIG</code> to a PHP 8.3, 8.4, or 8.5 installation. CI runs the checks on all three. On macOS, also set <code>LIBCLANG_PATH=$(brew --prefix llvm)/lib</code>.</p>
 </section>
 <section id="comparing-with-py-polars" class="level2">
 <h2 class="anchored" data-anchor-id="comparing-with-py-polars">Comparing with py-polars</h2>

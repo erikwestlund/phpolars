@@ -267,17 +267,36 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <p><a href="https://erikwestlund.github.io/phibble/">phibble</a> defines a table contract with several backends: its in-memory <code>DataFrame</code>, <code>SqlTable</code> for PDO databases, and <code>Phibble\Polars\PolarsTable</code>, which runs on a Polars <code>DataFrame</code> when the php_polars extension is loaded. <a href="https://erikwestlund.github.io/phplyr/">phplyr</a>’s verbs work on any of them, so a phplyr pipeline runs in Polars when it starts from a <code>PolarsTable</code>. The backend ships with phibble ^0.2 (<code>composer require erikwestlund/phibble:^0.2</code>); install phpolars to enable it. phibble’s <a href="https://erikwestlund.github.io/phibble/backends.html">Backends</a> page compares the backends.</p>
+<p>A phplyr pipeline on a <code>PolarsTable</code> runs in Polars:</p>
+<div class="tabset-margin-container"></div><div class="panel-tabset" data-group="syntax">
+<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-1-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-1" role="tab" aria-controls="tabset-1-1" aria-selected="true" href="">Method chain (PHP 8.3+)</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-2" role="tab" aria-controls="tabset-1-2" aria-selected="false" href="">Pipe (PHP 8.5)</a></li></ul>
+<div class="tab-content" data-group="syntax">
+<div id="tabset-1-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-1-1-tab">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode php code-with-copy"><code class="sourceCode php"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">use</span> Phibble\Polars\PolarsTable<span class="ot">;</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">use</span> <span class="kw">function</span> Phibble\Expr\{col<span class="ot">,</span> mean<span class="ot">,</span> n}<span class="ot">;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">use</span> <span class="kw">function</span> Phplyr\{col<span class="ot">,</span> mean<span class="ot">,</span> n<span class="ot">,</span> phplyr}<span class="ot">;</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="va">$table</span> <span class="op">=</span> PolarsTable::fromPolars(Phpolars\read_csv(<span class="st">'sales.csv'</span>))<span class="ot">;</span>   <span class="co">// or PolarsTable::fromTable($frame)</span></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="va">$out</span> <span class="op">=</span> <span class="va">$table</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    -&gt;groupBy([<span class="st">'store'</span>])</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    -&gt;filter(col(<span class="st">'units'</span>)-&gt;gt(mean(col(<span class="st">'units'</span>)<span class="ot">,</span> na_rm<span class="ot">:</span> <span class="kw">true</span>)))</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    -&gt;summarise([<span class="st">'orders'</span> =&gt; n()<span class="ot">,</span> <span class="st">'avg_units'</span> =&gt; mean(col(<span class="st">'units'</span>))])<span class="ot">;</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="va">$frame</span> <span class="op">=</span> <span class="va">$out</span>-&gt;collect()<span class="ot">;</span>   <span class="co">// a Phibble\DataFrame</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="va">$out</span> <span class="op">=</span> phplyr(<span class="va">$table</span>)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    -&gt;group_by(<span class="st">'store'</span>)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    -&gt;filter(col(<span class="st">'units'</span>)-&gt;gt(mean(<span class="st">'units'</span><span class="ot">,</span> na_rm<span class="ot">:</span> <span class="kw">true</span>)))</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    -&gt;summarise(orders<span class="ot">:</span> n()<span class="ot">,</span> avg_units<span class="ot">:</span> mean(<span class="st">'units'</span>))</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    -&gt;get()<span class="ot">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="tabset-1-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-2-tab">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode php code-with-copy"><code class="sourceCode php"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">use</span> Phibble\Polars\PolarsTable<span class="ot">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">use</span> <span class="kw">function</span> Phplyr\{col<span class="ot">,</span> filter<span class="ot">,</span> group_by<span class="ot">,</span> mean<span class="ot">,</span> n<span class="ot">,</span> summarise}<span class="ot">;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="va">$table</span> <span class="op">=</span> PolarsTable::fromPolars(Phpolars\read_csv(<span class="st">'sales.csv'</span>))<span class="ot">;</span>   <span class="co">// or PolarsTable::fromTable($frame)</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="va">$out</span> <span class="op">=</span> <span class="va">$table</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">|&gt;</span> group_by(<span class="st">'store'</span>)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">|&gt;</span> filter(col(<span class="st">'units'</span>)-&gt;gt(mean(<span class="st">'units'</span><span class="ot">,</span> na_rm<span class="ot">:</span> <span class="kw">true</span>)))</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">|&gt;</span> summarise(orders<span class="ot">:</span> n()<span class="ot">,</span> avg_units<span class="ot">:</span> mean(<span class="st">'units'</span>))<span class="ot">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+</div>
+<p><code>$out</code> is a <code>PolarsTable</code>, and <code>$out-&gt;collect()</code> returns a <code>Phibble\DataFrame</code>.</p>
 <section id="what-runs-in-polars" class="level2">
 <h2 class="anchored" data-anchor-id="what-runs-in-polars">What runs in Polars</h2>
 <p>Verbs given column names or phibble expressions (<code>Phibble\Expr</code>, which phplyr’s helpers such as <code>col()</code>, <code>mean()</code>, and <code>n()</code> build) run in Polars with dplyr’s semantics: NA propagates, aggregates default to <code>na_rm = FALSE</code>, grouped <code>mutate()</code> and <code>filter()</code> evaluate aggregates and windows per group, groups follow sorted key order, and joins follow dplyr 1.2, including <code>join_by()</code> inequality and rolling joins. Pivots, stringr and lubridate functions, and phibble’s reference fixtures all run natively.</p>

@@ -272,13 +272,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="installing" class="level2">
 <h2 class="anchored" data-anchor-id="installing">Installing</h2>
-<p>phpolars needs PHP 8.5 (non-thread-safe), Linux or macOS, a stable Rust toolchain, and libclang. Install it with <a href="https://github.com/php/pie">PIE</a>:</p>
+<p>phpolars needs PHP 8.3, 8.4, or 8.5 (non-thread-safe) on Linux or macOS. Install it with <a href="https://github.com/php/pie">PIE</a>:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pie</span> install erikwestlund/phpolars</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>PIE runs Cargo, so the first install takes several minutes. Prebuilt Linux binaries are attached to releases; see <a href="./deployment.html">Deployment</a>.</p>
+<p>On Linux with glibc (x86_64 or arm64), PIE installs the prebuilt binary for the PHP version from the GitHub release. Elsewhere it builds from source, which needs a stable Rust toolchain and libclang and takes several minutes. See <a href="./deployment.html">Deployment</a>.</p>
 <p>From a checkout:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="va">PHP</span><span class="op">=</span><span class="va">$(</span><span class="fu">which</span> php<span class="va">)</span> <span class="va">PHP_CONFIG</span><span class="op">=</span><span class="va">$(</span><span class="fu">which</span> php-config<span class="va">)</span> <span class="ex">cargo</span> build <span class="at">--profile</span> dist</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">php</span> <span class="at">-d</span> extension=<span class="va">$PWD</span>/target/dist/libphp_polars.so script.php   <span class="co"># .dylib on macOS</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>On macOS with Homebrew, also set <code>LIBCLANG_PATH=$(brew --prefix llvm)/lib</code>. When several PHP versions are installed, point <code>PHP</code> and <code>PHP_CONFIG</code> at PHP 8.5, because the build uses that PHP’s headers.</p>
+<p>On macOS with Homebrew, also set <code>LIBCLANG_PATH=$(brew --prefix llvm)/lib</code>. When several PHP versions are installed, point <code>PHP</code> and <code>PHP_CONFIG</code> at the PHP you will load the extension into, because the build uses that PHP’s headers.</p>
 </section>
 <section id="imports" class="level2">
 <h2 class="anchored" data-anchor-id="imports">Imports</h2>

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- PHP 8.3 and 8.4 are supported, as well as 8.5. CI builds and tests the extension on all three, and releases attach a prebuilt Linux binary for each PHP version on x86_64 and arm64. The archives are named so that `pie install` picks the matching one; other platforms build from source.
 - `toPhibble()` returns a `Phibble\DataFrame`, the name phibble v0.2.0 gives its in-memory table. With phibble v0.1 it still returns a `Phibble\Frame`.
 - Time series: `joinAsof` (backward, forward, and nearest, with `by` groups and tolerances), `groupByDynamic`, `rolling` groups, `upsample`, the `rolling*By` expressions, `rollingQuantile`, `rollingSkew`, `rollingKurtosis`, and the `ewmMean`, `ewmStd`, `ewmVar`, and `ewmMeanBy` expressions.
 - Functions: `date_range`, `date_ranges`, `datetime_range`, `datetime_ranges`, `int_ranges`, `date`, `datetime`, `duration`, `from_epoch`, `arg_where`, `corr`, `cov`, `nth`, `repeat`, `linear_space`, `select`, `std`, `var_`, `quantile`, `implode`, and `approx_n_unique`. `var_` has a trailing underscore because PHP reserves `var`.

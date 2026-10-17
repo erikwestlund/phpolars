@@ -11,8 +11,8 @@ if test "$PHP_PHP_POLARS" != "no"; then
     AC_MSG_ERROR([php_polars supports non-thread-safe PHP only])
   fi
   POLARS_PHP_VERSION=`$PHP_CONFIG --vernum`
-  if test "$POLARS_PHP_VERSION" -lt 80500 || test "$POLARS_PHP_VERSION" -ge 80600; then
-    AC_MSG_ERROR([php_polars targets PHP 8.5])
+  if test "$POLARS_PHP_VERSION" -lt 80300 || test "$POLARS_PHP_VERSION" -ge 80600; then
+    AC_MSG_ERROR([php_polars supports PHP 8.3, 8.4, and 8.5])
   fi
   POLARS_PHP=`$PHP_CONFIG --php-binary`
   AS_CASE([$host_os],

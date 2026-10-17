@@ -4,13 +4,13 @@ title: "Getting started"
 
 ## Installing
 
-phpolars needs PHP 8.5 (non-thread-safe), Linux or macOS, a stable Rust toolchain, and libclang. Install it with [PIE](https://github.com/php/pie):
+phpolars needs PHP 8.3, 8.4, or 8.5 (non-thread-safe) on Linux or macOS. Install it with [PIE](https://github.com/php/pie):
 
 ```sh
 pie install erikwestlund/phpolars
 ```
 
-PIE runs Cargo, so the first install takes several minutes. Prebuilt Linux binaries are attached to releases; see [Deployment](deployment.qmd).
+On Linux with glibc (x86_64 or arm64), PIE installs the prebuilt binary for the PHP version from the GitHub release. Elsewhere it builds from source, which needs a stable Rust toolchain and libclang and takes several minutes. See [Deployment](deployment.qmd).
 
 From a checkout:
 
@@ -19,7 +19,7 @@ PHP=$(which php) PHP_CONFIG=$(which php-config) cargo build --profile dist
 php -d extension=$PWD/target/dist/libphp_polars.so script.php   # .dylib on macOS
 ```
 
-On macOS with Homebrew, also set `LIBCLANG_PATH=$(brew --prefix llvm)/lib`. When several PHP versions are installed, point `PHP` and `PHP_CONFIG` at PHP 8.5, because the build uses that PHP's headers.
+On macOS with Homebrew, also set `LIBCLANG_PATH=$(brew --prefix llvm)/lib`. When several PHP versions are installed, point `PHP` and `PHP_CONFIG` at the PHP you will load the extension into, because the build uses that PHP's headers.
 
 ## Imports
 

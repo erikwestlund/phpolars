@@ -18,12 +18,12 @@ $summary = $df
 print_r($summary->toDicts());
 ```
 
-phpolars is part of a family of PHP 8.5 packages for data work. [phibble](https://github.com/erikwestlund/phibble) is a pure-PHP data frame, [phplyr](https://github.com/erikwestlund/phplyr) provides dplyr verbs over phibble tables, and phpolars is the optional fast backend. With phibble ^0.2, `Phibble\Polars\PolarsTable` runs phplyr pipelines on phpolars (see phibble's [Backends](https://erikwestlund.github.io/phibble/backends.html) page), and `DataFrame::fromPhibble()` and `toPhibble()` move data between a phpolars `DataFrame` and a `Phibble\DataFrame`.
+phpolars is part of a family of PHP 8.3+ packages for data work. [phibble](https://github.com/erikwestlund/phibble) is a pure-PHP data frame, [phplyr](https://github.com/erikwestlund/phplyr) provides dplyr verbs over phibble tables, and phpolars is the optional fast backend. With phibble ^0.2, `Phibble\Polars\PolarsTable` runs phplyr pipelines on phpolars (see phibble's [Backends](https://erikwestlund.github.io/phibble/backends.html) page), and `DataFrame::fromPhibble()` and `toPhibble()` move data between a phpolars `DataFrame` and a `Phibble\DataFrame`.
 
 ## Requirements
 
-- PHP 8.5, non-thread-safe (NTS) build, on Linux or macOS
-- A stable Rust toolchain and libclang to build
+- PHP 8.3, 8.4, or 8.5, non-thread-safe (NTS) build, on Linux or macOS
+- To build from source: a stable Rust toolchain and libclang
 
 ## Installing
 
@@ -33,6 +33,8 @@ With [PIE](https://github.com/php/pie):
 pie install erikwestlund/phpolars
 ```
 
+On Linux with glibc (x86_64 or arm64), PIE installs the prebuilt binary for the PHP version from the GitHub release. Elsewhere it builds from source with Cargo.
+
 From a checkout, build with Cargo and load the library directly:
 
 ```sh
@@ -40,7 +42,7 @@ PHP=$(which php) PHP_CONFIG=$(which php-config) cargo build --release
 php -d extension=$PWD/target/release/libphp_polars.so script.php   # .dylib on macOS
 ```
 
-On macOS with Homebrew, set `LIBCLANG_PATH=$(brew --prefix llvm)/lib`. If several PHP versions are installed, point `PHP` and `PHP_CONFIG` at the PHP 8.5 binaries, because ext-php-rs builds against the headers of that PHP.
+On macOS with Homebrew, set `LIBCLANG_PATH=$(brew --prefix llvm)/lib`. If several PHP versions are installed, point `PHP` and `PHP_CONFIG` at the PHP you will load the extension into, because ext-php-rs builds against that PHP's headers. A build for one PHP version does not load in another.
 
 ## API conventions
 

@@ -54,7 +54,7 @@ foreach ($functions as $f) {
     $line = sig($r);
     if ($r->getNamespaceName() === 'Phpolars\\cs') {
         $selectors[] = 'cs\\'.$line;
-    } elseif (array_any($io, fn ($p) => str_starts_with($r->getShortName(), $p))) {
+    } elseif (array_filter($io, fn ($p) => str_starts_with($r->getShortName(), $p)) !== []) {
         $read[] = $line;
     } else {
         $expr[] = $line;

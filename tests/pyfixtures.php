@@ -40,10 +40,10 @@ $nums = new DataFrame(['n' => ['1', '20', '-3', 'x', null, '007']]);
 $rnd = new DataFrame(['f' => [0.5, 1.5, 2.5, -0.5, -1.5, 1.005, 2.675, null]]);
 $dt = fn (string $s) => new DateTimeImmutable($s);
 $words = new DataFrame(['w' => ['the quick fox', 'Lazy DOG', null, 'a.b*c', 'café', '{"a": 1, "b": [1, 2]}']]);
-$days = new DataFrame(['d' => [$dt('2024-01-05'), $dt('2024-02-29'), $dt('1999-12-31'), null]])->cast(['d' => 'Date']);
+$days = (new DataFrame(['d' => [$dt('2024-01-05'), $dt('2024-02-29'), $dt('1999-12-31'), null]]))->cast(['d' => 'Date']);
 $arrs = new DataFrame(['a' => [[1, 5, 2], [4, null, 4], null]], schema: ['a' => 'Array(Int64, 3)']);
 $cats = new DataFrame(['c' => ['apple', 'banana', 'apple', null]], schema: ['c' => 'Categorical']);
-$wide = new DataFrame([
+$wide = (new DataFrame([
     'id' => [1], 'i8' => [1], 'u32' => [1], 'f32' => [1.0], 'price_f64' => [1.0], 'name' => ['a'], 'flag' => [true],
     'day' => [$dt('2024-01-01')], 'ts_us' => [$dt('2024-01-01')], 'ts_ms_utc' => [$dt('2024-01-01')],
     'dur' => [86_400_000_000], 'tm' => ['01:02:00'], 'cat' => ['x'], 'lst' => [[1, 2]], 'lst_s' => [['a']],
@@ -51,7 +51,7 @@ $wide = new DataFrame([
 ], schema: [
     'i8' => 'Int8', 'u32' => 'UInt32', 'f32' => 'Float32', 'day' => 'Date', 'ts_ms_utc' => 'Datetime(ms, UTC)', 'dur' => 'Duration(us)',
     'cat' => 'Categorical', 'arr' => 'Array(Int64, 2)', 'bin' => 'Binary', 'dec' => 'Decimal(10, 2)',
-])->withColumns(col('tm')->str()->toTime('%H:%M:%S'));
+]))->withColumns(col('tm')->str()->toTime('%H:%M:%S'));
 $nested = [['a' => 1, 'b' => ['c' => 2, 'd' => ['e' => 3, 'u' => 'x/y']], 'f' => [1, 2]], ['a' => null, 'b' => ['c' => 5]], ['g' => true]];
 $bools2 = new DataFrame(['a' => [true, false], 'b' => [false, false]]);
 $upd = new DataFrame(['id' => [2, 4, 9], 'x' => [20, null, 90], 'g' => ['B', null, 'Z']]);

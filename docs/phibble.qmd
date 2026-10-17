@@ -4,19 +4,40 @@ title: "phibble and phplyr"
 
 [phibble](https://erikwestlund.github.io/phibble/) defines a table contract with several backends: its in-memory `DataFrame`, `SqlTable` for PDO databases, and `Phibble\Polars\PolarsTable`, which runs on a Polars `DataFrame` when the php_polars extension is loaded. [phplyr](https://erikwestlund.github.io/phplyr/)'s verbs work on any of them, so a phplyr pipeline runs in Polars when it starts from a `PolarsTable`. The backend ships with phibble ^0.2 (`composer require erikwestlund/phibble:^0.2`); install phpolars to enable it. phibble's [Backends](https://erikwestlund.github.io/phibble/backends.html) page compares the backends.
 
+A phplyr pipeline on a `PolarsTable` runs in Polars:
+
+::: {.panel-tabset group="syntax"}
+## Method chain (PHP 8.3+)
+
 ```php
 use Phibble\Polars\PolarsTable;
-use function Phibble\Expr\{col, mean, n};
+use function Phplyr\{col, mean, n, phplyr};
+
+$table = PolarsTable::fromPolars(Phpolars\read_csv('sales.csv'));   // or PolarsTable::fromTable($frame)
+
+$out = phplyr($table)
+    ->group_by('store')
+    ->filter(col('units')->gt(mean('units', na_rm: true)))
+    ->summarise(orders: n(), avg_units: mean('units'))
+    ->get();
+```
+
+## Pipe (PHP 8.5)
+
+```php
+use Phibble\Polars\PolarsTable;
+use function Phplyr\{col, filter, group_by, mean, n, summarise};
 
 $table = PolarsTable::fromPolars(Phpolars\read_csv('sales.csv'));   // or PolarsTable::fromTable($frame)
 
 $out = $table
-    ->groupBy(['store'])
-    ->filter(col('units')->gt(mean(col('units'), na_rm: true)))
-    ->summarise(['orders' => n(), 'avg_units' => mean(col('units'))]);
-
-$frame = $out->collect();   // a Phibble\DataFrame
+    |> group_by('store')
+    |> filter(col('units')->gt(mean('units', na_rm: true)))
+    |> summarise(orders: n(), avg_units: mean('units'));
 ```
+:::
+
+`$out` is a `PolarsTable`, and `$out->collect()` returns a `Phibble\DataFrame`.
 
 ## What runs in Polars
 
