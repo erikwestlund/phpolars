@@ -468,7 +468,7 @@
     "href": "index.html#what-it-includes",
     "title": "phpolars",
     "section": "What it includes",
-    "text": "What it includes\n\nDataFrame and LazyFrame with py-polars’ verbs: select, withColumns, filter, sort, groupBy/agg, join, unique, pivot, unpivot, explode, describe, and more.\nExpressions with arithmetic, three-valued logic, aggregations, window functions (over), when/then/otherwise, and the str, dt, list, struct, and name namespaces.\nSeries, with the same expression methods.\nCSV, Parquet, JSON, NDJSON, and Arrow IPC reading and writing, with lazy scans and streaming sinks.\nA thread-pool cap for PHP-FPM (php_polars.max_threads).\nA backend for phibble, Phibble\\Polars\\PolarsTable, that runs phplyr pipelines in Polars. It ships with phibble.",
+    "text": "What it includes\n\nDataFrame and LazyFrame with py-polars’ verbs: select, withColumns, filter, sort, groupBy/agg, join, unique, pivot, unpivot, explode, describe, and more.\nExpressions with arithmetic, three-valued logic, aggregations, window functions (over), when/then/otherwise, and the str, dt, list, struct, and name namespaces.\nSeries, with the same expression methods.\nCSV, Parquet, JSON, NDJSON, and Arrow IPC reading and writing, with lazy scans and streaming sinks.\nA thread-pool cap for PHP-FPM (php_polars.max_threads).\nA backend for phibble, Phibble\\Polars\\PolarsTable, that runs phplyr pipelines in Polars. It ships with phibble ^0.2; see phibble’s Backends page.",
     "crumbs": [
       "phpolars"
     ]
@@ -488,7 +488,7 @@
     "href": "phibble.html",
     "title": "phibble and phplyr",
     "section": "",
-    "text": "phibble defines a table contract with several backends: its in-memory DataFrame, SqlTable for PDO databases, and Phibble\\Polars\\PolarsTable, which runs on a Polars DataFrame when the php_polars extension is loaded. phplyr’s verbs work on any of them, so a phplyr pipeline runs in Polars when it starts from a PolarsTable. The backend ships with phibble (v0.2.0 and later); install phpolars to enable it.",
+    "text": "phibble defines a table contract with several backends: its in-memory DataFrame, SqlTable for PDO databases, and Phibble\\Polars\\PolarsTable, which runs on a Polars DataFrame when the php_polars extension is loaded. phplyr’s verbs work on any of them, so a phplyr pipeline runs in Polars when it starts from a PolarsTable. The backend ships with phibble ^0.2 (composer require erikwestlund/phibble:^0.2); install phpolars to enable it. phibble’s Backends page compares the backends.",
     "crumbs": [
       "phibble and phplyr"
     ]
