@@ -2,7 +2,7 @@
 title: "phibble and phplyr"
 ---
 
-[phibble](https://erikwestlund.github.io/phibble/) defines a table contract with several backends: its in-memory `DataFrame`, `SqlTable` for PDO databases, and `Phibble\Polars\PolarsTable`, which runs on a Polars `DataFrame` when the php_polars extension is loaded. [phplyr](https://erikwestlund.github.io/phplyr/)'s verbs work on any of them, so a phplyr pipeline runs in Polars when it starts from a `PolarsTable`. The backend ships with phibble (v0.2.0 and later); install phpolars to enable it.
+[phibble](https://erikwestlund.github.io/phibble/) defines a table contract with several backends: its in-memory `DataFrame`, `SqlTable` for PDO databases, and `Phibble\Polars\PolarsTable`, which runs on a Polars `DataFrame` when the php_polars extension is loaded. [phplyr](https://erikwestlund.github.io/phplyr/)'s verbs work on any of them, so a phplyr pipeline runs in Polars when it starts from a `PolarsTable`. The backend ships with phibble ^0.2 (`composer require erikwestlund/phibble:^0.2`); install phpolars to enable it. phibble's [Backends](https://erikwestlund.github.io/phibble/backends.html) page compares the backends.
 
 ```php
 use Phibble\Polars\PolarsTable;

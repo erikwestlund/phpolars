@@ -18,7 +18,7 @@ $summary = $df
 print_r($summary->toDicts());
 ```
 
-phpolars is part of a family of PHP 8.5 packages for data work. [phibble](https://github.com/erikwestlund/phibble) is a pure-PHP data frame, [phplyr](https://github.com/erikwestlund/phplyr) provides dplyr verbs over phibble tables, and phpolars is the optional fast backend. `DataFrame::fromPhibble()` and `toPhibble()` move data between the two.
+phpolars is part of a family of PHP 8.5 packages for data work. [phibble](https://github.com/erikwestlund/phibble) is a pure-PHP data frame, [phplyr](https://github.com/erikwestlund/phplyr) provides dplyr verbs over phibble tables, and phpolars is the optional fast backend. With phibble ^0.2, `Phibble\Polars\PolarsTable` runs phplyr pipelines on phpolars (see phibble's [Backends](https://erikwestlund.github.io/phibble/backends.html) page), and `DataFrame::fromPhibble()` and `toPhibble()` move data between a phpolars `DataFrame` and a `Phibble\DataFrame`.
 
 ## Requirements
 
