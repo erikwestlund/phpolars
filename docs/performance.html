@@ -266,7 +266,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="phplyr-pipelines-on-three-backends" class="level2">
 <h2 class="anchored" data-anchor-id="phplyr-pipelines-on-three-backends">phplyr pipelines on three backends</h2>
-<p><code>bench/phplyr.php</code> runs phplyr pipelines on phibble’s in-memory <code>Frame</code>, <code>PolarsTable</code>, and phibble’s <code>SqlTable</code> over SQLite. The data is a sales table (store, product, day, units with 2% NA and 5% zeros, price) and a 100-row store lookup. Loading is not timed; each pipeline is timed through <code>collect()</code>, best of three. The results of all backends are compared.</p>
+<p><code>bench/phplyr.php</code> runs phplyr pipelines on phibble’s in-memory <code>DataFrame</code>, <code>PolarsTable</code>, and phibble’s <code>SqlTable</code> over SQLite. The data is a sales table (store, product, day, units with 2% NA and 5% zeros, price) and a 100-row store lookup. Loading is not timed; each pipeline is timed through <code>collect()</code>, best of three. The results of all backends are compared.</p>
 <ul>
 <li><strong>A:</strong> filter, left join, grouped summary, then a ranked window within regions.</li>
 <li><strong>B:</strong> per-store windows over every row: <code>lag(order_by: day)</code>, <code>cumsum</code>, and a share of the group sum.</li>
@@ -277,7 +277,7 @@ ul.task-list li input[type="checkbox"] {
 <tr class="header">
 <th>Pipeline</th>
 <th>Rows</th>
-<th>Frame</th>
+<th>phibble DataFrame</th>
 <th>PolarsTable</th>
 <th>SqlTable</th>
 </tr>
@@ -333,7 +333,7 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="where-the-time-goes">Where the time goes</h2>
 <p>Polars runs the verbs themselves 10 to 100 times faster than the in-memory frame. Returning rows to PHP is the cost that remains. Collecting 1M rows into PHP takes about 0.2 s for plain columns, plus about 0.5 s per datetime column, because each <code>DateTimeImmutable</code> is a PHP object.</p>
 <p>PolarsTable is the faster backend when a pipeline reduces the data (summaries, filters, joins followed by summaries) or chains several verbs before collecting. Reading files with <code>Phpolars\read_csv()</code> or <code>read_parquet()</code> and wrapping the result with <code>PolarsTable::fromPolars()</code> also avoids parsing the file in PHP.</p>
-<p>A verb given a PHP closure converts the table to a phibble <code>Frame</code> and back, about 1 s per million rows with a datetime column. On large data, use expressions, or use the in-memory <code>Frame</code> for closure-heavy pipelines.</p>
+<p>A verb given a PHP closure converts the table to a phibble <code>DataFrame</code> and back, about 1 s per million rows with a datetime column. On large data, use expressions, or use phibble’s in-memory <code>DataFrame</code> for closure-heavy pipelines.</p>
 </section>
 <section id="binary-size" class="level2">
 <h2 class="anchored" data-anchor-id="binary-size">Binary size</h2>

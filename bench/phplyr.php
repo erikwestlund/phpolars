@@ -1,6 +1,6 @@
 <?php
 
-// phplyr pipelines on three phibble backends: the in-memory Frame, PolarsTable,
+// phplyr pipelines on three phibble backends: the in-memory DataFrame, PolarsTable,
 // and SqlTable over SQLite. Times run through collect(); loading data is not timed.
 //
 //   php -d memory_limit=-1 -d extension=.../libphp_polars.so bench/phplyr.php PHPLYR_DIR ROWS [REPEATS]
@@ -18,7 +18,7 @@ if ($phplyr === null) {
 require $phplyr.'/vendor/autoload.php';
 
 use Phibble\Contracts\Table;
-use Phibble\Frame;
+use Phibble\DataFrame;
 use Phibble\Sql\SqlTable;
 use Phibble\Polars\PolarsTable;
 
@@ -42,8 +42,8 @@ for ($i = 0; $i < $rows; $i++) {
 }
 $stores = ['store' => range(1, 100), 'region' => array_map(fn ($s) => 'region-'.(($s - 1) % 5 + 1), range(1, 100))];
 
-$frameSales = Frame::fromColumns($sales);
-$frameStores = Frame::fromColumns($stores);
+$frameSales = DataFrame::fromColumns($sales);
+$frameStores = DataFrame::fromColumns($stores);
 
 $pdo = new PDO('sqlite::memory:');
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -61,7 +61,7 @@ foreach ($stores['store'] as $i => $s) {
 $pdo->commit();
 
 $backends = [
-    'Frame' => [fn () => $frameSales, fn () => $frameStores],
+    'DataFrame' => [fn () => $frameSales, fn () => $frameStores],
     'PolarsTable' => [fn () => PolarsTable::fromTable($frameSales), fn () => PolarsTable::fromTable($frameStores)],
     'SqlTable' => [fn () => SqlTable::table($pdo, 'sales'), fn () => SqlTable::table($pdo, 'stores')],
 ];

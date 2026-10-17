@@ -17,13 +17,13 @@ All timings are on an Apple M5 Ultra with Homebrew PHP 8.5.10 and Polars limited
 
 ## phplyr pipelines on three backends
 
-`bench/phplyr.php` runs phplyr pipelines on phibble's in-memory `Frame`, `PolarsTable`, and phibble's `SqlTable` over SQLite. The data is a sales table (store, product, day, units with 2% NA and 5% zeros, price) and a 100-row store lookup. Loading is not timed; each pipeline is timed through `collect()`, best of three. The results of all backends are compared.
+`bench/phplyr.php` runs phplyr pipelines on phibble's in-memory `DataFrame`, `PolarsTable`, and phibble's `SqlTable` over SQLite. The data is a sales table (store, product, day, units with 2% NA and 5% zeros, price) and a 100-row store lookup. Loading is not timed; each pipeline is timed through `collect()`, best of three. The results of all backends are compared.
 
 - **A:** filter, left join, grouped summary, then a ranked window within regions.
 - **B:** per-store windows over every row: `lag(order_by: day)`, `cumsum`, and a share of the group sum.
 - **C:** pipeline A with a PHP closure in `filter()`.
 
-| Pipeline | Rows | Frame | PolarsTable | SqlTable |
+| Pipeline | Rows | phibble DataFrame | PolarsTable | SqlTable |
 | --- | --- | --- | --- | --- |
 | A | 100k | 0.166 s | 0.009 s | 0.044 s |
 | B | 100k | 0.212 s | 0.048 s | 0.279 s |
@@ -40,7 +40,7 @@ Polars runs the verbs themselves 10 to 100 times faster than the in-memory frame
 
 PolarsTable is the faster backend when a pipeline reduces the data (summaries, filters, joins followed by summaries) or chains several verbs before collecting. Reading files with `Phpolars\read_csv()` or `read_parquet()` and wrapping the result with `PolarsTable::fromPolars()` also avoids parsing the file in PHP.
 
-A verb given a PHP closure converts the table to a phibble `Frame` and back, about 1 s per million rows with a datetime column. On large data, use expressions, or use the in-memory `Frame` for closure-heavy pipelines.
+A verb given a PHP closure converts the table to a phibble `DataFrame` and back, about 1 s per million rows with a datetime column. On large data, use expressions, or use phibble's in-memory `DataFrame` for closure-heavy pipelines.
 
 ## Binary size
 

@@ -266,7 +266,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p><a href="https://erikwestlund.github.io/phibble/">phibble</a> defines a table contract with several backends: its in-memory <code>Frame</code>, <code>SqlTable</code> for PDO databases, and <code>Phibble\Polars\PolarsTable</code>, which runs on a Polars <code>DataFrame</code> when the php_polars extension is loaded. <a href="https://erikwestlund.github.io/phplyr/">phplyr</a>’s verbs work on any of them, so a phplyr pipeline runs in Polars when it starts from a <code>PolarsTable</code>. The backend ships with phibble (v0.2.0 and later); install phpolars to enable it.</p>
+<p><a href="https://erikwestlund.github.io/phibble/">phibble</a> defines a table contract with several backends: its in-memory <code>DataFrame</code>, <code>SqlTable</code> for PDO databases, and <code>Phibble\Polars\PolarsTable</code>, which runs on a Polars <code>DataFrame</code> when the php_polars extension is loaded. <a href="https://erikwestlund.github.io/phplyr/">phplyr</a>’s verbs work on any of them, so a phplyr pipeline runs in Polars when it starts from a <code>PolarsTable</code>. The backend ships with phibble (v0.2.0 and later); install phpolars to enable it.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode php code-with-copy"><code class="sourceCode php"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">use</span> Phibble\Polars\PolarsTable<span class="ot">;</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">use</span> <span class="kw">function</span> Phibble\Expr\{col<span class="ot">,</span> mean<span class="ot">,</span> n}<span class="ot">;</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -277,15 +277,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    -&gt;filter(col(<span class="st">'units'</span>)-&gt;gt(mean(col(<span class="st">'units'</span>)<span class="ot">,</span> na_rm<span class="ot">:</span> <span class="kw">true</span>)))</span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    -&gt;summarise([<span class="st">'orders'</span> =&gt; n()<span class="ot">,</span> <span class="st">'avg_units'</span> =&gt; mean(col(<span class="st">'units'</span>))])<span class="ot">;</span></span>
 <span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="va">$frame</span> <span class="op">=</span> <span class="va">$out</span>-&gt;collect()<span class="ot">;</span>   <span class="co">// a Phibble\Frame</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="va">$frame</span> <span class="op">=</span> <span class="va">$out</span>-&gt;collect()<span class="ot">;</span>   <span class="co">// a Phibble\DataFrame</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <section id="what-runs-in-polars" class="level2">
 <h2 class="anchored" data-anchor-id="what-runs-in-polars">What runs in Polars</h2>
 <p>Verbs given column names or phibble expressions (<code>Phibble\Expr</code>, which phplyr’s helpers such as <code>col()</code>, <code>mean()</code>, and <code>n()</code> build) run in Polars with dplyr’s semantics: NA propagates, aggregates default to <code>na_rm = FALSE</code>, grouped <code>mutate()</code> and <code>filter()</code> evaluate aggregates and windows per group, groups follow sorted key order, and joins follow dplyr 1.2, including <code>join_by()</code> inequality and rolling joins. Pivots, stringr and lubridate functions, and phibble’s reference fixtures all run natively.</p>
-<p>PHP closures cannot run on Polars threads. A verb given a closure converts the table to a phibble <code>Frame</code>, runs there, and converts the result back; <code>PolarsTable::$fallbacks</code> counts these conversions. See <a href="./performance.html">Performance</a> for their cost.</p>
+<p>PHP closures cannot run on Polars threads. A verb given a closure converts the table to a phibble <code>DataFrame</code>, runs there, and converts the result back; <code>PolarsTable::$fallbacks</code> counts these conversions. See <a href="./performance.html">Performance</a> for their cost.</p>
+<p><code>PolarsTable::fromTable()</code> throws when a list column would not round-trip exactly, for example when named arrays with different keys would become structs.</p>
 </section>
 <section id="moving-data-directly" class="level2">
 <h2 class="anchored" data-anchor-id="moving-data-directly">Moving data directly</h2>
-<p>Without the backend, <code>DataFrame::fromPhibble($table)</code> reads any phibble table through <code>toColumns()</code>, and <code>$df-&gt;toPhibble()</code> returns a <code>Phibble\Frame</code>.</p>
+<p>Without the backend, <code>DataFrame::fromPhibble($table)</code> reads any phibble table through <code>toColumns()</code>, and <code>$df-&gt;toPhibble()</code> returns a <code>Phibble\DataFrame</code> (a <code>Phibble\Frame</code> with phibble v0.1).</p>
 
 
 </section>

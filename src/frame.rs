@@ -975,13 +975,15 @@ frame_verbs!(PhpDataFrame, PhpGroupBy, {
         convert::to_columns(&self.inner)
     }
 
-    /// A Phibble\Frame; requires erikwestlund/phibble.
+    /// A Phibble\DataFrame (Phibble\Frame before phibble v0.2); requires erikwestlund/phibble.
     pub fn toPhibble(&self) -> PhpResult<Zval> {
-        let factory = ZendCallable::try_from_name("Phibble\\Frame::fromColumns").map_err(|_| {
-            PhpException::from(
-                "Phibble\\Frame::fromColumns() is not available; install erikwestlund/phibble",
-            )
-        })?;
+        let factory = ZendCallable::try_from_name("Phibble\\DataFrame::fromColumns")
+            .or_else(|_| ZendCallable::try_from_name("Phibble\\Frame::fromColumns"))
+            .map_err(|_| {
+                PhpException::from(
+                    "Phibble\\DataFrame::fromColumns() is not available; install erikwestlund/phibble",
+                )
+            })?;
         let columns = convert::to_columns(&self.inner)?;
         Ok(factory.try_call(vec![&columns])?)
     }

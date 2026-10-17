@@ -178,7 +178,7 @@
     "href": "performance.html#phplyr-pipelines-on-three-backends",
     "title": "Performance",
     "section": "phplyr pipelines on three backends",
-    "text": "phplyr pipelines on three backends\nbench/phplyr.php runs phplyr pipelines on phibble’s in-memory Frame, PolarsTable, and phibble’s SqlTable over SQLite. The data is a sales table (store, product, day, units with 2% NA and 5% zeros, price) and a 100-row store lookup. Loading is not timed; each pipeline is timed through collect(), best of three. The results of all backends are compared.\n\nA: filter, left join, grouped summary, then a ranked window within regions.\nB: per-store windows over every row: lag(order_by: day), cumsum, and a share of the group sum.\nC: pipeline A with a PHP closure in filter().\n\n\n\n\nPipeline\nRows\nFrame\nPolarsTable\nSqlTable\n\n\n\n\nA\n100k\n0.166 s\n0.009 s\n0.044 s\n\n\nB\n100k\n0.212 s\n0.048 s\n0.279 s\n\n\nC\n100k\n0.180 s\n0.088 s\n0.291 s\n\n\nA\n1M\n1.517 s\n0.062 s\n0.456 s\n\n\nB\n1M\n2.677 s\n0.438 s\n3.571 s\n\n\nC\n1M\n1.670 s\n0.909 s\n2.875 s\n\n\n\nThese runs used phibble at dbd8b1e. SqlTable’s pipeline B results differed from the other backends then; phibble fixed this in ccafa98.",
+    "text": "phplyr pipelines on three backends\nbench/phplyr.php runs phplyr pipelines on phibble’s in-memory DataFrame, PolarsTable, and phibble’s SqlTable over SQLite. The data is a sales table (store, product, day, units with 2% NA and 5% zeros, price) and a 100-row store lookup. Loading is not timed; each pipeline is timed through collect(), best of three. The results of all backends are compared.\n\nA: filter, left join, grouped summary, then a ranked window within regions.\nB: per-store windows over every row: lag(order_by: day), cumsum, and a share of the group sum.\nC: pipeline A with a PHP closure in filter().\n\n\n\n\nPipeline\nRows\nphibble DataFrame\nPolarsTable\nSqlTable\n\n\n\n\nA\n100k\n0.166 s\n0.009 s\n0.044 s\n\n\nB\n100k\n0.212 s\n0.048 s\n0.279 s\n\n\nC\n100k\n0.180 s\n0.088 s\n0.291 s\n\n\nA\n1M\n1.517 s\n0.062 s\n0.456 s\n\n\nB\n1M\n2.677 s\n0.438 s\n3.571 s\n\n\nC\n1M\n1.670 s\n0.909 s\n2.875 s\n\n\n\nThese runs used phibble at dbd8b1e. SqlTable’s pipeline B results differed from the other backends then; phibble fixed this in ccafa98.",
     "crumbs": [
       "Performance"
     ]
@@ -188,7 +188,7 @@
     "href": "performance.html#where-the-time-goes",
     "title": "Performance",
     "section": "Where the time goes",
-    "text": "Where the time goes\nPolars runs the verbs themselves 10 to 100 times faster than the in-memory frame. Returning rows to PHP is the cost that remains. Collecting 1M rows into PHP takes about 0.2 s for plain columns, plus about 0.5 s per datetime column, because each DateTimeImmutable is a PHP object.\nPolarsTable is the faster backend when a pipeline reduces the data (summaries, filters, joins followed by summaries) or chains several verbs before collecting. Reading files with Phpolars\\read_csv() or read_parquet() and wrapping the result with PolarsTable::fromPolars() also avoids parsing the file in PHP.\nA verb given a PHP closure converts the table to a phibble Frame and back, about 1 s per million rows with a datetime column. On large data, use expressions, or use the in-memory Frame for closure-heavy pipelines.",
+    "text": "Where the time goes\nPolars runs the verbs themselves 10 to 100 times faster than the in-memory frame. Returning rows to PHP is the cost that remains. Collecting 1M rows into PHP takes about 0.2 s for plain columns, plus about 0.5 s per datetime column, because each DateTimeImmutable is a PHP object.\nPolarsTable is the faster backend when a pipeline reduces the data (summaries, filters, joins followed by summaries) or chains several verbs before collecting. Reading files with Phpolars\\read_csv() or read_parquet() and wrapping the result with PolarsTable::fromPolars() also avoids parsing the file in PHP.\nA verb given a PHP closure converts the table to a phibble DataFrame and back, about 1 s per million rows with a datetime column. On large data, use expressions, or use phibble’s in-memory DataFrame for closure-heavy pipelines.",
     "crumbs": [
       "Performance"
     ]
@@ -488,7 +488,7 @@
     "href": "phibble.html",
     "title": "phibble and phplyr",
     "section": "",
-    "text": "phibble defines a table contract with several backends: its in-memory Frame, SqlTable for PDO databases, and Phibble\\Polars\\PolarsTable, which runs on a Polars DataFrame when the php_polars extension is loaded. phplyr’s verbs work on any of them, so a phplyr pipeline runs in Polars when it starts from a PolarsTable. The backend ships with phibble (v0.2.0 and later); install phpolars to enable it.",
+    "text": "phibble defines a table contract with several backends: its in-memory DataFrame, SqlTable for PDO databases, and Phibble\\Polars\\PolarsTable, which runs on a Polars DataFrame when the php_polars extension is loaded. phplyr’s verbs work on any of them, so a phplyr pipeline runs in Polars when it starts from a PolarsTable. The backend ships with phibble (v0.2.0 and later); install phpolars to enable it.",
     "crumbs": [
       "phibble and phplyr"
     ]
@@ -498,7 +498,7 @@
     "href": "phibble.html#what-runs-in-polars",
     "title": "phibble and phplyr",
     "section": "What runs in Polars",
-    "text": "What runs in Polars\nVerbs given column names or phibble expressions (Phibble\\Expr, which phplyr’s helpers such as col(), mean(), and n() build) run in Polars with dplyr’s semantics: NA propagates, aggregates default to na_rm = FALSE, grouped mutate() and filter() evaluate aggregates and windows per group, groups follow sorted key order, and joins follow dplyr 1.2, including join_by() inequality and rolling joins. Pivots, stringr and lubridate functions, and phibble’s reference fixtures all run natively.\nPHP closures cannot run on Polars threads. A verb given a closure converts the table to a phibble Frame, runs there, and converts the result back; PolarsTable::$fallbacks counts these conversions. See Performance for their cost.",
+    "text": "What runs in Polars\nVerbs given column names or phibble expressions (Phibble\\Expr, which phplyr’s helpers such as col(), mean(), and n() build) run in Polars with dplyr’s semantics: NA propagates, aggregates default to na_rm = FALSE, grouped mutate() and filter() evaluate aggregates and windows per group, groups follow sorted key order, and joins follow dplyr 1.2, including join_by() inequality and rolling joins. Pivots, stringr and lubridate functions, and phibble’s reference fixtures all run natively.\nPHP closures cannot run on Polars threads. A verb given a closure converts the table to a phibble DataFrame, runs there, and converts the result back; PolarsTable::$fallbacks counts these conversions. See Performance for their cost.\nPolarsTable::fromTable() throws when a list column would not round-trip exactly, for example when named arrays with different keys would become structs.",
     "crumbs": [
       "phibble and phplyr"
     ]
@@ -508,7 +508,7 @@
     "href": "phibble.html#moving-data-directly",
     "title": "phibble and phplyr",
     "section": "Moving data directly",
-    "text": "Moving data directly\nWithout the backend, DataFrame::fromPhibble($table) reads any phibble table through toColumns(), and $df-&gt;toPhibble() returns a Phibble\\Frame.",
+    "text": "Moving data directly\nWithout the backend, DataFrame::fromPhibble($table) reads any phibble table through toColumns(), and $df-&gt;toPhibble() returns a Phibble\\DataFrame (a Phibble\\Frame with phibble v0.1).",
     "crumbs": [
       "phibble and phplyr"
     ]

@@ -47,8 +47,8 @@ $runs['plain-php'] = function () use ($csv) {
     }
     return $rows;
 };
-if (class_exists(\Phibble\Frame::class)) {
-    $runs['phibble'] = fn () => \Phibble\Frame::fromCsv($csv)
+if (class_exists(\Phibble\DataFrame::class)) {
+    $runs['phibble'] = fn () => \Phibble\DataFrame::fromCsv($csv)
         ->filter(fn ($r) => $r->x > 500)
         ->groupBy(['g'])
         ->summarise([
